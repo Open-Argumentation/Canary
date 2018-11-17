@@ -10,6 +10,10 @@ def root():
 def home():
     return render_template('home.html')
 
+@app.route('/tutorial')
+def tutorial():
+    return render_template('tutorial.html')
+
 @app.route('/tokenizer')
 def tokenizer():
     return Tokenizer('Hello - Canary')
