@@ -8,6 +8,10 @@ def root():
 
 @app.route('/home')
 def home():
+    return render_template('home.html')
+
+@app.route('/tokenizer')
+def tokenizer():
     return Tokenizer('Hello - Canary')
 
 @app.errorhandler(404)
