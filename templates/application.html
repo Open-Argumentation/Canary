@@ -1,0 +1,43 @@
+<!doctype html>
+    <html>
+        <head>
+            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/template.css') }}">
+        </head>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <a class="navbar-brand" href="/home">
+                    <img src="../static/img/logo-small.png" width="30" height="30" class="d-inline-block align-top" alt="Canary Logo">
+                    Canary
+                </a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
+                </button>
+              
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                  <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                      <a class="nav-link" href="#"> • Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/input"> • Demo</a>
+                    </li>
+                  </ul>
+                  <button class="btn btn-outline-primary">
+                      V 1.0.0
+                  </button>
+                </div>
+              </nav>
+        <body>
+            <div class="mainContainer">
+                <h1>Canary</h1>
+                <p>Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.</p>
+                <a href="/tutorial">
+                    <button class="btn btn-outline-primary btn-standard">Getting Started</button>
+                </a>
+                <a href="https://github.com/C-CG/Canary">
+                    <button class="btn btn-primary btn-standard">Github</button>
+                </a>
+            </div>
+        </body>
+    </html>    
+</html>
