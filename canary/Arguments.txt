@@ -1,22 +1,28 @@
-Possible Claim [Major]: [we should attach more importance to cooperation during primary education.]
+Possible Claim [Major]: [, it is sensible to enforce the gun control.]
 
-Possible Claim: [, the whole society prospers.]
+Possible Claim: [, this is still a controversial topic around the world.]
 
-Possible Claim: [it is always said that competition makes the society more effective.]
+Possible Claim: [, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
 
-Possible Claim: [without the cooperation, there would be no victory of competition.]
+Possible Premise: [therefore, this is still a controversial topic around the world.]
 
-Possible Claim: [, no matter from the view of individual development or the relationship between competition and cooperation we can receive the same conclusion that a more cooperative attitudes towards life is more profitable in one's success.]
+Possible Premise: [from my point of view, it is sensible to enforce the gun control.]
 
-Possible Premise: [in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.]
+Possible Premise: [the accidents cannot be completely avoided although only those who have gun licenses can purchase guns.]
 
-Possible Premise: [all of these skills help them to get on well with other people and will benefit them for the whole life.]
+Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
 
-Possible Premise: [take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.]
+Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
 
-Possible Premise: [take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.]
+Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
 
-Possible Premise: [take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.]
+Possible Premise: [secondly, most violent crimes are related to the abuse of guns, especially in some countries where guns are available for people.]
 
-Possible Premise: [therefore without the cooperation, there would be no victory of competition.]
+Possible Premise: [in the us, firearms remain the most common method of suicide, accounting for about 50 per cent.]
+
+Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
+
+Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
+
+Possible Premise: [in conclusion, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
 

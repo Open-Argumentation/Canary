@@ -1,6 +1,7 @@
 # Imports
 import sys
 import os
+from canaryTest import fileCheck
 # Cosmetic Imports for Terminal Application (Dev mode)
 from pyfiglet import Figlet
 from clint.arguments import Args
@@ -40,6 +41,8 @@ def input():
             print 'TESTING...'
             puts(colored.cyan('---------------------------------------------------'))
             loop=False
+            # Run unit tests from 'canaryTest'
+            fileCheck()
         elif input=='3':
             print 'SEE CANARY.AM'
             puts(colored.cyan('---------------------------------------------------'))
