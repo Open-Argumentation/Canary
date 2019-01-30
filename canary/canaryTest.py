@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from canaryLib import canaryLocal
+from clint.textui import puts, colored, indent
 class CanaryTest(unittest.TestCase):
 
     def test(self):
@@ -18,6 +19,9 @@ def fileCheck():
             files.append(filename)
             # Run Canary.local on the file
             canaryLocal(filename)
+            # Using Clint to break up outputs
+            puts(colored.cyan('---------------------------------------------------'))
+            # Easier to take in the application running... (with a wait)
             time.sleep(3)
 
     

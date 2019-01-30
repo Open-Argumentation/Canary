@@ -5,6 +5,8 @@ import json
 import sys
 import os
 
+
+# Need to split this up, have vars as global
 def canaryLocal(file):
 
     # Counts used for Output (Only for console application)

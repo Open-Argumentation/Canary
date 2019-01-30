@@ -1,28 +1,34 @@
-Possible Claim [Major]: [, it is sensible to enforce the gun control.]
+Possible Claim: [, i think undergoing with parents is worthwhile.]
 
-Possible Claim: [, this is still a controversial topic around the world.]
+Possible Claim: [, he may have to rent a house and the rental would become a burden for parents.]
 
-Possible Claim: [, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
+Possible Claim: [, taking advice from parents, the young adult can go through obstacles easily.]
 
-Possible Premise: [therefore, this is still a controversial topic around the world.]
+Possible Claim: [, living with parents longer brings about memories with parents, less cost, and advice from parents.]
 
-Possible Premise: [from my point of view, it is sensible to enforce the gun control.]
+Possible Claim: [, staying longer with parents is a better choice.]
 
-Possible Premise: [the accidents cannot be completely avoided although only those who have gun licenses can purchase guns.]
+Possible Premise: [learning to be independent is essential for young adults
 
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
+learning to be independent is essential for young adults.]
 
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
+Possible Premise: [in my point of view, staying with the parents for longer time does more benefits than disadvantages to the young adult.]
 
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
+Possible Premise: [my opinion is based on creating memories with parents, saving money, and taking advice from parents.]
 
-Possible Premise: [secondly, most violent crimes are related to the abuse of guns, especially in some countries where guns are available for people.]
+Possible Premise: [the young adult has to try to create memories with his dad and mom in the early age.]
 
-Possible Premise: [in the us, firearms remain the most common method of suicide, accounting for about 50 per cent.]
+Possible Premise: [if he lives with his parents for longer time, they have more chances to share the feelings, exercise, and travel together.]
 
-Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
+Possible Premise: [all memories become priceless treasure as time passes by.]
 
-Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
+Possible Premise: [therefore, he may have to rent a house and the rental would become a burden for parents.]
 
-Possible Premise: [in conclusion, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
+Possible Premise: [moreover, another daily expense is also the considerable outgoings.]
+
+Possible Premise: [the third convincing reason is that the young adult needs father and mother's suggestions.]
+
+Possible Premise: [when in dilemma, the parents can comfort him and give him a big hand.]
+
+Possible Premise: [hence, taking advice from parents, the young adult can go through obstacles easily.]
 
