@@ -1,7 +1,7 @@
 # Imports
 import sys
 import os
-from canaryTest import fileCheck
+from canaryTest import fileCheck, canaryTest
 from canaryLib import canaryLocal
 # Cosmetic Imports for Terminal Application (Dev mode)
 from pyfiglet import Figlet
@@ -19,7 +19,8 @@ def menu():
     with indent(5):
         puts(colored.cyan('1: Find Arguments.......................'))
         puts(colored.cyan('2: Testing..............................'))
-        puts(colored.cyan('3: Help/Library Definitions.............'))
+        puts(colored.cyan('3: Testing (Canary vs Manual Analysis)..'))
+        puts(colored.cyan('4: Help/Library Definitions.............'))
     puts(colored.cyan('---------------------------------------------------'))
 
     
@@ -59,6 +60,12 @@ def input():
             # Run unit tests from 'canaryTest'
             fileCheck()
         elif input=='3':
+            print 'INDIVIDUAL TEST (essay001.txt)'
+            puts(colored.cyan('---------------------------------------------------'))
+            loop=False 
+            # Run individual test to compare results from Canary vs Manual Analysis
+            canaryTest()
+        elif input=='4':
             print 'SEE CANARY.AM'
             puts(colored.cyan('---------------------------------------------------'))
             loop=False

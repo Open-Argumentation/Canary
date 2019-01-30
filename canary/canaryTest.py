@@ -24,7 +24,26 @@ def fileCheck():
             # Easier to take in the application running... (with a wait)
             time.sleep(3)
 
-    
+def canaryTest():
+    # Points to the local directory used for the test files
+    #directory = ('.././corpus/')
+    # Test Array of correct amounts of Argumentative components from local files
+    # [filename, major, claim, premise]
+    manual = [['essay001', '2', '3', '6'],]
+    canary = []
+    file = 'essay001.txt'
+
+    canaryLocal(file)
+    # [filename, major, claim, premise]
+    canary.append([str(file), str(canaryLocal.major), str(canaryLocal.claim), str(canaryLocal.premise)])
+
+    # Need to store the strings instead of just the count, to compare (Will need to manually extract either the count or
+    # correct argument components, can use fileCheck to run through every file)
+    puts(colored.cyan('---------------------------------------------------'))
+    print("Canary vs Manual Analysis: " + "Major Claims: " + canary[0] [1] + "/" + manual[0] [1] + " Claims: "
+    + canary[0] [2] + "/" + manual[0] [2] + " Premises: " + canary[0] [3] + "/" + manual[0] [3]) 
+    puts(colored.cyan('---------------------------------------------------'))
+
 if __name__ == '__main__':
     fileCheck()
 

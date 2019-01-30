@@ -99,24 +99,45 @@ def canaryLocal(file):
     print ("Claim Count [Against]: " + str(claim_against_count))
     print ("Premise Count: " + str(premise_count))
 
+    # Name for output file
+    #print("Testing File Name: " + file)
+    # Spliting file at the '.' to extract the local file name
+    
+    """ WORKS FOR (1), but not (2)
+    f = file.split('/') 
+    filename = (f[3].split('.'))
+    file_final = str("Arguments_" + filename[0] + ".txt")
+    """
+    f = str(file.split('/'))
+    filename = (f.split('.')) 
+    file_final2 = filename[0].split("'")
+    file_final = str("Arguments_" + file_final2[1] + ".txt")
+
+    directory = '.././canary/output/' + file_final
     # Writing possible Argument Components to a file
-    file = open("Arguments.txt", "w+")
+    output = open(directory, "w+")
 
     # Looping through all of the Arguments (adding them to the file 'Arguments.txt')
     for claims in possible_claim_major:
-        file.write("Possible Claim [Major]: \r" + str(claims))
-        file.write("\n")
-        file.write("\n")
+        output.write("Possible Claim [Major]: \r" + str(claims))
+        output.write("\n")
+        output.write("\n")
     for claims2 in possible_claim:
-        file.write("Possible Claim: \r" + str(claims2))
-        file.write("\n")
-        file.write("\n")
+        output.write("Possible Claim: \r" + str(claims2))
+        output.write("\n")
+        output.write("\n")
     for premise in possible_premise:
-        file.write("Possible Premise: \r" + str(premise))
-        file.write("\n")
-        file.write("\n")
-    file.close()
+        output.write("Possible Premise: \r" + str(premise))
+        output.write("\n")
+        output.write("\n")
+    output.close()
 
     # Addressing the user as to where the potential arguments are stored
-    print ("Possible Argument Components written to File: Arguments.txt")
+    print ("Possible Argument Components written to File: " + file_final)
+
+    # Need to return Argument Component count to display against manual analysis (Function Attribute)
+    canaryLocal.major = str(claim_major_count)
+    canaryLocal.claim = str(claim_count)
+    canaryLocal.premise = str(premise_count)
+
     
