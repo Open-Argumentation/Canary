@@ -63,7 +63,40 @@ def CanaryBratAnalysis():
             time.sleep(3)
             f+=1
 
+def CanaryBratAnalysisV2():
+    print 'Canary vs Brat V2: String Comparison'
+    # Directory for files
+    directory = ('.././corpus/')
+
+    for files in os.listdir(directory):
+        if files.endswith('.ann'):
+            input = str(directory+files)
+            file = open(input, 'r')
+            filename = os.path.splitext(files)
+            lines = file.readlines()
+            # Stores the various argument components from the '.ann' file
+            major_arg = []
+            claim_arg = []
+            premise_arg = []
+            for line in lines:
+                if 'MajorClaim' in line:
+                    major = line.split('\t')
+                    major_arg.append(major[2].split('\n')[0])
+                elif 'Claim' in line:
+                    claim = line.split('\t')
+                    claim_arg.append(claim[2].split('\n')[0])
+                elif 'Premise' in line:
+                    premise = line.split('\t')
+                    premise_arg.append(premise[2].split('\n')[0])
+
+            print('File: ' + str(filename))
+            print('Major Claims: ' + str(major_arg))
+            print('Claims: ' + str(claim_arg))
+            print('Premise: ' + str(premise_arg))
+            time.sleep(20)
+
 if __name__ == '__main__':
     #fileCheck()
-    CanaryBratAnalysis()
+    #CanaryBratAnalysis()
+    CanaryBratAnalysisV2()
 
