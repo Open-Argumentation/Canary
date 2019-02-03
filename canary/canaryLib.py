@@ -92,6 +92,7 @@ def canaryLocal(file):
 
 
     # Ouputs
+    """
     print ("Sentence Count: " + str(sentence_count))
     print ("Claim Count [Major]: " + str(claim_major_count))
     print ("Claim Count: " + str(claim_count))
@@ -102,7 +103,7 @@ def canaryLocal(file):
     # Name for output file
     #print("Testing File Name: " + file)
     # Spliting file at the '.' to extract the local file name
-    
+    """
     """ WORKS FOR (1), but not (2)
     f = file.split('/') 
     filename = (f[3].split('.'))
@@ -133,7 +134,7 @@ def canaryLocal(file):
     output.close()
 
     # Addressing the user as to where the potential arguments are stored
-    print ("Possible Argument Components written to File: " + file_final)
+    # print ("Possible Argument Components written to File: " + file_final)
 
     # Need to return Argument Component count to display against manual analysis (Function Attribute)
     canaryLocal.major = str(claim_major_count)

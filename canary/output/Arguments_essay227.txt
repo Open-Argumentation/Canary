@@ -1,0 +1,52 @@
+Possible Claim [Major]: [, spending the budget for space exploration is an important activity to save living of humanity in the future.]
+
+Possible Claim: [, it is very significant to find a new place for living in other planets.]
+
+Possible Claim: [, space exploration will use as a military power for many countries.]
+
+Possible Claim: [the purposes of exploring space has altered.]
+
+Possible Premise: [nowadays, spending budget on space exploration is not reasonable
+
+space exploration, for discovery of out of space, has been possible for human in the 20th century.]
+
+Possible Premise: [nowadays, spending budget on space exploration is not reasonable
+
+space exploration, for discovery of out of space, has been possible for human in the 20th century.]
+
+Possible Premise: [the united state and russia are the important countries that spend large budgets for the research of this subject.]
+
+Possible Premise: [in my opinion, spending the budget for space exploration is an important activity to save living of humanity in the future.]
+
+Possible Premise: [many governments believe that space exploration is an activity that wastes the budget, while the essential challenge of humanity in the future would be the discovery of a new place for the living.]
+
+Possible Premise: [many governments believe that space exploration is an activity that wastes the budget, while the essential challenge of humanity in the future would be the discovery of a new place for the living.]
+
+Possible Premise: [in 20th century, although human being succeeded to achieve out of space by means of new technologies such as rockets, but finding a new place for living in another planet is impossible until now.]
+
+Possible Premise: [in 20th century, although human being succeeded to achieve out of space by means of new technologies such as rockets, but finding a new place for living in another planet is impossible until now.]
+
+Possible Premise: [in during history, our planet is threatening by many of other planets or stars and it is an enormous danger for living of humanity.]
+
+Possible Premise: [therefore, it is very significant to find a new place for living in other planets.]
+
+Possible Premise: [space exploration has used as a tools for military power in the cold war.]
+
+Possible Premise: [space exploration has used as a tools for military power in the cold war.]
+
+Possible Premise: [in the past, the space race happened between the united stated and the soviet union.]
+
+Possible Premise: [as a result, space exploration will use as a military power for many countries.]
+
+Possible Premise: [as a result, space exploration will use as a military power for many countries.]
+
+Possible Premise: [in summary, spending budget for space exploring is not the waste budget, because it may helps to save civilization of humanity.]
+
+Possible Premise: [in summary, spending budget for space exploring is not the waste budget, because it may helps to save civilization of humanity.]
+
+Possible Premise: [in summary, spending budget for space exploring is not the waste budget, because it may helps to save civilization of humanity.]
+
+Possible Premise: [although exploring space used for discovery of other planets, nowadays most of governments have used many rockets for military purposes and therefore the purposes of exploring space has altered.]
+
+Possible Premise: [although exploring space used for discovery of other planets, nowadays most of governments have used many rockets for military purposes and therefore the purposes of exploring space has altered.]
+

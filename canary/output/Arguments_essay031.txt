@@ -1,0 +1,74 @@
+Possible Claim [Major]: [, i strongly agree that alternative means of transportation and international laws in controlling automobiles should be introduced.]
+
+Possible Claim: [, it is crucial to alter automobiles to the other means of transportation and to legislate to control automobiles.]
+
+Possible Claim: [, it leads to an increase of traffic accidents.]
+
+Possible Claim: [, the methods to reduce the number of automobiles and to control car ownership and use should be immediately planned and implemented.]
+
+Possible Claim: [, these attempts to reduce automobiles can ease traffic congestion and environmental pollution.]
+
+Possible Premise: [alternative forms of transport to alleviate traffic congestion
+
+recently, a great deal of attention has been paid to means of transportation.]
+
+Possible Premise: [alternative forms of transport to alleviate traffic congestion
+
+recently, a great deal of attention has been paid to means of transportation.]
+
+Possible Premise: [some state that automobile is the most convenient transportation, while others assert that alternative forms of transport should be considered in view of environmental pollution.]
+
+Possible Premise: [some state that automobile is the most convenient transportation, while others assert that alternative forms of transport should be considered in view of environmental pollution.]
+
+Possible Premise: [some state that automobile is the most convenient transportation, while others assert that alternative forms of transport should be considered in view of environmental pollution.]
+
+Possible Premise: [in this essay, several reasons will be described carefully in the following passages.]
+
+Possible Premise: [firstly, an increase in the number of automobiles brings about environmental pollution.]
+
+Possible Premise: [since automobile exhaust and carbon dioxides emission have bad impacts on the air, the air gets to be polluted and it causes respiratory disease of the local inhabitants.]
+
+Possible Premise: [since automobile exhaust and carbon dioxides emission have bad impacts on the air, the air gets to be polluted and it causes respiratory disease of the local inhabitants.]
+
+Possible Premise: [therefore, it is crucial to alter automobiles to the other means of transportation and to legislate to control automobiles.]
+
+Possible Premise: [secondly, an increase in the number of automobiles causes terrible traffic congestion.]
+
+Possible Premise: [once we get into the traffic jam, it forces us to waste our time for a while.]
+
+Possible Premise: [once we get into the traffic jam, it forces us to waste our time for a while.]
+
+Possible Premise: [what is worse, traffic congestion irritates drivers and as a result, it leads to an increase of traffic accidents.]
+
+Possible Premise: [in order to solve these problems, alternative forms of transportation and international laws to control automobiles ownership and use can work effectively.]
+
+Possible Premise: [with regard to the former, alternative forms which emit less carbon dioxides and gasses than automobiles are ideal.]
+
+Possible Premise: [with regard to the former, alternative forms which emit less carbon dioxides and gasses than automobiles are ideal.]
+
+Possible Premise: [for example, rental bicycle system has been introduced in several european countries.]
+
+Possible Premise: [for example, rental bicycle system has been introduced in several european countries.]
+
+Possible Premise: [for example, rental bicycle system has been introduced in several european countries.]
+
+Possible Premise: [since bicycle expels neither carbon dioxides nor harmful gasses, it is a better form to protect environment than automobile.]
+
+Possible Premise: [since bicycle expels neither carbon dioxides nor harmful gasses, it is a better form to protect environment than automobile.]
+
+Possible Premise: [since bicycle expels neither carbon dioxides nor harmful gasses, it is a better form to protect environment than automobile.]
+
+Possible Premise: [as for the latter point, the introduction of international laws can be also effective.]
+
+Possible Premise: [as for the latter point, the introduction of international laws can be also effective.]
+
+Possible Premise: [for instance, there are some regulations to limit the use of automobiles by time and to allow the people possess one car only.]
+
+Possible Premise: [for instance, there are some regulations to limit the use of automobiles by time and to allow the people possess one car only.]
+
+Possible Premise: [thus, these attempts to reduce automobiles can ease traffic congestion and environmental pollution.]
+
+Possible Premise: [in summary, even though some people claim the convenience of automobile, i would state that alternative forms of transport and international laws on controlling automobiles are necessary due to the environmental protection and the alleviation of traffic congestion.]
+
+Possible Premise: [in summary, even though some people claim the convenience of automobile, i would state that alternative forms of transport and international laws on controlling automobiles are necessary due to the environmental protection and the alleviation of traffic congestion.]
+

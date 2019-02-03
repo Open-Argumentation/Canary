@@ -1,7 +1,7 @@
 # Imports
 import sys
 import os
-from canaryTest import fileCheck, canaryTest
+from canaryTest import CanaryBratAnalysis
 from canaryLib import canaryLocal
 # Cosmetic Imports for Terminal Application (Dev mode)
 from pyfiglet import Figlet
@@ -18,9 +18,8 @@ def menu():
     puts(colored.cyan('---------------------------------------------------'))
     with indent(5):
         puts(colored.cyan('1: Find Arguments.......................'))
-        puts(colored.cyan('2: Testing..............................'))
-        puts(colored.cyan('3: Testing (Canary vs Manual Analysis)..'))
-        puts(colored.cyan('4: Help/Library Definitions.............'))
+        puts(colored.cyan('2: Testing (Canary vs Manual Analysis)..'))
+        puts(colored.cyan('3: Help/Library Definitions.............'))
     puts(colored.cyan('---------------------------------------------------'))
 
     
@@ -54,18 +53,10 @@ def input():
                 input = raw_input("Please enter the file you with to Mine from the Corpus Folder e.g. essay001.txt: ")
                 puts(colored.cyan('---------------------------------------------------'))
         elif input=='2':
-            print 'TESTING...'
-            puts(colored.cyan('---------------------------------------------------'))
-            loop=False
-            # Run unit tests from 'canaryTest'
-            fileCheck()
-        elif input=='3':
-            print 'INDIVIDUAL TEST (essay001.txt)'
-            puts(colored.cyan('---------------------------------------------------'))
             loop=False 
             # Run individual test to compare results from Canary vs Manual Analysis
-            canaryTest()
-        elif input=='4':
+            CanaryBratAnalysis()
+        elif input=='3':
             print 'SEE CANARY.AM'
             puts(colored.cyan('---------------------------------------------------'))
             loop=False
