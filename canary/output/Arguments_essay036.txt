@@ -1,28 +1,0 @@
-Possible Claim [Major]: [, it is sensible to enforce the gun control.]
-
-Possible Claim: [, this is still a controversial topic around the world.]
-
-Possible Claim: [, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
-
-Possible Premise: [therefore, this is still a controversial topic around the world.]
-
-Possible Premise: [from my point of view, it is sensible to enforce the gun control.]
-
-Possible Premise: [the accidents cannot be completely avoided although only those who have gun licenses can purchase guns.]
-
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
-
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
-
-Possible Premise: [for example, we hear some news from time to time that someone was hurt by accident during the hunting.]
-
-Possible Premise: [secondly, most violent crimes are related to the abuse of guns, especially in some countries where guns are available for people.]
-
-Possible Premise: [in the us, firearms remain the most common method of suicide, accounting for about 50 per cent.]
-
-Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
-
-Possible Premise: [unfortunately, there is an increasing trend of adolescent suicides and suicides among those age 75 and over.]
-
-Possible Premise: [in conclusion, considering the rise in accident rates, violent crime rates and suicide rates, i support that the guns should be strictly limited and the government should enforce a series of laws to prevent our societies from violence.]
-

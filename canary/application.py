@@ -19,7 +19,8 @@ def menu():
     with indent(5):
         puts(colored.cyan('1: Find Arguments.......................'))
         puts(colored.cyan('2: Testing (Canary vs Manual Analysis)..'))
-        puts(colored.cyan('3: Help/Library Definitions.............'))
+        puts(colored.cyan('3: String Extraction (BRAT).............'))
+        puts(colored.cyan('4: Help/Library Definitions.............'))
     puts(colored.cyan('---------------------------------------------------'))
 
     
@@ -57,6 +58,9 @@ def input():
             # Run individual test to compare results from Canary vs Manual Analysis
             CanaryBratAnalysis()
         elif input=='3':
+            loop=False
+            print 'MOVE CODE FROM OTHER CANARY INTO HERE WITH THE STRINGS OF ARGS'
+        elif input=='4':
             print 'SEE CANARY.AM'
             puts(colored.cyan('---------------------------------------------------'))
             loop=False

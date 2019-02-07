@@ -66,30 +66,44 @@ def canaryLocal(file):
                 claim_major_count += 1
                 # Create a var for current sentence
                 sentence = str(sentence_list[line])
+
                 # Split the sentence at the Indicator and remove Whitespace
                 claim_major = sentence.split(
                     claim_major_indicators[i], 1)[1].lstrip()
-                # Add to Major Claims
-                possible_claim_major.append(str("[" + claim_major + "]"))
+
+                # Checking to see if the argument has already been added to the list
+                if claim_major not in str(possible_claim_major):
+                    # Add to Major Claims
+                    possible_claim_major.append(str(claim_major))
+                 
         # Looping through all of the Indicators (Claim)
         for i in range(len(claim_indicators)):
             if claim_indicators[i] in sentence_list[line]:
                 # Increase the count of possible Claims
                 claim_count += 1
                 sentence2 = str(sentence_list[line])
+                
                 # Split
                 claim = sentence2.split(claim_indicators[i], 1)[1].lstrip()
-                # Add to Claims
-                possible_claim.append(str("[" + claim + "]"))
+
+                # Checking to see if the argument has already been added to the list
+                if claim not in str(possible_claim):
+                    # Add to Claims
+                    possible_claim.append(str(claim))
+                      
         # Looping through all of the Indicators (Premise)
         for i in range(len(premise_indicators)):
             if premise_indicators[i] in sentence_list[line]:
                 # Increase the count of possible Premises
                 premise_count += 1
                 sentence3 = str(sentence_list[line])
-                # Add to Premises
-                possible_premise.append(str("[" + sentence3 + "]"))
-
+                
+                # Checking to see if the argument has already been added to the list
+                if sentence3  not in str(possible_premise):
+                    # Add to Premises
+                    possible_premise.append(str(sentence3))
+                
+                
 
     # Ouputs
     """

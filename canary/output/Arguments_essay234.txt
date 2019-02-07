@@ -1,46 +1,0 @@
-Possible Claim [Major]: [requirement to take standardized tests is the right choice, since in this case teachers can compare the level of knowledge of different students.]
-
-Possible Claim: [, exams could be the only way for teachers to see the real abilities of those students.]
-
-Possible Claim: [, it is clear that schools should require students to take standardized tests, as long as this option helps to both sides.]
-
-Possible Premise: [this issue is important because nowadays many people cast doubt on it.]
-
-Possible Premise: [this issue is important because nowadays many people cast doubt on it.]
-
-Possible Premise: [however, i believe that standardized tests are valuable option for educational system as long as it would help teachers to know if the students are really getting knowledge.]
-
-Possible Premise: [however, i believe that standardized tests are valuable option for educational system as long as it would help teachers to know if the students are really getting knowledge.]
-
-Possible Premise: [firstly, standardized tests are preferable due to the fact that they help teachers to fairly grade the students.]
-
-Possible Premise: [for example some students are not so active on the lessons, cause they are already familiar with the issue.]
-
-Possible Premise: [for example some students are not so active on the lessons, cause they are already familiar with the issue.]
-
-Possible Premise: [therefore, exams could be the only way for teachers to see the real abilities of those students.]
-
-Possible Premise: [in addition, many teachers rely only on the exam results while grading the class, so the usage of standardized tests is the superior option for them.]
-
-Possible Premise: [in addition, many teachers rely only on the exam results while grading the class, so the usage of standardized tests is the superior option for them.]
-
-Possible Premise: [in addition, many teachers rely only on the exam results while grading the class, so the usage of standardized tests is the superior option for them.]
-
-Possible Premise: [additionally, standardized tests can be good chance for students to apply their knowledge on practice.]
-
-Possible Premise: [since, some students may get used to simply rewriting solved problems from the blackboard, so they will never try to solve problems on their own.]
-
-Possible Premise: [thus, it is clear that schools should require students to take standardized tests, as long as this option helps to both sides.]
-
-Possible Premise: [finally, i think that requirement to take standardized tests is the right choice, since in this case teachers can compare the level of knowledge of different students.]
-
-Possible Premise: [finally, i think that requirement to take standardized tests is the right choice, since in this case teachers can compare the level of knowledge of different students.]
-
-Possible Premise: [in any class there will be students who will show low academic performance, so teachers could work with them more intensively.]
-
-Possible Premise: [in any class there will be students who will show low academic performance, so teachers could work with them more intensively.]
-
-Possible Premise: [i support the points of those who say that standardized tests are required over those who don’t because if the teacher would know the level of each student he would fairly share his time to all of them.]
-
-Possible Premise: [i belive this, due to the fact that these schools can qualitatively check if they are giving an appropriate education to their students.]
-
