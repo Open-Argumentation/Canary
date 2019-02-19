@@ -36,7 +36,7 @@ def input():
         puts(colored.cyan('---------------------------------------------------'))
 
         if input=='1':
-            print 'CANARY DEV BUILD'
+            print("CANARY DEV BUILD")
             puts(colored.cyan('---------------------------------------------------'))
             loop=False
             # User Input (For local File)
