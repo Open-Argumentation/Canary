@@ -5,6 +5,47 @@ import json
 import sys
 import os
 
+# Need to add parameters for claim list/premise list (Only tests atm)
+def canarySADFace():
+    # Hard-coded "Gold Standard" components from 'essay001'
+    Claims = ["through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", "competition makes the society more effective",
+          "without the cooperation, there would be no victory of competition"]
+
+    Premises = ["What we acquired from team work is not only how to achieve the same goal with others but more importantly, how to get along with others",
+            "During the process of cooperation, children can learn about how to listen to opinions of others, how to communicate with others, how to think comprehensively, and even how to compromise with other team members when conflicts occurred",
+            "All of these skills help them to get on well with other people and will benefit them for the whole life",
+            "the significance of competition is that how to become more excellence to gain the victory",
+            "when we consider about the question that how to win the game, we always find that we need the cooperation",
+            "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
+
+    # JSON
+    with open('./canarySADFace.json') as json_file:
+        SADFace = json.load(json_file)
+        
+    id = 0
+    for claim in Claims:
+        id+=1
+        SADFace['nodes'].append({
+            "id": str(id), 
+            "metadata": {}, 
+            "sources": [], 
+            "text": str(claim), 
+            "type": "atom"
+        })
+
+    for premise in Premises:
+        id+=1
+        SADFace['nodes'].append({
+            "id": str(id), 
+            "metadata": {}, 
+            "sources": [], 
+            "text": str(premise), 
+            "type": "atom"
+        })
+
+    with open('./canarySADFace.json', 'w') as f:
+        json.dump(SADFace, f, indent=4)
+    
 
 # Need to split this up, have vars as global
 def canaryLocal(file):
@@ -106,23 +147,6 @@ def canaryLocal(file):
                 
 
     # Ouputs
-    """
-    print ("Sentence Count: " + str(sentence_count))
-    print ("Claim Count [Major]: " + str(claim_major_count))
-    print ("Claim Count: " + str(claim_count))
-    print ("Claim Count [For]: " + str(claim_for_count))
-    print ("Claim Count [Against]: " + str(claim_against_count))
-    print ("Premise Count: " + str(premise_count))
-
-    # Name for output file
-    #print("Testing File Name: " + file)
-    # Spliting file at the '.' to extract the local file name
-    """
-    """ WORKS FOR (1), but not (2)
-    f = file.split('/') 
-    filename = (f[3].split('.'))
-    file_final = str("Arguments_" + filename[0] + ".txt")
-    """
     f = str(file.split('/'))
     filename = (f.split('.')) 
     file_final2 = filename[0].split("'")
@@ -150,9 +174,15 @@ def canaryLocal(file):
     # Addressing the user as to where the potential arguments are stored
     # print ("Possible Argument Components written to File: " + file_final)
 
+    print("Claims: " + str(possible_claim))
+
     # Need to return Argument Component count to display against manual analysis (Function Attribute)
     canaryLocal.major = str(claim_major_count)
     canaryLocal.claim = str(claim_count)
     canaryLocal.premise = str(premise_count)
 
-    
+    # Main
+
+if __name__ == "__main__":
+    # Launch Menu
+    canarySADFace()
