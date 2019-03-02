@@ -1,130 +1,145 @@
 # Imports
 from nltk.tokenize import sent_tokenize, word_tokenize
-import nltk
 import json
 import sys
 import os
 
-# Counts used for Output (Only for console application)
-sentence_count = 0
-claim_major_count = 0
-claim_count = 0
-claim_for_count = 0
-claim_against_count = 0
-premise_count = 0
+from gensim import downloader as data
+from nltk.corpus import stopwords
+from nltk import download
+download('stopwords')
 
-# Used to store possible Argument Components
-possible_claim_major = []
-possible_claim = []
-possible_claim_for = []
-possible_claim_against = []
-possible_premise = []
+def canaryLocal(file):
+    """ Finds Argumentative Components in a local file """
 
-# Used to store Indicators via 'indicators.json'
-claim_major_indicators = []
-claim_indicators = []
-premise_indicators = []
+    # Store Components
+    claim = []
+    majorClaim = []
+    premise = []
+    components = []
 
-# Importing Indicators from JSON file
-with open('indicators.json') as f:
-    data = json.load(f)
-    # For loop to loop through JSON file to add the correct Indicators to their array
-    for i in xrange(0, len(data["indicators"])):
-        # Major Indicators
-        for i in range(len(data["indicators"][i]["major"])):
-            claim_major_indicators.append(
-                str(data["indicators"][0]["major"][i]))
-        i = 0
-       
-        # Claim Indicators
-        for i in range(len(data["indicators"][i]["claim"])):
-            claim_indicators.append(str(data["indicators"][0]["claim"][i]))
-        i = 0
+    # Importing Indicators via "indicators.json"
+    with open("indicators.json") as indicatorsFile:
+        indicators = json.load(indicatorsFile)
+
+        # Store Indicators in their respective lists
+        claimIndicators = []
+        majorClaimIndicators = []
+        premiseIndicators = []
+
+        # Looping through JSON file to add Indicators to their respective lists
+        for i in xrange(0, len(indicators["indicators"])):
+            # Claim
+            for i in range(len(indicators["indicators"][i]["claim"])):
+                claimIndicators.append(str(indicators["indicators"][0]["claim"][i]))
+            i = 0
+            # Major
+            for i in range(len(indicators["indicators"][i]["major"])):
+                majorClaimIndicators.append(str(indicators["indicators"][0]["major"][i]))
+            i = 0
+            # Premise
+            for i in range(len(indicators["indicators"][i]["premise"])):
+                premiseIndicators.append(str(indicators["indicators"][0]["premise"][i]))
+            i = 0
         
-        # Premise Indicators
-        for i in range(len(data["indicators"][i]["premise"])):
-            premise_indicators.append(str(data["indicators"][0]["premise"][i]))
+        # User file imported, converted to lowercase and case ignored (NEED TO ADD CASE IGNORE)
+        userFile = open(file).read().lower()
 
-# User Input (For local File)
-input = raw_input("Please enter the file you with to Mine from the Corpus Folder e.g. essay001.txt: ")
-# Paths to file (input/fixed path)
-test_input = os.path.isfile('.././corpus/' + input)
-path = '.././corpus/'
+        # Tokenizing userFile into sentences, also removes Whitespace/Breaks
+        sentenceTokens = sent_tokenize(userFile)
 
-# Testing to see if the file exists
-if test_input:
-    path = ('.././corpus/' + input)
-else:
-    print "File does not exist in the directory 'corpus', please try again!"
-    input = raw_input("Please enter the file you with to Mine from the Corpus Folder e.g. essay001.txt: ")
+        # Looping through userFile Tokens (sentences)
+        for line in xrange(0, len(sentenceTokens)):
+            # Claim Indicators loop
+            for i in range(len(claimIndicators)):
+                # Indicator found in a given sentence
+                if claimIndicators[i] in sentenceTokens[line]:
+                    # Store current Component
+                    claimComponent = str(sentenceTokens[line])
+                    # Check to see if Component is already in list
+                    if claimComponent not in str(claim):
+                        # Add to found claims
+                        claim.append(claimComponent)
 
-# Variable for user file, converts to lower case to match Indicators (need to ignore case)
-local_file = open(path).read().lower()
-# Tokenizing the Data into sentences (Removes Whitespace/Breaks)
-sentence_list = sent_tokenize(local_file)
+            # Major Indicators loop
+            for i in range(len(majorClaimIndicators)):
+                # Indicator found in a given sentence
+                if majorClaimIndicators[i] in sentenceTokens[line]:
+                    # Store current Component
+                    claimMajorComponent = str(sentenceTokens[line])
+                    # Check to see if Component is already in list
+                    if claimMajorComponent not in str(majorClaim):
+                        # Add to found claims
+                        majorClaim.append(claimMajorComponent)
 
-# Looping through each sentence from the file
-for line in xrange(0, len(sentence_list)):
-    # Incrementing Sentence Count
-    sentence_count += 1
-    # Looping through all of the Indicators (Major)
-    for i in range(len(claim_major_indicators)):
-        # If one of the Indicators is in a given sentence
-        if claim_major_indicators[i] in sentence_list[line]:
-            # Increase the count of possible Major Claims
-            claim_major_count += 1
-            # Create a var for current sentence
-            sentence = str(sentence_list[line])
-            # Split the sentence at the Indicator and remove Whitespace
-            claim_major = sentence.split(
-                claim_major_indicators[i], 1)[1].lstrip()
-            # Add to Major Claims
-            possible_claim_major.append(str("[" + claim_major + "]"))
-    # Looping through all of the Indicators (Claim)
-    for i in range(len(claim_indicators)):
-        if claim_indicators[i] in sentence_list[line]:
-            # Increase the count of possible Claims
-            claim_count += 1
-            sentence2 = str(sentence_list[line])
-            # Split
-            claim = sentence2.split(claim_indicators[i], 1)[1].lstrip()
-            # Add to Claims
-            possible_claim.append(str("[" + claim + "]"))
-    # Looping through all of the Indicators (Premise)
-    for i in range(len(premise_indicators)):
-        if premise_indicators[i] in sentence_list[line]:
-            # Increase the count of possible Premises
-            premise_count += 1
-            sentence3 = str(sentence_list[line])
-            # Add to Premises
-            possible_premise.append(str("[" + sentence3 + "]"))
+            # Premise Indicators loop
+            for i in range(len(premiseIndicators)):
+                # Indicator found in a given sentence
+                if premiseIndicators[i] in sentenceTokens[line]:
+                    # Store current Component
+                    premiseComponent = str(sentenceTokens[line])
+                    # Check to see if Component is already in list
+                    if premiseComponent not in str(premise):
+                        # Add to found claims
+                        premise.append(premiseComponent)
 
+    # All components add to a list to be returned/re-used in other functions
+    components.append(claim)
+    components.append(majorClaim)
+    components.append(premise)
+    return components
 
-# Ouputs
-print ("Sentence Count: " + str(sentence_count))
-print ("Claim Count [Major]: " + str(claim_major_count))
-print ("Claim Count: " + str(claim_count))
-print ("Claim Count [For]: " + str(claim_for_count))
-print ("Claim Count [Against]: " + str(claim_against_count))
-print ("Premise Count: " + str(premise_count))
+def canaryRelations(claims, premises):
+    """ Finds Argumentative Relations from a list of Claims/Premises """
 
-# Writing possible Argument Components to a file
-file = open("Arguments.txt", "w+")
+    # Store Relations
+    relations = []
 
-# Looping through all of the Arguments (adding them to the file 'Arguments.txt')
-for claims in possible_claim_major:
-    file.write("Possible Claim [Major]: \r" + str(claims))
-    file.write("\n")
-    file.write("\n")
-for claims2 in possible_claim:
-    file.write("Possible Claim: \r" + str(claims2))
-    file.write("\n")
-    file.write("\n")
-for premise in possible_premise:
-    file.write("Possible Premise: \r" + str(premise))
-    file.write("\n")
-    file.write("\n")
-file.close()
+    # Inputting pre-trained data from Wikipedia 2014+ (word-vectors)
+    wordVectors = data.load("glove-wiki-gigaword-100")
 
-# Addressing the user as to where the potential arguments are stored
-print ("Possible Argument Components written to File: Arguments.txt")
+    # Setting up Stop words via NLTK
+    stopWords = stopwords.words('english')
+
+    # Import SADFace template (JSON File)
+    with open("./canarySADFace.json") as jsonFile:
+        SADFace = json.load(jsonFile)
+
+    # Loop through all of the premises
+    for premise in premises:
+        # Tokenization (should switch to wordtokenizer by NLTK?)
+        premiseTokens = premise.lower().split()
+        # Removing Stop words
+        premiseTokens = [w for w in premiseTokens if w not in stopWords]
+
+        # Loop through claims in comparison to a given premise
+        for claim in claims:
+            # Tokenization (should switch to wordtokenizer by NLTK?)
+            claimTokens = claim.lower().split()
+            # Removing Stop words
+            claimTokens = [w for w in claimTokens if w not in stopWords]
+            # Comparing how similar a given claim is to a premise (Calcuted via WMD)
+            similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
+            # Adding Components and their similarity to relations (list)
+            relations.append([str(claim), str(premise), similarity])
+    
+    # Testing Prints
+    for relation in relations:
+        print("Relation: " + str(relation))
+    
+
+        
+        
+
+""" Used for testing the various functions """
+if __name__ == "__main__":
+    
+    # Finding Components via Canary
+    canary = canaryLocal(".././corpus/essay001.txt")  
+    
+    # Claim
+    claims = canary[0]
+    # Premise
+    premises = canary[2]
+
+    canaryRelations(claims, premises)
