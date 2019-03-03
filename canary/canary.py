@@ -105,31 +105,40 @@ def canaryRelations(claims, premises):
     with open("./canarySADFace.json") as jsonFile:
         SADFace = json.load(jsonFile)
 
-    # Loop through all of the premises
-    for premise in premises:
+    for claim in claims:
         # Tokenization (should switch to wordtokenizer by NLTK?)
-        premiseTokens = premise.lower().split()
+        claimTokens = claim.lower().split()
         # Removing Stop words
-        premiseTokens = [w for w in premiseTokens if w not in stopWords]
+        claimTokens = [w for w in claimTokens if w not in stopWords]
 
-        # Loop through claims in comparison to a given premise
-        for claim in claims:
+        # Stores comparisons between a given premise and claims
+        comparisons = []
+
+        for premise in premises:
             # Tokenization (should switch to wordtokenizer by NLTK?)
-            claimTokens = claim.lower().split()
+            premiseTokens = premise.lower().split()
             # Removing Stop words
-            claimTokens = [w for w in claimTokens if w not in stopWords]
+            premiseTokens = [w for w in premiseTokens if w not in stopWords]
             # Comparing how similar a given claim is to a premise (Calcuted via WMD)
             similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
-            # Adding Components and their similarity to relations (list)
-            relations.append([str(claim), str(premise), similarity])
-    
-    # Testing Prints
-    for relation in relations:
-        print("Relation: " + str(relation))
-    
 
+            # Adding each comparison to a list
+            comparisons.append([str(claim), str(premise), similarity])
+
+        # Used as a benchmark
+        answer = comparisons[0]
         
-        
+        # Looping through the 
+        for item in comparisons:
+            if item[2] < answer[2] and item[2] != 0.0:
+                answer = item
+
+        # Adding Components and their similarity to relations (list)
+        relations.append([str(answer[0]), str(answer[1]), answer[2]])
+
+    # Returning a list of Claims, supported by a given premise and their similartity score
+    return relations
+    
 
 """ Used for testing the various functions """
 if __name__ == "__main__":
@@ -138,8 +147,25 @@ if __name__ == "__main__":
     canary = canaryLocal(".././corpus/essay001.txt")  
     
     # Claim
-    claims = canary[0]
+    canaryClaims = canary[0]
     # Premise
-    premises = canary[2]
+    canaryPremises = canary[2]
 
-    canaryRelations(claims, premises)
+    # Hard-coded "Gold Standard" components from 'essay001'
+    claims = ["through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", "competition makes the society more effective",
+          "without the cooperation, there would be no victory of competition"]
+
+    premises = ["What we acquired from team work is not only how to achieve the same goal with others but more importantly, how to get along with others",
+            "During the process of cooperation, children can learn about how to listen to opinions of others, how to communicate with others, how to think comprehensively, and even how to compromise with other team members when conflicts occurred",
+            "All of these skills help them to get on well with other people and will benefit them for the whole life",
+            "the significance of competition is that how to become more excellence to gain the victory",
+            "when we consider about the question that how to win the game, we always find that we need the cooperation",
+            "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
+
+    lonePremises = []
+    relations = canaryRelations(claims, premises)
+    
+    for relation in relations:
+        print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
+        print("\n")
+    
