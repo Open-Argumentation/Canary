@@ -162,10 +162,33 @@ if __name__ == "__main__":
             "when we consider about the question that how to win the game, we always find that we need the cooperation",
             "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
 
-    lonePremises = []
+    # Finding Relations between Components
     relations = canaryRelations(claims, premises)
     
+    # Used to store premises found (Used for comparison against other list to find what premises are left)
+    foundPremises = []
+
+    # Used for storing left over premises
+    leftoverPremises = []
+    
+    for premise in premises:
+        for relation in relations:
+            if relation[1] == premise:
+                #print ("Premise found: " + relation[1])
+                foundPremises.append(relation[1])
+    
+    for premise in premises:
+        if premise not in foundPremises:
+            # Checking to see if it is already in the list
+                if premise not in leftoverPremises:
+                    leftoverPremises.append(premise)
+        
+    print("\n")
     for relation in relations:
         print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
+        print("\n")
+
+    for premise in leftoverPremises:
+        print("Leftover Premise: " + str(premise))
         print("\n")
     
