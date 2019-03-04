@@ -5,9 +5,13 @@ import sys
 import os
 
 from gensim import downloader as data
+# Move stopwords to local file to read in, as it's not efficient to download each time
 from nltk.corpus import stopwords
 from nltk import download
 download('stopwords')
+
+def canaryPreprocessing(file):
+    """ Used to pre-process an input file to order to efficient produce results """
 
 def canaryLocal(file):
     """ Finds Argumentative Components in a local file """
@@ -138,7 +142,36 @@ def canaryRelations(claims, premises):
 
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
+
+def canarySADFace(claims, premise, similarities):
+    """ Function used to output found Components and Relations in SADFace format """
     
+    # Reading in JSON SADFace Template
+    with open('./canarySADFace.json') as jsonFile:
+        SADFace = json.load(jsonFile)
+
+    # Used to uniquely identify and set ID's
+    id = 0
+
+    # Need to loop through canaryRelations output and find out what premises are linked to what claims
+    # Then adding them in a loop with edges
+  
+    # Outputs a list of claims to SADFace format
+    for claim in claims:
+        id+=1
+        SADFace['nodes'].append({
+            "id": str(id), 
+            "metadata": {}, 
+            "sources": [], 
+            "text": str(claim), 
+            "type": "atom"
+        })
+
+    # Outputting changes to JSON file
+    with open('./canarySADFace.json', 'w') as f:
+        json.dump(SADFace, f, indent=4)
+
+
 
 """ Used for testing the various functions """
 if __name__ == "__main__":
@@ -165,6 +198,7 @@ if __name__ == "__main__":
     # Finding Relations between Components
     relations = canaryRelations(claims, premises)
     
+    """ USED FOR FINDING OUT WHAT PREMISES HAVE NOT BEEN LINKED TO A CLAIM
     # Used to store premises found (Used for comparison against other list to find what premises are left)
     foundPremises = []
 
@@ -183,12 +217,22 @@ if __name__ == "__main__":
                 if premise not in leftoverPremises:
                     leftoverPremises.append(premise)
         
+    for premise in leftoverPremises:
+        print("Leftover Premise: " + str(premise))
+        print("\n")
+    """
+
     print("\n")
     for relation in relations:
         print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
         print("\n")
-
-    for premise in leftoverPremises:
-        print("Leftover Premise: " + str(premise))
-        print("\n")
     
+    # Setting claims, premises, similarities
+    claimsSADFace = claims
+    premisesSADFace = premises
+    similaritiesSADFace = relations[2]
+
+    # Outputting Components and Relations 
+    canarySADFace(claimsSADFace, premisesSADFace, similaritiesSADFace)
+
+    print("Output: canarySADFace.json")

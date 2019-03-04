@@ -5,7 +5,48 @@
     "created": "2019-02-27T16:32:36", 
     "edges": [], 
     "nodes": [
-        
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "1", 
+            "text": "through cooperation, children can learn about interpersonal skills which are significant in the future life of all students"
+        }, 
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "2", 
+            "text": "competition makes the society more effective"
+        }, 
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "3", 
+            "text": "without the cooperation, there would be no victory of competition"
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", 
+            "id": "1", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "competition makes the society more effective", 
+            "id": "2", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "without the cooperation, there would be no victory of competition", 
+            "id": "3", 
+            "metadata": {}
+        }
     ], 
     "id": "94a975db-25ae-4d25-93cc-1c07c932e2f8", 
     "resources": [], 
