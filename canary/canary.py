@@ -10,8 +10,28 @@ from nltk.corpus import stopwords
 from nltk import download
 download('stopwords')
 
-def canaryPreprocessing(file):
-    """ Used to pre-process an input file to order to efficient produce results """
+def canaryPreprocessing(file, type):
+    """ Used to pre-process an input file to order to efficient produce results. """
+    
+    # Pre-processes an Input file
+    if type == "text":
+        # User file imported, converted to lowercase and case ignored (NEED TO ADD CASE IGNORE)
+        userFile = open(file).read().lower()
+        # Tokenizing userFile into sentences, also removes Whitespace/Breaks
+        sentenceTokens = sent_tokenize(userFile)
+        return sentenceTokens
+    # Pre-procosses an Argumentative Component
+    elif type == "component":
+        # Setting up Stop words via NLTK
+        stopWords = stopwords.words('english')
+        # Tokenization (should switch to wordtokenizer by NLTK?)
+        tokens = file.lower().split()
+        # Removing Stop words
+        tokens = [w for w in tokens if w not in stopWords]
+        return tokens
+    else:
+        print("SEE DOCUMENTATION FOR CORRECT USAGES")
+
 
 def canaryLocal(file):
     """ Finds Argumentative Components in a local file """
@@ -46,11 +66,8 @@ def canaryLocal(file):
                 premiseIndicators.append(str(indicators["indicators"][0]["premise"][i]))
             i = 0
         
-        # User file imported, converted to lowercase and case ignored (NEED TO ADD CASE IGNORE)
-        userFile = open(file).read().lower()
-
-        # Tokenizing userFile into sentences, also removes Whitespace/Breaks
-        sentenceTokens = sent_tokenize(userFile)
+        # Importing and pre-processing the User's input file
+        sentenceTokens = canaryPreprocessing(file, "text")
 
         # Looping through userFile Tokens (sentences)
         for line in xrange(0, len(sentenceTokens)):
@@ -110,22 +127,16 @@ def canaryRelations(claims, premises):
         SADFace = json.load(jsonFile)
 
     for claim in claims:
-        # Tokenization (should switch to wordtokenizer by NLTK?)
-        claimTokens = claim.lower().split()
-        # Removing Stop words
-        claimTokens = [w for w in claimTokens if w not in stopWords]
-
+        # Pre-processing each claim in order to efficiently compare it against a premise
+        claimTokens = canaryPreprocessing(claim, "component")
         # Stores comparisons between a given premise and claims
         comparisons = []
 
         for premise in premises:
-            # Tokenization (should switch to wordtokenizer by NLTK?)
-            premiseTokens = premise.lower().split()
-            # Removing Stop words
-            premiseTokens = [w for w in premiseTokens if w not in stopWords]
+            # Pre-processing each premise in order to efficiently compare it against a given claim
+            premiseTokens = canaryPreprocessing(premise, "component")
             # Comparing how similar a given claim is to a premise (Calcuted via WMD)
             similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
-
             # Adding each comparison to a list
             comparisons.append([str(claim), str(premise), similarity])
 
