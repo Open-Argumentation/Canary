@@ -7,9 +7,10 @@ import os
 from gensim import downloader as data
 # Move stopwords to local file to read in, as it's not efficient to download each time
 from nltk.corpus import stopwords
+"""
 from nltk import download
 download('stopwords')
-
+"""
 def canaryPreprocessing(file, type):
     """ Used to pre-process an input file to order to efficient produce results. """
     
@@ -119,9 +120,6 @@ def canaryRelations(claims, premises):
     # Inputting pre-trained data from Wikipedia 2014+ (word-vectors)
     wordVectors = data.load("glove-wiki-gigaword-100")
 
-    # Setting up Stop words via NLTK
-    stopWords = stopwords.words('english')
-
     # Import SADFace template (JSON File)
     with open("./canarySADFace.json") as jsonFile:
         SADFace = json.load(jsonFile)
@@ -154,7 +152,11 @@ def canaryRelations(claims, premises):
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
 
-def canarySADFace(claims, premise, similarities):
+def canarySupports():
+    """ Able to find what Claims support or oppose the given topic """
+    print("CANARY SUPPORTS")
+
+def canarySADFace(relations):
     """ Function used to output found Components and Relations in SADFace format """
     
     # Reading in JSON SADFace Template
@@ -163,25 +165,43 @@ def canarySADFace(claims, premise, similarities):
 
     # Used to uniquely identify and set ID's
     id = 0
-
+    claimId = 1
+    premiseId = 2
     # Need to loop through canaryRelations output and find out what premises are linked to what claims
     # Then adding them in a loop with edges
-  
-    # Outputs a list of claims to SADFace format
-    for claim in claims:
+
+    for relation in relations:
+        # Incrementing id
         id+=1
+        claimId+=1
+        # Creating a node for claim
         SADFace['nodes'].append({
-            "id": str(id), 
+            "id": str(claimId), 
             "metadata": {}, 
             "sources": [], 
-            "text": str(claim), 
+            "text": str(relation[0]), 
             "type": "atom"
+        })
+        premiseId+=1
+        # Creating a node for premise
+        SADFace['nodes'].append({
+            "id": str(premiseId), 
+            "metadata": {}, 
+            "sources": [], 
+            "text": str(relation[1]), 
+            "type": "atom"
+        })
+        # Need to link the above elements
+        SADFace['edges'].append({
+            "id": str(id), 
+            "source_id": str(premiseId), 
+            "target_id": str(claimId)
         })
 
     # Outputting changes to JSON file
     with open('./canarySADFace.json', 'w') as f:
         json.dump(SADFace, f, indent=4)
-
+    
 
 
 """ Used for testing the various functions """
@@ -238,12 +258,7 @@ if __name__ == "__main__":
         print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
         print("\n")
     
-    # Setting claims, premises, similarities
-    claimsSADFace = claims
-    premisesSADFace = premises
-    similaritiesSADFace = relations[2]
-
     # Outputting Components and Relations 
-    canarySADFace(claimsSADFace, premisesSADFace, similaritiesSADFace)
+    canarySADFace(relations)
 
     print("Output: canarySADFace.json")

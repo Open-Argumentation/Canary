@@ -3,27 +3,64 @@
     "analyst_name": "Calvin-Castle Gill", 
     "analyst_email": "calvincgill@gmail.com", 
     "created": "2019-02-27T16:32:36", 
-    "edges": [], 
+    "edges": [
+        {
+            "source_id": "2", 
+            "target_id": "3", 
+            "id": "1"
+        }, 
+        {
+            "source_id": "3", 
+            "target_id": "4", 
+            "id": "2"
+        }, 
+        {
+            "source_id": "4", 
+            "target_id": "5", 
+            "id": "3"
+        }
+    ], 
     "nodes": [
         {
             "sources": [], 
             "type": "atom", 
             "text": "through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", 
-            "id": "1", 
-            "metadata": {}
-        }, 
-        {
-            "sources": [], 
-            "type": "atom", 
-            "text": "competition makes the society more effective", 
             "id": "2", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
-            "text": "without the cooperation, there would be no victory of competition", 
+            "text": "All of these skills help them to get on well with other people and will benefit them for the whole life", 
             "id": "3", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "competition makes the society more effective", 
+            "id": "3", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "the significance of competition is that how to become more excellence to gain the victory", 
+            "id": "4", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "without the cooperation, there would be no victory of competition", 
+            "id": "4", 
+            "metadata": {}
+        }, 
+        {
+            "sources": [], 
+            "type": "atom", 
+            "text": "the significance of competition is that how to become more excellence to gain the victory", 
+            "id": "5", 
             "metadata": {}
         }
     ], 
