@@ -5,62 +5,43 @@
     "created": "2019-02-27T16:32:36", 
     "edges": [
         {
-            "source_id": "2", 
-            "target_id": "3", 
+            "source_id": "3", 
+            "target_id": "2", 
             "id": "1"
         }, 
         {
-            "source_id": "3", 
-            "target_id": "4", 
-            "id": "2"
-        }, 
-        {
             "source_id": "4", 
-            "target_id": "5", 
-            "id": "3"
+            "target_id": "3", 
+            "id": "2"
         }
     ], 
     "nodes": [
         {
             "sources": [], 
             "type": "atom", 
-            "text": "through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", 
+            "text": "hence it is always said that competition makes the society more effective.", 
             "id": "2", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
-            "text": "All of these skills help them to get on well with other people and will benefit them for the whole life", 
+            "text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.", 
             "id": "3", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
-            "text": "competition makes the society more effective", 
+            "text": "therefore without the cooperation, there would be no victory of competition.", 
             "id": "3", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
-            "text": "the significance of competition is that how to become more excellence to gain the victory", 
+            "text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.", 
             "id": "4", 
-            "metadata": {}
-        }, 
-        {
-            "sources": [], 
-            "type": "atom", 
-            "text": "without the cooperation, there would be no victory of competition", 
-            "id": "4", 
-            "metadata": {}
-        }, 
-        {
-            "sources": [], 
-            "type": "atom", 
-            "text": "the significance of competition is that how to become more excellence to gain the victory", 
-            "id": "5", 
             "metadata": {}
         }
     ], 

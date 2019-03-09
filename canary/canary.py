@@ -74,8 +74,7 @@ def canaryLocal(file):
         for line in xrange(0, len(sentenceTokens)):
             # Claim Indicators loop
             for i in range(len(claimIndicators)):
-                # Indicator found in a given sentence
-                if claimIndicators[i] in sentenceTokens[line]:
+                if (" " + claimIndicators[i] + " ") in (" " + sentenceTokens[line] + " "):
                     # Store current Component
                     claimComponent = str(sentenceTokens[line])
                     # Check to see if Component is already in list
@@ -86,7 +85,7 @@ def canaryLocal(file):
             # Major Indicators loop
             for i in range(len(majorClaimIndicators)):
                 # Indicator found in a given sentence
-                if majorClaimIndicators[i] in sentenceTokens[line]:
+                if (" " + majorClaimIndicators[i] + " ") in (" " + sentenceTokens[line] + " "):
                     # Store current Component
                     claimMajorComponent = str(sentenceTokens[line])
                     # Check to see if Component is already in list
@@ -97,7 +96,7 @@ def canaryLocal(file):
             # Premise Indicators loop
             for i in range(len(premiseIndicators)):
                 # Indicator found in a given sentence
-                if premiseIndicators[i] in sentenceTokens[line]:
+                if (" " + premiseIndicators[i] + " ") in (" " + sentenceTokens[line] + " "):
                     # Store current Component
                     premiseComponent = str(sentenceTokens[line])
                     # Check to see if Component is already in list
@@ -151,6 +150,8 @@ def canaryRelations(claims, premises):
 
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
+
+
 
 def canarySupports():
     """ Able to find what Claims support or oppose the given topic """
@@ -214,6 +215,8 @@ if __name__ == "__main__":
     canaryClaims = canary[0]
     # Premise
     canaryPremises = canary[2]
+    # Major
+    canaryMajor = canary[1]
 
     # Hard-coded "Gold Standard" components from 'essay001'
     claims = ["through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", "competition makes the society more effective",
@@ -227,7 +230,7 @@ if __name__ == "__main__":
             "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
 
     # Finding Relations between Components
-    relations = canaryRelations(claims, premises)
+    relations = canaryRelations(canaryClaims, canaryPremises)
     
     """ USED FOR FINDING OUT WHAT PREMISES HAVE NOT BEEN LINKED TO A CLAIM
     # Used to store premises found (Used for comparison against other list to find what premises are left)
@@ -252,7 +255,7 @@ if __name__ == "__main__":
         print("Leftover Premise: " + str(premise))
         print("\n")
     """
-
+    
     print("\n")
     for relation in relations:
         print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
@@ -260,5 +263,6 @@ if __name__ == "__main__":
     
     # Outputting Components and Relations 
     canarySADFace(relations)
-
+    
     print("Output: canarySADFace.json")
+    
