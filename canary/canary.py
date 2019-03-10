@@ -9,8 +9,6 @@ import random
 def canaryPreprocessing(file, type):
     """ Used to pre-process an input file to order to efficient produce results. """
     
-   
-
     # Pre-processes an Input file
     if type == "text":
         # User file imported, converted to lowercase and case ignored (NEED TO ADD CASE IGNORE)
