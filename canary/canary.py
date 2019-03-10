@@ -1,19 +1,15 @@
 # Imports
 from nltk.tokenize import sent_tokenize, word_tokenize
+from gensim import downloader as data
 import json
 import sys
 import os
 
-from gensim import downloader as data
-# Move stopwords to local file to read in, as it's not efficient to download each time
-from nltk.corpus import stopwords
-"""
-from nltk import download
-download('stopwords')
-"""
 def canaryPreprocessing(file, type):
     """ Used to pre-process an input file to order to efficient produce results. """
     
+   
+
     # Pre-processes an Input file
     if type == "text":
         # User file imported, converted to lowercase and case ignored (NEED TO ADD CASE IGNORE)
@@ -23,8 +19,22 @@ def canaryPreprocessing(file, type):
         return sentenceTokens
     # Pre-procosses an Argumentative Component
     elif type == "component":
+        # Reading in stopWords.json
+        with open("stopwords.json") as stopWordsFile:
+            sWords = json.load(stopWordsFile)
+
+             # Used to store Stopwords
+            stopWords = []
+
+            # Looping through JSON file to add to list
+            for i in xrange(0, len(sWords["stopwords"])):
+                stopWords.append(str(sWords["stopwords"][i]))
+
+        """
         # Setting up Stop words via NLTK
         stopWords = stopwords.words('english')
+        """
+
         # Tokenization (should switch to wordtokenizer by NLTK?)
         tokens = file.lower().split()
         # Removing Stop words
@@ -119,10 +129,6 @@ def canaryRelations(claims, premises):
     # Inputting pre-trained data from Wikipedia 2014+ (word-vectors)
     wordVectors = data.load("glove-wiki-gigaword-100")
 
-    # Import SADFace template (JSON File)
-    with open("./canarySADFace.json") as jsonFile:
-        SADFace = json.load(jsonFile)
-
     for claim in claims:
         # Pre-processing each claim in order to efficiently compare it against a premise
         claimTokens = canaryPreprocessing(claim, "component")
@@ -205,8 +211,9 @@ def canarySADFace(relations):
     
 
 
-""" Used for testing the various functions """
+
 if __name__ == "__main__":
+    """ Used for testing the various functions """
     
     # Finding Components via Canary
     canary = canaryLocal(".././corpus/essay001.txt")  
@@ -232,6 +239,17 @@ if __name__ == "__main__":
     # Finding Relations between Components
     relations = canaryRelations(canaryClaims, canaryPremises)
     
+    print("\n")
+    for relation in relations:
+        print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
+        print("\n")
+    
+    # Outputting Components and Relations 
+    canarySADFace(relations)
+    
+    print("Output: canarySADFace.json")
+    
+
     """ USED FOR FINDING OUT WHAT PREMISES HAVE NOT BEEN LINKED TO A CLAIM
     # Used to store premises found (Used for comparison against other list to find what premises are left)
     foundPremises = []
@@ -255,14 +273,4 @@ if __name__ == "__main__":
         print("Leftover Premise: " + str(premise))
         print("\n")
     """
-    
-    print("\n")
-    for relation in relations:
-        print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
-        print("\n")
-    
-    # Outputting Components and Relations 
-    canarySADFace(relations)
-    
-    print("Output: canarySADFace.json")
     
