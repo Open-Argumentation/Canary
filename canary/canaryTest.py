@@ -20,7 +20,7 @@ def exportCSV():
     
     print("File exported: canaryTest.csv")
 
-def readANN(file):
+def readAnn(file):
     """ Used to read in a .ann file and extract Argument Components """
 
     # Used to store Argumentative Components
@@ -58,11 +58,48 @@ def readANN(file):
 
     return components
 
+def canaryBratAnalysis(file):
+    """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
+
+    # Loading file into the local version of Canary
+    canary = canaryLocal(file)
+
+    # Used to store Argumentative Components
+    majorClaims = canary[1]
+    claims = canary[0]
+    premises = canary[2]
+    
+    # Reading analysis file and extracting components
+    analysis = readAnn("../corpus/essay001.ann")
+
+    # Used to store Argumentative Components from analysis
+    majorClaimsAnn = analysis[1]
+    claimsAnn = analysis[0]
+    premisesAnn = analysis[2]
+
+    # Stores counts used to compare findings
+    claimCount = 0
+    claimCountAnn = 0
+
+    # Main loop to compare findings of Canary with Gold Standard    
+    for claimAnn in claimsAnn:
+        # Increment Count for analysis claim
+        claimCountAnn += 1
+        for claim in claims:
+            if claim in claimAnn or claimAnn in claim:
+                print("MATCH FOUND!")
+                print("Canary: " + claim)
+                print("Analysis: " + claimAnn)
+                print("\n")
+                # Found a match, increment Canary score
+                claimCount += 1
+
+    print("Canary vs Brat (Claims): " + str(claimCount) + "/" + str(claimCountAnn))
+
 
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
     
-    brat = readANN("../corpus/essay001.ann")
-    print(str(brat))
+    canaryBratAnalysis("../corpus/essay001.txt")
     
 
