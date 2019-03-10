@@ -5,14 +5,14 @@
     "created": "2019-02-27T16:32:36", 
     "edges": [
         {
-            "source_id": "3", 
-            "target_id": "2", 
-            "id": "1"
+            "source_id": "931", 
+            "target_id": "400", 
+            "id": "590"
         }, 
         {
-            "source_id": "4", 
-            "target_id": "3", 
-            "id": "2"
+            "source_id": "2", 
+            "target_id": "159", 
+            "id": "763"
         }
     ], 
     "nodes": [
@@ -20,28 +20,28 @@
             "sources": [], 
             "type": "atom", 
             "text": "hence it is always said that competition makes the society more effective.", 
-            "id": "2", 
+            "id": "400", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.", 
-            "id": "3", 
+            "id": "931", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "therefore without the cooperation, there would be no victory of competition.", 
-            "id": "3", 
+            "id": "159", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.", 
-            "id": "4", 
+            "id": "2", 
             "metadata": {}
         }
     ], 

@@ -4,6 +4,7 @@ from gensim import downloader as data
 import json
 import sys
 import os
+import random
 
 def canaryPreprocessing(file, type):
     """ Used to pre-process an input file to order to efficient produce results. """
@@ -170,17 +171,14 @@ def canarySADFace(relations):
     with open('./canarySADFace.json') as jsonFile:
         SADFace = json.load(jsonFile)
 
-    # Used to uniquely identify and set ID's
-    id = 0
-    claimId = 1
-    premiseId = 2
     # Need to loop through canaryRelations output and find out what premises are linked to what claims
-    # Then adding them in a loop with edges
-
+    
     for relation in relations:
-        # Incrementing id
-        id+=1
-        claimId+=1
+        # Randomly generate id's for each component
+        id = random.randint(1, 1000)
+        claimId = random.randint(1, 1000)
+        premiseId = random.randint(1, 1000)
+
         # Creating a node for claim
         SADFace['nodes'].append({
             "id": str(claimId), 
@@ -189,7 +187,7 @@ def canarySADFace(relations):
             "text": str(relation[0]), 
             "type": "atom"
         })
-        premiseId+=1
+        
         # Creating a node for premise
         SADFace['nodes'].append({
             "id": str(premiseId), 
@@ -214,7 +212,7 @@ def canarySADFace(relations):
 
 if __name__ == "__main__":
     """ Used for testing the various functions """
-    
+
     # Finding Components via Canary
     canary = canaryLocal(".././corpus/essay001.txt")  
     
