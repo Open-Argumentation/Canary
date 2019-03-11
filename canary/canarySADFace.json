@@ -13,35 +13,73 @@
             "source_id": "2", 
             "target_id": "159", 
             "id": "763"
+        }, 
+        {
+            "source_id": "2", 
+            "target_id": "656", 
+            "id": "345"
+        }, 
+        {
+            "source_id": "110", 
+            "target_id": "330", 
+            "id": "848"
         }
     ], 
     "nodes": [
         {
             "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "400", 
+            "text": "hence it is always said that competition makes the society more effective."
+        }, 
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "931", 
+            "text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers."
+        }, 
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "159", 
+            "text": "therefore without the cooperation, there would be no victory of competition."
+        }, 
+        {
+            "sources": [], 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "2", 
+            "text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care."
+        }, 
+        {
+            "sources": [], 
             "type": "atom", 
             "text": "hence it is always said that competition makes the society more effective.", 
-            "id": "400", 
+            "id": "656", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.", 
-            "id": "931", 
+            "id": "2", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "therefore without the cooperation, there would be no victory of competition.", 
-            "id": "159", 
+            "id": "330", 
             "metadata": {}
         }, 
         {
             "sources": [], 
             "type": "atom", 
             "text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.", 
-            "id": "2", 
+            "id": "110", 
             "metadata": {}
         }
     ], 
