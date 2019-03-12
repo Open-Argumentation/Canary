@@ -58,6 +58,61 @@ def readAnn(file):
 
     return components
 
+def readAnnRelations(file):
+    """ Used to read in a .ann file and extract Argument Components """
+
+    # Used to store Argumentative Components
+    components = []
+    relations = []
+
+    # Read in .ann file
+    with open(file, "r") as annFile:
+        lines = annFile.readlines()
+    
+    # Main loop that checks if any of the components are on a given line in the file
+    for line in lines:
+        # Splits the line by Tab
+        test = line.split('\t')
+        # Components are printed here by: "T1" etc
+        if "T" in test[0]:
+            # Adding Component ID [0] and Component [1] to list
+            components.append([test[0], test[2].split('\n')[0]])
+        elif "R" in test[0]:
+            # Premise = [1], Claim/Major = [2]
+            support = (test[1].split("Arg")[1]).split(":")[1]
+            claim = (test[1].split("Arg")[2]).split(":")[1]
+            relations.append([claim, support])
+    
+    for relation in relations:
+        print("Relation: " + str(relation))
+        for component in components:
+            if relation[0] in component:
+                print(component)
+            elif relation[1].split(" ")[0] in component:
+                print(component)
+        time.sleep(5)
+    
+    """
+    print("Relations:")
+    for rel in relations:
+        print(rel)
+    print("\n")
+    
+    print("Components:")
+    for comp in components:
+        print(comp)
+    print("\n")
+    """
+    """
+    for comp in components:
+        print(comp)
+        time.sleep(2)
+    """
+
+    # Adding all of the relations to a list
+    
+    return relations
+
 def canaryBratAnalysis(fileTxt, fileAnn):
     """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
 
@@ -148,6 +203,7 @@ def canaryComponentTest(directory):
 
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
-    canaryComponentTest("../corpus/")
+    #canaryComponentTest("../corpus/")
+    readAnnRelations("../corpus/essay001.ann")
     
 
