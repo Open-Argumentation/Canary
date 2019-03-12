@@ -3,12 +3,12 @@ import os
 import sys
 import time
 import csv
+import time
+from os.path import join
+from glob import glob
 from canary import canaryLocal
 
-def exportCSV():
-    
-    # Test data to see if .csv output is correctly setup
-    data = [["Essay", "Major Claims", "Claims", "Premises", "Relations"], ["essay001", "1", "2", "2", "1"], ["essay002", "3", "3", "4", "2"]]
+def exportCSV(data):
     
     # Creating .csv file
     with open("canaryTest.csv", "w") as csvFile:
@@ -61,8 +61,11 @@ def readAnn(file):
 def canaryBratAnalysis(fileTxt, fileAnn):
     """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
 
+    # Directory
+    directory = "../corpus/"
+
     # Loading file into the local version of Canary
-    canary = canaryLocal(fileTxt)
+    canary = canaryLocal(directory + fileTxt)
 
     # Used to store Argumentative Components
     majorClaims = canary[1]
@@ -70,7 +73,7 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     premises = canary[2]
     
     # Reading analysis file and extracting components
-    analysis = readAnn(fileAnn)
+    analysis = readAnn(directory + fileAnn)
 
     # Used to store Argumentative Components from analysis
     majorClaimsAnn = analysis[1]
@@ -91,10 +94,6 @@ def canaryBratAnalysis(fileTxt, fileAnn):
         majorCountAnn += 1
         for majorClaim in majorClaims:
             if majorClaim.lower() in majorClaimAnn.lower() or majorClaimAnn.lower() in majorClaim.lower():
-                print("MATCH FOUND MAJOR CLAIM!")
-                print("Canary: " + majorClaim)
-                print("Analysis: " + majorClaimAnn)
-                print("\n")
                 # Found a match, increment Canary score
                 majorCount += 1
                 
@@ -103,10 +102,6 @@ def canaryBratAnalysis(fileTxt, fileAnn):
         claimCountAnn += 1
         for claim in claims:
             if claim.lower() in claimAnn.lower() or claimAnn.lower() in claim.lower():
-                print("MATCH FOUND CLAIM!")
-                print("Canary: " + claim)
-                print("Analysis: " + claimAnn)
-                print("\n")
                 # Found a match, increment Canary score
                 claimCount += 1
 
@@ -114,20 +109,44 @@ def canaryBratAnalysis(fileTxt, fileAnn):
         premiseCountAnn += 1
         for premise in premises:
             if premise.lower() in premiseAnn.lower() or premiseAnn.lower() in premise.lower():
-                print("MATCH FOUND Premise!")
-                print("Canary: " + premise)
-                print("Analysis: " + premiseAnn)
-                print("\n")
                 # Found a match, increment Canary score
                 premiseCount += 1
 
     print("Canary vs Brat (Major Claims): " + str(majorCount) + "/" + str(majorCountAnn))
     print("Canary vs Brat (Claims): " + str(claimCount) + "/" + str(claimCountAnn))
     print("Canary vs Brat (Premise): " + str(premiseCount) + "/" + str(premiseCountAnn))
+
+    # Stores all the counts
+    data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
+    data.append([fileTxt, "Canary", str(majorCount), str(claimCount), str(premiseCount), "Relations"])
+    data.append([fileAnn, "Gold Standard", str(majorCountAnn), str(claimCountAnn), str(premiseCountAnn), "Relations"])
     
+    return data
+
+def canaryComponentTest(directory):
+    """ Main testing function to compare the results of Canary with the Gold Standard """
+
+    # Stores what type of files we are looking for in the directory
+    types = ("*txt", "*.ann")
+
+    # Stores the files that match those types (same filename has both .txt & .ann)
+    files = []
+
+    for extension in types:
+        files.extend(glob(join(directory, extension)))
+
+    for file in files:
+        # Spliting the filename from directory
+        filename = (file.split(directory))
+        # Filename with no extension (.txt, .ann)
+        filename = (filename[1].split(".")[0])
+        # Comparing file results (Canary vs "Gold Standard")
+        analysis = canaryBratAnalysis(filename + ".txt", filename + ".ann")
+        # Exporting results to .csv file
+        exportCSV(analysis)
+
+
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
-    
-    canaryBratAnalysis("../corpus/essay001.txt", "../corpus/essay001.ann")
-    
+    canaryComponentTest("../corpus/")
 
