@@ -114,8 +114,8 @@ def canaryLocal(file):
                         premise.append(premiseComponent)
 
     # All components add to a list to be returned/re-used in other functions
-    components.append(claim)
     components.append(majorClaim)
+    components.append(claim)
     components.append(premise)
     return components
 
@@ -215,11 +215,11 @@ if __name__ == "__main__":
     canary = canaryLocal(".././corpus/essay001.txt")  
     
     # Claim
-    canaryClaims = canary[0]
+    canaryClaims = canary[1]
     # Premise
     canaryPremises = canary[2]
     # Major
-    canaryMajor = canary[1]
+    canaryMajor = canary[0]
 
     # Hard-coded "Gold Standard" components from 'essay001'
     claims = ["through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", "competition makes the society more effective",

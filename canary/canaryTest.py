@@ -52,8 +52,8 @@ def readAnn(file):
             premises.append(str((premise[2].split('\n')[0])))
     
     # Adding all of the components to a list
-    components.append(claims)
     components.append(majorclaims)
+    components.append(claims)
     components.append(premises)
 
     return components
@@ -68,16 +68,16 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     canary = canaryLocal(directory + fileTxt)
 
     # Used to store Argumentative Components
-    majorClaims = canary[1]
-    claims = canary[0]
+    majorClaims = canary[0]
+    claims = canary[1]
     premises = canary[2]
     
     # Reading analysis file and extracting components
     analysis = readAnn(directory + fileAnn)
 
     # Used to store Argumentative Components from analysis
-    majorClaimsAnn = analysis[1]
-    claimsAnn = analysis[0]
+    majorClaimsAnn = analysis[0]
+    claimsAnn = analysis[1]
     premisesAnn = analysis[2]
 
     # Stores counts used to compare findings
@@ -149,4 +149,5 @@ def canaryComponentTest(directory):
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
     canaryComponentTest("../corpus/")
+    
 
