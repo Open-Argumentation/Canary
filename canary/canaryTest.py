@@ -6,7 +6,7 @@ import csv
 import time
 from os.path import join
 from glob import glob
-from canary import canaryLocal
+from canary import canaryLocal, canaryRelations
 
 def exportCSV(data):
     
@@ -66,7 +66,6 @@ def readAnnRelations(file):
     relations = []
     links = []
     
-
     # Read in .ann file
     with open(file, "r") as annFile:
         lines = annFile.readlines()
@@ -165,14 +164,60 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     print("Canary vs Brat (Premise): " + str(premiseCount) + "/" + str(premiseCountAnn))
 
     # Stores all the counts
-    data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
-    data.append([fileTxt, "Canary", str(majorCount), str(claimCount), str(premiseCount), "Relations"])
-    data.append([fileAnn, "Gold Standard", str(majorCountAnn), str(claimCountAnn), str(premiseCountAnn), "Relations"])
+    counts = [[majorClaim, claimCount, premiseCount], [majorCountAnn, claimCountAnn, premiseCountAnn]]
     
-    return data
+    return counts
+
+def canaryBratRelationAnalysis(fileTxt, fileAnn):
+    """ Used to compare relation results """
+    
+    # Directory
+    directory = "../corpus/"
+
+    # Loading file into the local version of Canary
+    canary = canaryLocal(directory + fileTxt)
+
+    # Used to store Argumentative Components
+    claims = canary[1]
+    premises = canary[2]
+
+    # Not really needed, I could loop Canary[1]/Canary[2]
+    # Finding relations via canaryRelations
+    canary = canaryRelations(claims, premises)
+
+    relations = []
+
+    for components in canary:
+        # Claim, Premise
+        relations.append([components[0], components[1]])
+    
+    # Reading analysis file and extracting components
+    analysisRelations = readAnnRelations(directory + fileAnn)
+
+    # Stores counts used to compare findings
+    relationsCount = 0
+    analysisRelationsCount = 0
+
+    for relation in relations:
+        for analysisRelation in analysisRelations:
+            if relation[0].lower() in analysisRelation[0].lower() or analysisRelation[0].lower() in relation[0].lower():
+                if relation[1].lower() in analysisRelation[1].lower() or analysisRelation[1].lower() in relation[1].lower():
+                    relationsCount += 1
+
+    # Working out count for Gold Standard
+    for analysisRelation in analysisRelations:
+        analysisRelationsCount+= 1
+    
+    print("Canary: " + str(relationsCount) + " Gold Standard: " + str(analysisRelationsCount))
+
+    # Stores counts
+    counts = [[relationsCount, analysisRelationsCount]]
+
+    return counts
+
 
 def canaryComponentTest(directory):
-    """ Main testing function to compare the results of Canary with the Gold Standard """
+    """ Testing function to compare the component finding results of Canary vs the Gold Standard """
 
     # Stores what type of files we are looking for in the directory
     types = ("*txt", "*.ann")
@@ -193,10 +238,30 @@ def canaryComponentTest(directory):
         # Exporting results to .csv file
         exportCSV(analysis)
 
+def canaryRelationTest(directory):
+    """ Testing function to compare relation results of Canary vs the Gold Standard """
+    
+    # Stores what type of files we are looking for in the directory
+    types = ("*txt", "*.ann")
 
+    # Stores the files that match those types (same filename has both .txt & .ann)
+    files = []
+
+    for extension in types:
+        files.extend(glob(join(directory, extension)))
+
+    for file in files:
+        # Spliting the filename from directory
+        filename = (file.split(directory))
+        # Filename with no extension (.txt, .ann)
+        filename = (filename[1].split(".")[0])
+        # Comparing file results (Canary vs "Gold Standard")
+        analysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
+        # Exporting results to .csv file
+        exportCSV(analysis)
+            
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
-    #canaryComponentTest("../corpus/")
-    readAnnRelations("../corpus/essay001.ann")
-    
+
+    canaryRelationTest("../corpus/")
 
