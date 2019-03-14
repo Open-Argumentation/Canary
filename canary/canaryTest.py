@@ -64,6 +64,8 @@ def readAnnRelations(file):
     # Used to store Argumentative Components
     components = []
     relations = []
+    links = []
+    
 
     # Read in .ann file
     with open(file, "r") as annFile:
@@ -84,34 +86,25 @@ def readAnnRelations(file):
             relations.append([claim, support])
     
     for relation in relations:
-        print("Relation: " + str(relation))
+        #print("Relation: " + str(relation))
         for component in components:
             if relation[0] in component:
-                print(component)
+                claim = component[1]
             elif relation[1].split(" ")[0] in component:
-                print(component)
-        time.sleep(5)
+                support = component[1]
     
-    """
-    print("Relations:")
-    for rel in relations:
-        print(rel)
-    print("\n")
+    for relation in relations:
+        for component in components:
+            if relation[0] in component[0]:
+                claim = component[1]
+            if relation[1].split(" ")[0] in component[0]:
+                support = component[1]
+        # Adding "linked" components to a list so I can compare
+        links.append([claim, support])
     
-    print("Components:")
-    for comp in components:
-        print(comp)
-    print("\n")
-    """
-    """
-    for comp in components:
-        print(comp)
-        time.sleep(2)
-    """
-
-    # Adding all of the relations to a list
+    # Adding all of the lniked components to a list
     
-    return relations
+    return links
 
 def canaryBratAnalysis(fileTxt, fileAnn):
     """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
