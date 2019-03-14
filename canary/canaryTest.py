@@ -11,7 +11,7 @@ from canary import canaryLocal, canaryRelations
 def exportCSV(data):
     
     # Creating .csv file
-    with open("canaryTest.csv", "w") as csvFile:
+    with open("canaryTest.csv", "a") as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(data)
     
@@ -215,53 +215,9 @@ def canaryBratRelationAnalysis(fileTxt, fileAnn):
 
     return counts
 
-
-def canaryComponentTest(directory):
-    """ Testing function to compare the component finding results of Canary vs the Gold Standard """
-
-    # Stores what type of files we are looking for in the directory
-    types = ("*txt", "*.ann")
-
-    # Stores the files that match those types (same filename has both .txt & .ann)
-    files = []
-
-    for extension in types:
-        files.extend(glob(join(directory, extension)))
-
-    for file in files:
-        # Spliting the filename from directory
-        filename = (file.split(directory))
-        # Filename with no extension (.txt, .ann)
-        filename = (filename[1].split(".")[0])
-        # Comparing file results (Canary vs "Gold Standard")
-        analysis = canaryBratAnalysis(filename + ".txt", filename + ".ann")
-        # Exporting results to .csv file
-        exportCSV(analysis)
-
-def canaryRelationTest(directory):
-    """ Testing function to compare relation results of Canary vs the Gold Standard """
-    
-    # Stores what type of files we are looking for in the directory
-    types = ("*txt", "*.ann")
-
-    # Stores the files that match those types (same filename has both .txt & .ann)
-    files = []
-
-    for extension in types:
-        files.extend(glob(join(directory, extension)))
-
-    for file in files:
-        # Spliting the filename from directory
-        filename = (file.split(directory))
-        # Filename with no extension (.txt, .ann)
-        filename = (filename[1].split(".")[0])
-        # Comparing file results (Canary vs "Gold Standard")
-        analysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
-        # Exporting results to .csv file
-        exportCSV(analysis)
-
 def canaryTest(directory):
     """ Main testing function """
+    """ Testing function to compare relation results of Canary vs the Gold Standard """
 
     # Stores what type of files we are looking for in the directory
     types = ("*txt", "*.ann")
@@ -282,14 +238,14 @@ def canaryTest(directory):
         # Comparing Relations results (Canary vs "Gold Standard")
         relationsAnalysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
         # Exporting results to .csv file
-        data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
+        #data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
+        data = []
         
         data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
-        data.append([filename, "Canary", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
+        data.append([filename, "Manual", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
         exportCSV(data)
             
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
-
     canaryTest("../corpus/")
 
