@@ -164,7 +164,7 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     print("Canary vs Brat (Premise): " + str(premiseCount) + "/" + str(premiseCountAnn))
 
     # Stores all the counts
-    counts = [[majorClaim, claimCount, premiseCount], [majorCountAnn, claimCountAnn, premiseCountAnn]]
+    counts = [[majorCount, claimCount, premiseCount], [majorCountAnn, claimCountAnn, premiseCountAnn]]
     
     return counts
 
@@ -259,9 +259,37 @@ def canaryRelationTest(directory):
         analysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
         # Exporting results to .csv file
         exportCSV(analysis)
+
+def canaryTest(directory):
+    """ Main testing function """
+
+    # Stores what type of files we are looking for in the directory
+    types = ("*txt", "*.ann")
+
+    # Stores the files that match those types (same filename has both .txt & .ann)
+    files = []
+
+    for extension in types:
+        files.extend(glob(join(directory, extension)))
+
+    for file in files:
+        # Spliting the filename from directory
+        filename = (file.split(directory))
+        # Filename with no extension (.txt, .ann)
+        filename = (filename[1].split(".")[0])
+        # Comparing Components results (Canary vs "Gold Standard")
+        componentsAnalysis = canaryBratAnalysis(filename + ".txt", filename + ".ann")
+        # Comparing Relations results (Canary vs "Gold Standard")
+        relationsAnalysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
+        # Exporting results to .csv file
+        data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
+        
+        data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
+        data.append([filename, "Canary", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
+        exportCSV(data)
             
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
 
-    canaryRelationTest("../corpus/")
+    canaryTest("../corpus/")
 
