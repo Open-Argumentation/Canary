@@ -122,41 +122,47 @@ def canaryLocal(file):
 def canaryRelations(claims, premises):
     """ Finds Argumentative Relations from a list of Claims/Premises """
 
+    # Works better than the last one, but every claim must be linked to a claim!
+    # But  I can't loop by claim if I have more premises
+
     # Store Relations
     relations = []
-
+    # Stores used premises
+    usedPremises = []
+    
     # Inputting pre-trained data from Wikipedia 2014+ (word-vectors)
     wordVectors = data.load("glove-wiki-gigaword-100")
 
-    for claim in claims:
-        # Pre-processing each claim in order to efficiently compare it against a premise
-        claimTokens = canaryPreprocessing(claim, "component")
-        # Stores comparisons between a given premise and claims
-        comparisons = []
-
-        for premise in premises:
+    # Attempt Two
+    for premise in premises:
+        # Check to see if it hasn't already been assigned (linked to a claim)
+        if premise not in usedPremises:
             # Pre-processing each premise in order to efficiently compare it against a given claim
             premiseTokens = canaryPreprocessing(premise, "component")
-            # Comparing how similar a given claim is to a premise (Calcuted via WMD)
-            similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
-            # Adding each comparison to a list
-            comparisons.append([str(claim), str(premise), similarity])
+            # Stores comparisons between a given premise and claims
+            comparisons = []
+            for claim in claims:
+                # Pre-processing each claim in order to efficiently compare it against a premise
+                claimTokens = canaryPreprocessing(claim, "component")
+                # Comparing how similar a given claim is to a premise (Calcuted via WMD)
+                similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
+                # Adding each comparison to a list
+                comparisons.append([str(claim), str(premise), similarity])
+            # Used as a benchmark
+            answer = comparisons[0]
 
-        # Used as a benchmark
-        answer = comparisons[0]
-        
-        # Looping through the 
+            # Looping through the results for a give claim
         for item in comparisons:
             if item[2] < answer[2] and item[2] != 0.0:
                 answer = item
+        # Adding premise to used list
+        usedPremises.append(answer[1])
 
         # Adding Components and their similarity to relations (list)
         relations.append([str(answer[0]), str(answer[1]), answer[2]])
 
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
-
-
 
 def canarySupports():
     """ Able to find what Claims support or oppose the given topic """
@@ -233,40 +239,14 @@ if __name__ == "__main__":
             "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
 
     # Finding Relations between Components
-    relations = canaryRelations(canaryClaims, canaryPremises)
-    
-    print("\n")
+    relations = canaryRelations(claims, premises)
+
+    # Test print
     for relation in relations:
-        print("Claim: " + relation[0] + " supported by Premise: " + relation[1] + " Similarity: " + str(relation[2]))
+        print("Relation:" + "\n")
+        print("Claim: " + str(relation[0]))
+        print("Premise: " + str(relation[1]))
+        print("Similarity: " + str(relation[2]))
         print("\n")
     
-    # Outputting Components and Relations 
-    canarySADFace(relations)
-    
-    print("Output: canarySADFace.json")
-    
-
-    """ USED FOR FINDING OUT WHAT PREMISES HAVE NOT BEEN LINKED TO A CLAIM
-    # Used to store premises found (Used for comparison against other list to find what premises are left)
-    foundPremises = []
-
-    # Used for storing left over premises
-    leftoverPremises = []
-    
-    for premise in premises:
-        for relation in relations:
-            if relation[1] == premise:
-                #print ("Premise found: " + relation[1])
-                foundPremises.append(relation[1])
-    
-    for premise in premises:
-        if premise not in foundPremises:
-            # Checking to see if it is already in the list
-                if premise not in leftoverPremises:
-                    leftoverPremises.append(premise)
-        
-    for premise in leftoverPremises:
-        print("Leftover Premise: " + str(premise))
-        print("\n")
-    """
     
