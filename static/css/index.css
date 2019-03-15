@@ -1,9 +1,0 @@
-#fadeIn
-{
-    -webkit-animation: fadein 5s;
-}
-
-@-webkit-keyframes fadein {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
