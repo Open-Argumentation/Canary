@@ -122,23 +122,54 @@ def canaryLocal(file):
 def canaryRelations(claims, premises):
     """ Finds Argumentative Relations from a list of Claims/Premises """
 
-    # Works better than the last one, but every claim must be linked to a claim!
-    # But  I can't loop by claim if I have more premises
-
     # Store Relations
     relations = []
     # Stores used premises
     usedPremises = []
+    # Stores used claims
+    leftoverPremises = []
     
     # Inputting pre-trained data from Wikipedia 2014+ (word-vectors)
     wordVectors = data.load("glove-wiki-gigaword-100")
+    
+    # Attempt Three
+    for claim in claims:
+        # Pre-processing each claim in order to efficiently compare it against a premise
+        claimTokens = canaryPreprocessing(claim, "component")
+        # Stores comparisons between a given premise and claims
+        comparisons = []
+        for premise in premises:
+            if premise not in usedPremises:
+                # Pre-processing each premise in order to efficiently compare it against a given claim
+                premiseTokens = canaryPreprocessing(premise, "component")
+                # Comparing how similar a given claim is to a premise (Calcuted via WMD)
+                similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
+                # Adding each comparison to a list
+                comparisons.append([str(claim), str(premise), similarity])
+                # Used as a benchmark
+                answer = comparisons[0]
 
-    # Attempt Two
+        # Looping through the results for a give claim
+        for item in comparisons:
+            if item[2] < answer[2]:
+                answer = item
+        # Adding premise to used list
+        usedPremises.append(answer[1])
+        
+        # Adding Components and their similarity to relations (list)
+        relations.append([str(answer[0]), str(answer[1]), answer[2]])
+    
+    # Creating a new list to store premises that have not been used the first time round
     for premise in premises:
-        # Check to see if it hasn't already been assigned (linked to a claim)
         if premise not in usedPremises:
+            leftoverPremises.append(premise)
+    
+    # Attempt Two
+    for leftoverPremise in leftoverPremises:
+        # Check to see if it hasn't already been assigned (linked to a claim)
+        if leftoverPremise not in usedPremises:
             # Pre-processing each premise in order to efficiently compare it against a given claim
-            premiseTokens = canaryPreprocessing(premise, "component")
+            premiseTokens = canaryPreprocessing(leftoverPremise, "component")
             # Stores comparisons between a given premise and claims
             comparisons = []
             for claim in claims:
@@ -147,20 +178,20 @@ def canaryRelations(claims, premises):
                 # Comparing how similar a given claim is to a premise (Calcuted via WMD)
                 similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
                 # Adding each comparison to a list
-                comparisons.append([str(claim), str(premise), similarity])
+                comparisons.append([str(claim), str(leftoverPremise), similarity])
             # Used as a benchmark
             answer = comparisons[0]
-
-            # Looping through the results for a give claim
+        
+        # Looping through the results for a give claim
         for item in comparisons:
-            if item[2] < answer[2] and item[2] != 0.0:
+            if item[2] < answer[2]:
                 answer = item
         # Adding premise to used list
         usedPremises.append(answer[1])
 
         # Adding Components and their similarity to relations (list)
         relations.append([str(answer[0]), str(answer[1]), answer[2]])
-
+            
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
 
@@ -248,5 +279,7 @@ if __name__ == "__main__":
         print("Premise: " + str(relation[1]))
         print("Similarity: " + str(relation[2]))
         print("\n")
+
+
     
     
