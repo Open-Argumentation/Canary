@@ -231,9 +231,7 @@ def canaryTest(directory):
         # Comparing Relations results (Canary vs "Gold Standard")
         relationsAnalysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
         # Exporting results to .csv file
-        #data = [["Essay", "Method", "Major Claims", "Claims", "Premises", "Relations"]]
         data = []
-        
         data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
         data.append([filename, "Manual", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
         exportCSV(data)

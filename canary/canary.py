@@ -29,11 +29,6 @@ def canaryPreprocessing(file, type):
             for i in xrange(0, len(sWords["stopwords"])):
                 stopWords.append(str(sWords["stopwords"][i]))
 
-        """
-        # Setting up Stop words via NLTK
-        stopWords = stopwords.words('english')
-        """
-
         # Tokenization (should switch to wordtokenizer by NLTK?)
         tokens = file.lower().split()
         # Removing Stop words
@@ -242,15 +237,16 @@ def canarySADFace(relations):
     # Outputting changes to JSON file
     with open('./canarySADFace.json', 'w') as f:
         json.dump(SADFace, f, indent=4)
+
+def canarySADFaceLibrary(relations):
+    print("NEED TO IMPORT LIBRARY")
+
     
-
-
-
 if __name__ == "__main__":
     """ Used for testing the various functions """
 
     # Finding Components via Canary
-    canary = canaryLocal(".././corpus/essay220.txt")  
+    canary = canaryLocal(".././corpus/essay001.txt")  
     
     # Major
     canaryMajor = canary[0]
@@ -279,6 +275,8 @@ if __name__ == "__main__":
         print("Premise: " + str(relation[1]))
         print("Similarity: " + str(relation[2]))
         print("\n")
+
+    canarySADFace(relations)
     
 
     
