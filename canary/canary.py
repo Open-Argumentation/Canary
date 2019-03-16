@@ -179,19 +179,20 @@ def canaryRelations(claims, premises):
                 similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
                 # Adding each comparison to a list
                 comparisons.append([str(claim), str(leftoverPremise), similarity])
-            # Used as a benchmark
-            answer = comparisons[0]
-        
-        # Looping through the results for a give claim
-        for item in comparisons:
-            if item[2] < answer[2]:
-                answer = item
-        # Adding premise to used list
-        usedPremises.append(answer[1])
-
-        # Adding Components and their similarity to relations (list)
-        relations.append([str(answer[0]), str(answer[1]), answer[2]])
+                # Used as a benchmark
+                answer = comparisons[0]
             
+        # Was having problems when we don't find any claims, quick solution
+        if len(claims) != 0:
+            # Looping through the results for a give claim
+            for item in comparisons:
+                if item[2] < answer[2]:
+                    answer = item
+            # Adding premise to used list
+            usedPremises.append(answer[1])
+            # Adding Components and their similarity to relations (list)
+            relations.append([str(answer[0]), str(answer[1]), answer[2]])
+    
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
 
@@ -249,28 +250,27 @@ if __name__ == "__main__":
     """ Used for testing the various functions """
 
     # Finding Components via Canary
-    canary = canaryLocal(".././corpus/essay001.txt")  
+    canary = canaryLocal(".././corpus/essay220.txt")  
     
+    # Major
+    canaryMajor = canary[0]
     # Claim
     canaryClaims = canary[1]
     # Premise
     canaryPremises = canary[2]
-    # Major
-    canaryMajor = canary[0]
+    """
+    for claims in canaryClaims:
+        print("Claims:")
+        print(claims)
+        print("\n")
 
-    # Hard-coded "Gold Standard" components from 'essay001'
-    claims = ["through cooperation, children can learn about interpersonal skills which are significant in the future life of all students", "competition makes the society more effective",
-          "without the cooperation, there would be no victory of competition"]
-
-    premises = ["What we acquired from team work is not only how to achieve the same goal with others but more importantly, how to get along with others",
-            "During the process of cooperation, children can learn about how to listen to opinions of others, how to communicate with others, how to think comprehensively, and even how to compromise with other team members when conflicts occurred",
-            "All of these skills help them to get on well with other people and will benefit them for the whole life",
-            "the significance of competition is that how to become more excellence to gain the victory",
-            "when we consider about the question that how to win the game, we always find that we need the cooperation",
-            "Take Olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care"]
-
+    for premises in canaryPremises:
+        print("Premises:")
+        print(premises)
+        print("\n")
+    """
     # Finding Relations between Components
-    relations = canaryRelations(claims, premises)
+    relations = canaryRelations(canaryClaims, canaryPremises)
 
     # Test print
     for relation in relations:
@@ -279,7 +279,7 @@ if __name__ == "__main__":
         print("Premise: " + str(relation[1]))
         print("Similarity: " + str(relation[2]))
         print("\n")
-
+    
 
     
     

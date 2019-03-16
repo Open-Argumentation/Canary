@@ -9,7 +9,7 @@ from glob import glob
 from canary import canaryLocal, canaryRelations
 
 def exportCSV(data):
-    
+    """ Exporting data from Canary to a .csv file for inspectation/graphing """
     # Creating .csv file
     with open("canaryTest.csv", "a") as csvFile:
         writer = csv.writer(csvFile)
@@ -18,8 +18,6 @@ def exportCSV(data):
     # Closing file
     csvFile.close()
     
-    print("File exported: canaryTest.csv")
-
 def readAnn(file):
     """ Used to read in a .ann file and extract Argument Components """
 
@@ -135,7 +133,6 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     premiseCount = 0
     premiseCountAnn = 0
     
-
     # Main loop to compare findings of Canary with Gold Standard    
     for majorClaimAnn in majorClaimsAnn:
         majorCountAnn += 1
@@ -158,10 +155,6 @@ def canaryBratAnalysis(fileTxt, fileAnn):
             if premise.lower() in premiseAnn.lower() or premiseAnn.lower() in premise.lower():
                 # Found a match, increment Canary score
                 premiseCount += 1
-
-    print("Canary vs Brat (Major Claims): " + str(majorCount) + "/" + str(majorCountAnn))
-    print("Canary vs Brat (Claims): " + str(claimCount) + "/" + str(claimCountAnn))
-    print("Canary vs Brat (Premise): " + str(premiseCount) + "/" + str(premiseCountAnn))
 
     # Stores all the counts
     counts = [[majorCount, claimCount, premiseCount], [majorCountAnn, claimCountAnn, premiseCountAnn]]
@@ -208,8 +201,6 @@ def canaryBratRelationAnalysis(fileTxt, fileAnn):
     for analysisRelation in analysisRelations:
         analysisRelationsCount+= 1
     
-    print("Canary: " + str(relationsCount) + " Gold Standard: " + str(analysisRelationsCount))
-
     # Stores counts
     counts = [[relationsCount, analysisRelationsCount]]
 
@@ -229,6 +220,8 @@ def canaryTest(directory):
         files.extend(glob(join(directory, extension)))
 
     for file in files:
+        # Printing filename for testing (Canary Relations breaks on something)
+        print("Incase Break: " + file)
         # Spliting the filename from directory
         filename = (file.split(directory))
         # Filename with no extension (.txt, .ann)
@@ -244,8 +237,8 @@ def canaryTest(directory):
         data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
         data.append([filename, "Manual", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
         exportCSV(data)
+        print("File: " + filename + " exported to canaryTest.csv")
             
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
     canaryTest("../corpus/")
-
