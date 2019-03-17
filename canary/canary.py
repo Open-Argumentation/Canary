@@ -1,6 +1,7 @@
 # Imports
 from nltk.tokenize import sent_tokenize, word_tokenize
 from gensim import downloader as data
+import SADFace as sf
 import json
 import sys
 import os
@@ -191,57 +192,30 @@ def canaryRelations(claims, premises):
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
 
-def canarySupports():
-    """ Able to find what Claims support or oppose the given topic """
-    print("CANARY SUPPORTS")
-
 def canarySADFace(relations):
-    """ Function used to output found Components and Relations in SADFace format """
-    
-    # Reading in JSON SADFace Template
-    with open('./canarySADFace.json') as jsonFile:
-        SADFace = json.load(jsonFile)
+    # Testing SADFace Implementation via library
+    sf.set_config_location("etc/canary.cfg")
+    sf.sd = sf.init()
 
-    # Need to loop through canaryRelations output and find out what premises are linked to what claims
+    sf.set_title("Canary")
+    sf.add_notes("Canary x SADFace")
+    sf.set_description("Canary findings outputted in SADFace")
     
+    # Main loop taking information from Canary Relations
     for relation in relations:
-        # Randomly generate id's for each component
-        id = random.randint(1, 1000)
-        claimId = random.randint(1, 1000)
-        premiseId = random.randint(1, 1000)
+        # We set the claim (conclusion) and premise (prem)
+        con = str(relation[0])
+        prem = [str(relation[1])]
+        # We create an argument linking both of these components together
+        arg = sf.add_support(con_text=con, prem_text=prem, con_id=None, prem_id=None)
 
-        # Creating a node for claim
-        SADFace['nodes'].append({
-            "id": str(claimId), 
-            "metadata": {}, 
-            "sources": [], 
-            "text": str(relation[0]), 
-            "type": "atom"
-        })
-        
-        # Creating a node for premise
-        SADFace['nodes'].append({
-            "id": str(premiseId), 
-            "metadata": {}, 
-            "sources": [], 
-            "text": str(relation[1]), 
-            "type": "atom"
-        })
-        # Need to link the above elements
-        SADFace['edges'].append({
-            "id": str(id), 
-            "source_id": str(premiseId), 
-            "target_id": str(claimId)
-        })
-
+    #print(sf.prettyprint())
     # Outputting changes to JSON file
-    with open('./canarySADFace.json', 'w') as f:
-        json.dump(SADFace, f, indent=4)
+    json = sf.export_json()
+    with open("canarySADFace.json", "w") as jsonFile:
+        jsonFile.write(json)
+        print("JSON FILE WRITTEN")
 
-def canarySADFaceLibrary(relations):
-    print("NEED TO IMPORT LIBRARY")
-
-    
 if __name__ == "__main__":
     """ Used for testing the various functions """
 
@@ -254,17 +228,7 @@ if __name__ == "__main__":
     canaryClaims = canary[1]
     # Premise
     canaryPremises = canary[2]
-    """
-    for claims in canaryClaims:
-        print("Claims:")
-        print(claims)
-        print("\n")
-
-    for premises in canaryPremises:
-        print("Premises:")
-        print(premises)
-        print("\n")
-    """
+    
     # Finding Relations between Components
     relations = canaryRelations(canaryClaims, canaryPremises)
 
