@@ -6,7 +6,7 @@ import csv
 import time
 from os.path import join
 from glob import glob
-from canary import canaryLocal, canaryRelations
+from canary import Local, Relations
 
 def exportCSV(data):
     """ Exporting data from Canary to a .csv file for inspectation/graphing """
@@ -103,14 +103,14 @@ def readAnnRelations(file):
     
     return links
 
-def canaryBratAnalysis(fileTxt, fileAnn):
+def BratAnalysis(fileTxt, fileAnn):
     """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
 
     # Directory
     directory = "../corpus/"
 
     # Loading file into the local version of Canary
-    canary = canaryLocal(directory + fileTxt)
+    canary = Local(directory + fileTxt)
 
     # Used to store Argumentative Components
     majorClaims = canary[0]
@@ -161,14 +161,14 @@ def canaryBratAnalysis(fileTxt, fileAnn):
     
     return counts
 
-def canaryBratRelationAnalysis(fileTxt, fileAnn):
+def BratRelationAnalysis(fileTxt, fileAnn):
     """ Used to compare relation results """
     
     # Directory
     directory = "../corpus/"
 
     # Loading file into the local version of Canary
-    canary = canaryLocal(directory + fileTxt)
+    canary = Local(directory + fileTxt)
 
     # Used to store Argumentative Components
     claims = canary[1]
@@ -176,7 +176,7 @@ def canaryBratRelationAnalysis(fileTxt, fileAnn):
 
     # Not really needed, I could loop Canary[1]/Canary[2]
     # Finding relations via canaryRelations
-    canary = canaryRelations(claims, premises)
+    canary = Relations(claims, premises)
 
     relations = []
 
@@ -206,7 +206,7 @@ def canaryBratRelationAnalysis(fileTxt, fileAnn):
 
     return counts
 
-def canaryTest(directory):
+def Test(directory):
     """ Main testing function """
     """ Testing function to compare relation results of Canary vs the Gold Standard """
 
@@ -227,9 +227,9 @@ def canaryTest(directory):
         # Filename with no extension (.txt, .ann)
         filename = (filename[1].split(".")[0])
         # Comparing Components results (Canary vs "Gold Standard")
-        componentsAnalysis = canaryBratAnalysis(filename + ".txt", filename + ".ann")
+        componentsAnalysis = BratAnalysis(filename + ".txt", filename + ".ann")
         # Comparing Relations results (Canary vs "Gold Standard")
-        relationsAnalysis = canaryBratRelationAnalysis(filename + ".txt", filename + ".ann")
+        relationsAnalysis = BratRelationAnalysis(filename + ".txt", filename + ".ann")
         # Exporting results to .csv file
         data = []
         data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
@@ -239,4 +239,4 @@ def canaryTest(directory):
             
 if __name__ == '__main__':
     """ Used to test the various features of Canary """
-    canaryTest("../corpus/")
+    Test("../corpus/")

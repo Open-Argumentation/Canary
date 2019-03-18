@@ -7,7 +7,7 @@ import sys
 import os
 import random
 
-def canaryPreprocessing(file, type):
+def Preprocessing(file, type):
     """ Used to pre-process an input file to order to efficient produce results. """
     
     # Pre-processes an Input file
@@ -39,7 +39,7 @@ def canaryPreprocessing(file, type):
         print("SEE DOCUMENTATION FOR CORRECT USAGES")
 
 
-def canaryLocal(file):
+def Local(file):
     """ Finds Argumentative Components in a local file """
 
     # Store Components
@@ -73,7 +73,7 @@ def canaryLocal(file):
             i = 0
         
         # Importing and pre-processing the User's input file
-        sentenceTokens = canaryPreprocessing(file, "text")
+        sentenceTokens = Preprocessing(file, "text")
 
         # Looping through userFile Tokens (sentences)
         for line in xrange(0, len(sentenceTokens)):
@@ -115,7 +115,7 @@ def canaryLocal(file):
     components.append(premise)
     return components
 
-def canaryRelations(claims, premises):
+def Relations(claims, premises):
     """ Finds Argumentative Relations from a list of Claims/Premises """
 
     # Store Relations
@@ -131,13 +131,13 @@ def canaryRelations(claims, premises):
     # Attempt Three
     for claim in claims:
         # Pre-processing each claim in order to efficiently compare it against a premise
-        claimTokens = canaryPreprocessing(claim, "component")
+        claimTokens = Preprocessing(claim, "component")
         # Stores comparisons between a given premise and claims
         comparisons = []
         for premise in premises:
             if premise not in usedPremises:
                 # Pre-processing each premise in order to efficiently compare it against a given claim
-                premiseTokens = canaryPreprocessing(premise, "component")
+                premiseTokens = Preprocessing(premise, "component")
                 # Comparing how similar a given claim is to a premise (Calcuted via WMD)
                 similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
                 # Adding each comparison to a list
@@ -165,12 +165,12 @@ def canaryRelations(claims, premises):
         # Check to see if it hasn't already been assigned (linked to a claim)
         if leftoverPremise not in usedPremises:
             # Pre-processing each premise in order to efficiently compare it against a given claim
-            premiseTokens = canaryPreprocessing(leftoverPremise, "component")
+            premiseTokens = Preprocessing(leftoverPremise, "component")
             # Stores comparisons between a given premise and claims
             comparisons = []
             for claim in claims:
                 # Pre-processing each claim in order to efficiently compare it against a premise
-                claimTokens = canaryPreprocessing(claim, "component")
+                claimTokens = Preprocessing(claim, "component")
                 # Comparing how similar a given claim is to a premise (Calcuted via WMD)
                 similarity = wordVectors.wmdistance(claimTokens, premiseTokens)
                 # Adding each comparison to a list
@@ -192,7 +192,7 @@ def canaryRelations(claims, premises):
     # Returning a list of Claims, supported by a given premise and their similartity score
     return relations
 
-def canarySADFace(relations):
+def SADFace(relations):
     # Testing SADFace Implementation via library
     sf.set_config_location("etc/canary.cfg")
     sf.sd = sf.init()
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     """ Used for testing the various functions """
 
     # Finding Components via Canary
-    canary = canaryLocal(".././corpus/essay001.txt")  
+    canary = Local(".././corpus/essay001.txt")  
     
     # Major
     canaryMajor = canary[0]
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     canaryPremises = canary[2]
     
     # Finding Relations between Components
-    relations = canaryRelations(canaryClaims, canaryPremises)
+    relations = Relations(canaryClaims, canaryPremises)
 
     # Test print
     for relation in relations:
