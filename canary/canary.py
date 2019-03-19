@@ -16,7 +16,7 @@ def Preprocessing(file, type):
         userFile = open(file).read().lower()
         # Tokenizing userFile into sentences, also removes Whitespace/Breaks
         sentenceTokens = sent_tokenize(userFile)
-        return sentenceTokens
+        return sentenceTokens 
     # Pre-procosses an Argumentative Component
     elif type == "component":
         # Reading in stopWords.json
@@ -211,9 +211,9 @@ def SADFace(relations):
 
     #print(sf.prettyprint())
     # Outputting changes to JSON file
-    json = sf.export_json()
+    jsonData = sf.export_json()
     with open("canarySADFace.json", "w") as jsonFile:
-        jsonFile.write(json)
+        jsonFile.write(jsonData)
         print("JSON FILE WRITTEN")
 
 if __name__ == "__main__":
@@ -240,7 +240,7 @@ if __name__ == "__main__":
         print("Similarity: " + str(relation[2]))
         print("\n")
 
-    canarySADFace(relations)
+    SADFace(relations)
     
 
     

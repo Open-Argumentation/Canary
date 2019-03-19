@@ -537,7 +537,7 @@ def export_json():
 
     Returns: String-encoded JSON
     """
-    return json.dumps(sd)
+    return json.dumps(sd, indent=4)
 
 def get_atom(atom_id):
     """

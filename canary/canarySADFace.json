@@ -1,1 +1,102 @@
-{"edited": "2019-03-17T14:59:15", "edges": [{"source_id": "839771b1-7a85-4bcf-ae41-cb3e874444f5", "target_id": "f3b6cb4d-213d-4000-9446-0b4599e3e6f6", "id": "74d49eb3-d401-4a4d-8997-4475215f9652"}, {"source_id": "4440987b-3f77-466c-bf6f-e101e4cfb9e7", "target_id": "839771b1-7a85-4bcf-ae41-cb3e874444f5", "id": "78bd47d1-fbc1-4029-9202-25a8579d2faa"}, {"source_id": "31871f26-9826-436d-8828-ea4144a38429", "target_id": "9504fb32-e68f-4bf7-99f6-0fc9109d93b3", "id": "424983d6-ac3e-4660-b180-29ef8c14fbc4"}, {"source_id": "a250eb56-906b-4a31-af8c-7ea9556a67f2", "target_id": "31871f26-9826-436d-8828-ea4144a38429", "id": "e34c3b4b-cee5-40c6-9a5f-c48e99dcc09e"}, {"source_id": "62f379c1-b037-4fd9-9b0a-87ed4c87051e", "target_id": "f3b6cb4d-213d-4000-9446-0b4599e3e6f6", "id": "df5e9e3c-c6e3-4a8e-9e05-c6325a44b2a0"}, {"source_id": "f03f7376-37ca-4c18-b4dc-1fde6f18a6a0", "target_id": "62f379c1-b037-4fd9-9b0a-87ed4c87051e", "id": "ce8497a2-7ba9-42f3-a4cf-c275b1edbbb1"}], "analyst_name": "Canary", "analyst_email": "testing@canary.am", "created": "2019-03-17T14:59:15", "nodes": [{"text": "hence it is always said that competition makes the society more effective.", "metadata": {}, "type": "atom", "id": "f3b6cb4d-213d-4000-9446-0b4599e3e6f6", "sources": []}, {"metadata": {}, "type": "scheme", "id": "839771b1-7a85-4bcf-ae41-cb3e874444f5", "name": "support"}, {"text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.", "metadata": {}, "type": "atom", "id": "4440987b-3f77-466c-bf6f-e101e4cfb9e7", "sources": []}, {"text": "therefore without the cooperation, there would be no victory of competition.", "metadata": {}, "type": "atom", "id": "9504fb32-e68f-4bf7-99f6-0fc9109d93b3", "sources": []}, {"metadata": {}, "type": "scheme", "id": "31871f26-9826-436d-8828-ea4144a38429", "name": "support"}, {"text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.", "metadata": {}, "type": "atom", "id": "a250eb56-906b-4a31-af8c-7ea9556a67f2", "sources": []}, {"metadata": {}, "type": "scheme", "id": "62f379c1-b037-4fd9-9b0a-87ed4c87051e", "name": "support"}, {"text": "all of these skills help them to get on well with other people and will benefit them for the whole life.", "metadata": {}, "type": "atom", "id": "f03f7376-37ca-4c18-b4dc-1fde6f18a6a0", "sources": []}], "id": "098d5ae3-da7a-4d46-beeb-b3085f6c6b46", "resources": [], "metadata": {"core": {"notes": "Canary x SADFace", "description": "Canary findings outputted in SADFace", "title": "Canary"}}}
+{
+    "edited": "2019-03-19T11:18:09", 
+    "edges": [
+        {
+            "source_id": "71c3d165-d8f4-4f73-a732-0502d689c260", 
+            "target_id": "8d517881-7520-42a0-a407-25a1b013fc82", 
+            "id": "20dba2e1-2d19-4d3f-9e86-fc0247238b3c"
+        }, 
+        {
+            "source_id": "58c585ce-8882-4abe-8b3a-838504196844", 
+            "target_id": "71c3d165-d8f4-4f73-a732-0502d689c260", 
+            "id": "8585d756-cd8c-49e5-821a-9e9f65bb0961"
+        }, 
+        {
+            "source_id": "33f48c94-56a7-462d-aeff-47c54de36059", 
+            "target_id": "7a611174-c5bb-4117-b457-149e39729592", 
+            "id": "63e8e430-5303-46b8-9b4f-cc4e9c9a99c6"
+        }, 
+        {
+            "source_id": "9a7d5ead-c65e-483b-8821-fc16a267d08d", 
+            "target_id": "33f48c94-56a7-462d-aeff-47c54de36059", 
+            "id": "9a3489ef-fc14-406d-a710-f74758fe7ddc"
+        }, 
+        {
+            "source_id": "13500198-24a2-4763-8a3e-0ae905110e99", 
+            "target_id": "8d517881-7520-42a0-a407-25a1b013fc82", 
+            "id": "687b4a34-7a62-4140-8e86-2981d26a2d53"
+        }, 
+        {
+            "source_id": "3f5d83ed-965d-42b2-94dc-260eff21f5f8", 
+            "target_id": "13500198-24a2-4763-8a3e-0ae905110e99", 
+            "id": "71dffddf-40e2-4740-8f4d-58dd078bf8b6"
+        }
+    ], 
+    "analyst_name": "Canary", 
+    "analyst_email": "testing@canary.am", 
+    "created": "2019-03-19T11:18:09", 
+    "nodes": [
+        {
+            "text": "hence it is always said that competition makes the society more effective.", 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "8d517881-7520-42a0-a407-25a1b013fc82", 
+            "sources": []
+        }, 
+        {
+            "metadata": {}, 
+            "type": "scheme", 
+            "id": "71c3d165-d8f4-4f73-a732-0502d689c260", 
+            "name": "support"
+        }, 
+        {
+            "text": "in order to survive in the competition, companies continue to improve their products and service, and as a result, the whole society prospers.", 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "58c585ce-8882-4abe-8b3a-838504196844", 
+            "sources": []
+        }, 
+        {
+            "text": "therefore without the cooperation, there would be no victory of competition.", 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "7a611174-c5bb-4117-b457-149e39729592", 
+            "sources": []
+        }, 
+        {
+            "metadata": {}, 
+            "type": "scheme", 
+            "id": "33f48c94-56a7-462d-aeff-47c54de36059", 
+            "name": "support"
+        }, 
+        {
+            "text": "take olympic games which is a form of competition for instance, it is hard to imagine how an athlete could win the game without the training of his or her coach, and the help of other professional staffs such as the people who take care of his diet, and those who are in charge of the medical care.", 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "9a7d5ead-c65e-483b-8821-fc16a267d08d", 
+            "sources": []
+        }, 
+        {
+            "metadata": {}, 
+            "type": "scheme", 
+            "id": "13500198-24a2-4763-8a3e-0ae905110e99", 
+            "name": "support"
+        }, 
+        {
+            "text": "all of these skills help them to get on well with other people and will benefit them for the whole life.", 
+            "metadata": {}, 
+            "type": "atom", 
+            "id": "3f5d83ed-965d-42b2-94dc-260eff21f5f8", 
+            "sources": []
+        }
+    ], 
+    "id": "41bd6f69-d525-43b7-bed0-d3a686c8ea4d", 
+    "resources": [], 
+    "metadata": {
+        "core": {
+            "notes": "Canary x SADFace", 
+            "description": "Canary findings outputted in SADFace", 
+            "title": "Canary"
+        }
+    }
+}
