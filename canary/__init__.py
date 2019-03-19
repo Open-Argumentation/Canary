@@ -25,7 +25,7 @@ def Preprocessing(file, type):
     # Pre-procosses an Argumentative Component
     elif type == "component":
         # Reading in stopWords.json
-        with open("stopwords.json") as stopWordsFile:
+        with open("data/stopwords.json") as stopWordsFile:
             sWords = json.load(stopWordsFile)
 
              # Used to store Stopwords
@@ -54,7 +54,7 @@ def Local(file):
     components = []
 
     # Importing Indicators via "indicators.json"
-    with open("indicators.json") as indicatorsFile:
+    with open("data/indicators.json") as indicatorsFile:
         indicators = json.load(indicatorsFile)
 
         # Store Indicators in their respective lists
@@ -217,14 +217,14 @@ def SADFace(relations):
     #print(sf.prettyprint())
     # Outputting changes to JSON file
     jsonData = sf.export_json()
-    with open("canarySADFace.json", "w") as jsonFile:
+    with open("output/canarySADFace.json", "w") as jsonFile:
         jsonFile.write(jsonData)
         print("JSON FILE WRITTEN")
 
 def exportCSV(data):
     """ Exporting data from Canary to a .csv file for inspectation/graphing """
     # Creating .csv file
-    with open("canaryTest.csv", "a") as csvFile:
+    with open("output/canaryTest.csv", "a") as csvFile:
         writer = csv.writer(csvFile)
         writer.writerows(data)
     
@@ -320,7 +320,7 @@ def BratAnalysis(fileTxt, fileAnn):
     """ Used to compare the outputs of Canary with a manually annotated Gold Standard """
 
     # Directory
-    directory = "corpus/"
+    directory = "data/corpus/"
 
     # Loading file into the local version of Canary
     canary = Local(directory + fileTxt)
@@ -378,7 +378,7 @@ def BratRelationAnalysis(fileTxt, fileAnn):
     """ Used to compare relation results """
     
     # Directory
-    directory = "corpus/"
+    directory = "data/corpus/"
 
     # Loading file into the local version of Canary
     canary = Local(directory + fileTxt)
