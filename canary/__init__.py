@@ -419,6 +419,58 @@ def BratRelationAnalysis(fileTxt, fileAnn):
 
     return counts
 
+def bratTest(directory):
+    """ Function used to extract Argumentative Components from the .ann file to find relations """
+
+    # Stores the files that match those types (same filename has both .txt & .ann)
+    files = []
+
+    for file in os.listdir(directory):
+        if file.endswith(".ann"):
+            files.append(file)
+
+    """
+    for extension in types:
+        files.extend(glob(join(directory, extension)))
+    """
+    
+    for file in files:
+        # Printing file for testing
+        print(file + "\n")
+        
+        # Getting Components from .ann file
+        components = readAnn(directory + "/" + file)
+
+        claims = components[1]
+        premises = components[2]
+
+        # Finding relations between these components
+        relations = Relations(claims, premises)
+
+        # Need to read in Ann Relations
+        analysisRelations = readAnnRelations(directory + "/" + file)
+
+         # Stores counts used to compare findings
+        relationsCount = 0
+        analysisRelationsCount = 0
+
+        for relation in relations:
+            for analysisRelation in analysisRelations:
+                if relation[0].lower() in analysisRelation[0].lower() or analysisRelation[0].lower() in relation[0].lower():
+                    if relation[1].lower() in analysisRelation[1].lower() or analysisRelation[1].lower() in relation[1].lower():
+                        relationsCount += 1
+
+        # Working out count for Gold Standard
+        for analysisRelation in analysisRelations:
+            analysisRelationsCount+= 1
+        
+        # Stores counts
+        counts = [[relationsCount, analysisRelationsCount]]
+
+        print("File: " + file + " Relations Found: " + str(counts[0][0]) + "/" + str(counts[0][1]))
+
+        return counts
+
 def Test(directory):
     """ Main testing function """
     """ Testing function to compare relation results of Canary vs the Gold Standard """
