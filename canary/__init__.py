@@ -221,15 +221,24 @@ def SADFace(relations):
         jsonFile.write(jsonData)
         print("JSON FILE WRITTEN")
 
-def exportCSV(data):
+def exportCSV(data, method):
     """ Exporting data from Canary to a .csv file for inspectation/graphing """
     # Creating .csv file
-    with open("output/canaryTest.csv", "a") as csvFile:
-        writer = csv.writer(csvFile)
-        writer.writerows(data)
+    if method == "canary":
+        with open("canary/output/canary.csv", "a") as csvFile:
+            writer = csv.writer(csvFile)
+            writer.writerows(data)
+            # Closing file
+            csvFile.close()
+    elif method == "brat":
+        with open("canary/output/brat.csv", "a") as csvFile:
+            writer = csv.writer(csvFile)
+            writer.writerows(data)
+            # Closing file
+            csvFile.close()
+    else:
+        print("WRONG USE OF FUNCTION.")
     
-    # Closing file
-    csvFile.close()
     
 def readAnn(file):
     """ Used to read in a .ann file and extract Argument Components """
@@ -428,12 +437,7 @@ def bratTest(directory):
     for file in os.listdir(directory):
         if file.endswith(".ann"):
             files.append(file)
-
-    """
-    for extension in types:
-        files.extend(glob(join(directory, extension)))
-    """
-    
+  
     for file in files:
         # Printing file for testing
         print(file + "\n")
@@ -466,10 +470,12 @@ def bratTest(directory):
         
         # Stores counts
         counts = [[relationsCount, analysisRelationsCount]]
-
+        # Exporting results to .csv file
+        data = []
+        data.append([file, "Brat Relations", relationsCount, analysisRelationsCount])
+        # Exporting to .csv
+        exportCSV(data, "brat")
         print("File: " + file + " Relations Found: " + str(counts[0][0]) + "/" + str(counts[0][1]))
-
-        return counts
 
 def Test(directory):
     """ Main testing function """
@@ -491,14 +497,16 @@ def Test(directory):
         filename = (file.split(directory))
         # Filename with no extension (.txt, .ann)
         filename = (filename[1].split(".")[0])
+        # Used for Output
+        f = (filename.split("/")[1])
         # Comparing Components results (Canary vs "Gold Standard")
         componentsAnalysis = BratAnalysis(filename + ".txt", filename + ".ann")
         # Comparing Relations results (Canary vs "Gold Standard")
         relationsAnalysis = BratRelationAnalysis(filename + ".txt", filename + ".ann")
         # Exporting results to .csv file
         data = []
-        data.append([filename, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
-        data.append([filename, "Manual", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
+        data.append([f, "Canary", str(componentsAnalysis[0][0]), str(componentsAnalysis[0][1]), str(componentsAnalysis[0][2]), str(relationsAnalysis[0][0])])
+        data.append([f, "Manual", str(componentsAnalysis[1][0]), str(componentsAnalysis[1][1]), str(componentsAnalysis[1][2]), str(relationsAnalysis[0][1])])
         # Add another line for f1-score for components/relations
-        exportCSV(data)
+        exportCSV(data, "canary")
         print("File: " + filename + " exported to canaryTest.csv")
