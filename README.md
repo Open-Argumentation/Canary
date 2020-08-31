@@ -1,6 +1,8 @@
 ## Canary
 
-Canary is a Python library for extracting argumentative components and their relationships from text files. The aim is to provide a novel implementation of an Argument Miner that someone is able to run on their own data set in order to find patterns or to extract argumentative structure from their data. Alongside this, Canary is fully open-sourced allowing for users to implement their own functions or improve pre-existing ones.
+Canary is a Python library for Argument Mining. Argument Mining is the automated identifcation and extraction of argumentative data from natural language sources such as text files. 
+
+The initial aim is to provide a novel implementation of an Argument Mining tool that someone is able to run on their own data set in order to find patterns or to extract argumentative structure from their data.
 
 ### Getting Started
 
