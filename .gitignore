@@ -1,2 +1,5 @@
+# Development files
 *.swp
 .DS_Store
+/.idea
+/.vscode
