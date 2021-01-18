@@ -1,0 +1,41 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "925ef698dd4831d17a23b883efca5dee45b8c038a34ce49e3c52817089c2e8f3"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.9"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "argdb": {
+            "editable": true,
+            "git": "https://github.com/chriswales95/ArgDB/",
+            "ref": "bb9950430d4c651d00223ae53a160ed8be0d13e3"
+        },
+        "sadface": {
+            "hashes": [
+                "sha256:d00135f31a71154c1ad78683c8a4aad92ba0481b20e3559350af4de337f1c23c"
+            ],
+            "index": "pypi",
+            "version": "==0.5.2"
+        },
+        "tinydb": {
+            "hashes": [
+                "sha256:1d102d06f9bb22d739d8061b490c64d420de70dca5f95ebd43a492c43c7bd303",
+                "sha256:c8a8887269927e077f3aa16fddbf4debd176c10edc4ac8a5ce48ced0b10adf8c"
+            ],
+            "markers": "python_version >= '3.5' and python_version < '4.0'",
+            "version": "==4.3.0"
+        }
+    },
+    "develop": {}
+}
