@@ -1,0 +1,22 @@
+[
+  {
+    "id": "araucaria",
+    "name": "Araucaria",
+    "download_url": "http://corpora.aifdb.org/tar/araucaria/download"
+  },
+  {
+    "id": "argument_annotated_essays",
+    "name": "Argument Annotated Essays",
+    "download_url": "http://corpora.aifdb.org/tar/AAECv2/download"
+  },
+  {
+    "id": "mm2012",
+    "name": "MM2012",
+    "download_url": "http://corpora.aifdb.org/tar/mm2012/download"
+  },
+  {
+    "id": "us2016",
+    "name": "US2016",
+    "download_url": "http://corpora.aifdb.org/tar/US2016/download"
+  }
+]
