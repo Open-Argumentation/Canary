@@ -14,14 +14,14 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     """
 
     config = ConfigParser()
-    config.read('../etc/canary.cfg')
+    config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../etc/canary.cfg'))
     storage_location = \
         os.path.join(Path.home(), config.get('canary',
                                              'corpora_home_storage_directory')) if save_location is None else save_location
     storage_location_tarfile = f'{storage_location}/{corpus_id}.tar.gz'
     storage_location = os.path.join(storage_location, corpus_id)
 
-    with open("../data/corpora.json") as corpora:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/corpora.json')) as corpora:
         import json
         import tarfile
 
