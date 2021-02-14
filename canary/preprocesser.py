@@ -11,7 +11,8 @@ class Preprocessor:
         __config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../etc/canary.cfg'))
         nltk_data_directory = os.path.join(Path.home(), __config.get('nltk', 'storage_directory'))
         nltk.data.path.append(nltk_data_directory)
-        nltk.download('stopwords', download_dir=nltk_data_directory)
+        nltk.download('stopwords', download_dir=nltk_data_directory, quiet=True)
+        nltk.download('punkt', download_dir=nltk_data_directory, quiet=True)
 
     __stopwords = [
         ",",
