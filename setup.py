@@ -6,5 +6,7 @@ setup(
     packages=find_packages(exclude=['data', 'etc']),
     install_requires=[
         "requests",
+        "scikit-learn",
+        "nltk"
     ]
 )
