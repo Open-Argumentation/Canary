@@ -7,6 +7,8 @@ setup(
     install_requires=[
         "requests",
         "scikit-learn",
-        "nltk"
-    ]
+        "nltk",
+    ],
+    include_package_data=True,
+    zip_safe=False
 )

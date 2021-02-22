@@ -2,17 +2,33 @@ import os
 import nltk
 from configparser import ConfigParser
 from pathlib import Path
+from sklearn.feature_extraction.text import CountVectorizer
+
+
+class Vectorizer:
+
+    def vectoriser(self, ngram_range=(2, 3), apply_lemmatization=False):
+        return CountVectorizer(ngram_range=ngram_range, stop_words=Preprocessor().stopwords,
+                               )
+
+
+class Lemmatizer:
+
+    def __init__(self):
+        self.word_net = nltk.WordNetLemmatizer()
+
+    def __call__(self, text):
+        return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]
 
 
 class Preprocessor:
 
     def __init__(self):
         __config = ConfigParser()
-        __config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../etc/canary.cfg'))
+        __config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'etc/canary.cfg'))
         nltk_data_directory = os.path.join(Path.home(), __config.get('nltk', 'storage_directory'))
         nltk.data.path.append(nltk_data_directory)
-        nltk.download('stopwords', download_dir=nltk_data_directory, quiet=True)
-        nltk.download('punkt', download_dir=nltk_data_directory, quiet=True)
+        nltk.download(['stopwords', 'punkt', 'wordnet'], download_dir=nltk_data_directory, quiet=True)
 
     __stopwords = [
         ",",

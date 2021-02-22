@@ -1,7 +1,9 @@
+import csv
 import os
 from configparser import ConfigParser
 from pathlib import Path
 from urllib.error import HTTPError
+from canary.utils import ROOT_DIR
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None):
@@ -14,14 +16,14 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     """
 
     config = ConfigParser()
-    config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../etc/canary.cfg'))
+    config.read(f"{ROOT_DIR}/etc/canary.cfg")
     storage_location = \
         os.path.join(Path.home(), config.get('canary',
                                              'corpora_home_storage_directory')) if save_location is None else save_location
     storage_location_tarfile = f'{storage_location}/{corpus_id}.tar.gz'
     storage_location = os.path.join(storage_location, corpus_id)
 
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/corpora.json')) as corpora:
+    with open(f"{ROOT_DIR}/data/corpora.json") as corpora:
         import json
         import tarfile
 
@@ -51,3 +53,25 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
                     f"There was an error fetching the requested resource. HTTP status code {response.status_code}")
         elif corpora_already_downloaded:
             print(f"Corpus already present at {storage_location}")
+
+
+def load_imdb_debater_evidence_sentences() -> tuple:
+    train_data, test_data, train_targets, test_targets = [], [], [], []
+
+    with open(
+            f'{ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/train.csv') as data:
+        csv_reader = csv.reader(data)
+        next(csv_reader)
+        for row in csv_reader:
+            train_data.append(row[2])
+            train_targets.append(int(row[4]))
+
+    with open(
+            f'{ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/test.csv') as data:
+        csv_reader = csv.reader(data)
+        next(csv_reader)
+        for row in csv_reader:
+            test_data.append(row[2])
+            test_targets.append(int(row[4]))
+
+    return train_data, train_targets, test_data, test_targets
