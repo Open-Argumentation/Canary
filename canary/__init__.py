@@ -1,1 +1,4 @@
-from .download import download_corpus
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
