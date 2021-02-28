@@ -1,5 +1,5 @@
 from unittest import TestCase
-from canary import download_corpus
+from canary.corpora import download_corpus
 from urllib.error import HTTPError
 
 
