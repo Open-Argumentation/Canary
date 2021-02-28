@@ -4,6 +4,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from urllib.error import HTTPError
 from canary.utils import ROOT_DIR
+from canary import logger
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None):
@@ -75,3 +76,42 @@ def load_imdb_debater_evidence_sentences() -> tuple:
             test_targets.append(int(row[4]))
 
     return train_data, train_targets, test_data, test_targets
+
+
+def load_ukp_sentential_argument_detection_corpus() -> dict:
+    datasets = {
+        "nuclear_energy": {'train': [], "test": [], "val": []},
+        "death_penalty": {'train': [], "test": [], "val": []},
+        "minimum_wage": {'train': [], "test": [], "val": []},
+        "marijuana_legalization": {'train': [], "test": [], "val": []},
+        "school_uniforms": {'train': [], "test": [], "val": []},
+        "gun_control": {'train': [], "test": [], "val": []},
+        "abortion": {'train': [], "test": [], "val": []},
+        "cloning": {'train': [], "test": [], "val": []},
+    }
+    try:
+        for d in datasets:
+            file = os.path.join(f"{ROOT_DIR}/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/",
+                                f"{d}.tsv")
+
+            if os.path.isfile(file) is False:
+                raise FileNotFoundError(f"{d}.tsv from the UKP dataset does not exist. Has it been downloaded?")
+
+            with open(file) as data:
+                csv_reader = csv.reader(data, delimiter="\t", quotechar='"')
+                next(csv_reader)  # skip heading
+
+                for row in csv_reader:
+                    if 0 <= 6 < len(row):
+                        if row[6] == 'train':
+                            datasets[d]['train'].append([row[4], row[5]])
+                        elif row[6] == 'test':
+                            datasets[d]['test'].append([row[4], row[5]])
+                        else:
+                            datasets[d]['val'].append([row[4], row[5]])
+    except FileNotFoundError as e:
+        logger.error("Could not find a file from the UKP sentential dataset. Please ensure it has been downloaded.")
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return datasets
