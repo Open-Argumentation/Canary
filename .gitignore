@@ -3,6 +3,7 @@
 .DS_Store
 /.idea
 /.vscode
+canary/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/**
 
 ## https://github.com/github/gitignore/blob/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
