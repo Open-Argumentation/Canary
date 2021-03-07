@@ -34,7 +34,8 @@ discourse_indicators = {
         "thus",
         "to sum up",
         "we may deduce",
-        "the point i'm trying to make"
+        "the point i'm trying to make",
+        "because"
     ],
     "premise": [
         "assuming that",

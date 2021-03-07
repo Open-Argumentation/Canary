@@ -5,7 +5,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import classification_report
 from sklearn.naive_bayes import ComplementNB
 from sklearn.pipeline import FeatureUnion, Pipeline
-
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
 from canary.utils import CANARY_LOCAL_STORAGE
 from canary import logger
@@ -36,8 +35,14 @@ class DiscourseMatcher(object):
     def fit(self, x, y):
         return self
 
+    def __contains_indicator__(self, sen):
+        for x in self.indicators:
+            if x in sen:
+                return True
+        return False
+
     def transform(self, doc):
-        return [[x in self.indicators] for x in doc]
+        return [[self.__contains_indicator__(x)] for x in doc]
 
 
 class ArgumentDetector:
