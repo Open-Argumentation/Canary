@@ -1,11 +1,11 @@
 import os
 from pathlib import Path
-from configparser import ConfigParser
+from canary import config
 
 ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_LOCATION = f"{ROOT_DIR}/etc/canary.cfg"
+CONFIG_LOCATION = Path(f"{ROOT_DIR}/etc") / "canary.cfg"
 
-__config = ConfigParser()
-__config.read(CONFIG_LOCATION)
-
-CANARY_LOCAL_STORAGE = os.path.join(Path.home(), __config.get("canary", "storage_location"))
+CANARY_LOCAL_STORAGE = Path(f"{Path.home()}/{config.get('canary', 'storage_location')}")
+MODEL_STORAGE_LOCATION = Path(f"{CANARY_LOCAL_STORAGE}/models")
+CANARY_CORPORA_LOCATION = os.path.join(Path.home(), config.get('canary',
+                                                              'corpora_home_storage_directory'))
