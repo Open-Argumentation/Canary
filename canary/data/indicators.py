@@ -4,7 +4,8 @@ discourse_indicators = {
         "in my opinion",
         "i strongly believe that",
         "i think that",
-        "i firmly believe that"
+        "i firmly believe that",
+        "agree"
     ],
     "claim": [
         "accordingly",
@@ -14,6 +15,7 @@ discourse_indicators = {
         "conclude that",
         "clearly",
         "demonstrates that",
+        "believe",
         "entails",
         "follows that",
         "hence",
@@ -32,10 +34,17 @@ discourse_indicators = {
         "suggests that",
         "therefore",
         "thus",
+        "ergo",
         "to sum up",
         "we may deduce",
         "the point i'm trying to make",
-        "because"
+        "because",
+        "often",
+        "really",
+        "need",
+        "supposing that",
+        "finally",
+        "subsequently"
     ],
     "premise": [
         "assuming that",
@@ -66,7 +75,64 @@ discourse_indicators = {
         "this can be seen from",
         "since",
         "since the evidence is",
+        "seeing that",
         "whereas",
-        "what's more"
-    ]
+        "what's more",
+
+    ],
+    "first_person": [
+        "I",
+        "me",
+        "my",
+        "mine",
+        "myself"
+    ],
+    "punctuation": [
+        '!',
+        '\"',
+        ',',
+        '-',
+        '.',
+        ':',
+        ';',
+        '?',
+        '...',
+        '..',
+        '/',
+        "%",
+        "$",
+        "£",
+        "(",
+        ")",
+        "[",
+        "]",
+        "*"
+    ],
+    "modal_aux": {
+        "obligation": [
+            "must",
+            "need",
+            "have to"
+        ],
+        "recommendation": [
+            "should",
+            "ought to",
+            "had better"
+        ],
+        "possible": [
+            "can",
+            "could"
+        ],
+        "option": [
+            "may",
+            "might"
+        ],
+        "intention": [
+            "will",
+            "shall"
+        ],
+        "condition": [
+            "would"
+        ]
+    }
 }

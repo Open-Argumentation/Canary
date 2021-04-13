@@ -8,6 +8,7 @@ setup(
         "requests",
         "scikit-learn",
         "nltk",
+        "vaderSentiment"
     ],
     include_package_data=True,
     zip_safe=False

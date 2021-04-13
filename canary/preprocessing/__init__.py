@@ -1,23 +1,18 @@
+from canary import config
 import os
 import nltk
-from configparser import ConfigParser
 from pathlib import Path
-
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class Preprocessor:
 
     def __init__(self):
-        __config = ConfigParser()
-        __config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'etc/canary.cfg'))
-        nltk_data_directory = os.path.join(Path.home(), __config.get('nltk', 'storage_directory'))
+        nltk_data_directory = os.path.join(Path.home(), config.get('nltk', 'storage_directory'))
         nltk.data.path.append(nltk_data_directory)
         nltk.download(['stopwords', 'punkt'],
                       download_dir=nltk_data_directory, quiet=True)
 
     __stopwords = [
-        ",",
         "br",
         "also",
         "'d",
@@ -35,10 +30,18 @@ class Preprocessor:
         'sha',
         'wa',
         'wo',
-        'would',
     ]
 
     @property
     def stopwords(self) -> list:
         sw = nltk.corpus.stopwords.words('english') + self.__stopwords
         return sw
+
+
+class Lemmatizer:
+
+    def __init__(self):
+        self.word_net = nltk.WordNetLemmatizer()
+
+    def __call__(self, text):
+        return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]

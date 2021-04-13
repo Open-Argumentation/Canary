@@ -4,10 +4,15 @@
     "name": "Araucaria",
     "download_url": "http://corpora.aifdb.org/zip/araucaria/download"
   },
+    {
+    "id": "argument_annotated_essays_1",
+    "name": "Argument Annotated Essays 1",
+    "download_url": "https://web.archive.org/web/20181114095305/https://www.informatik.tu-darmstadt.de/media/ukp/data/fileupload_2/argument_annotated_news_articles/ArgumentAnnotatedEssays-1.0.zip"
+  },
   {
-    "id": "argument_annotated_essays",
-    "name": "Argument Annotated Essays",
-    "download_url": "http://corpora.aifdb.org/tar/AAECv2/download"
+    "id": "argument_annotated_essays_2",
+    "name": "Argument Annotated Essays 2",
+    "download_url": "https://web.archive.org/web/20181114100604/https://www.informatik.tu-darmstadt.de/media/ukp/data/fileupload_2/argument_annotated_news_articles/ArgumentAnnotatedEssays-2.0.zip"
   },
   {
     "id": "mm2012",
