@@ -27,11 +27,11 @@ class AGTTransformer(object):
 
 class ArgumentComponent(Model):
 
-    def __init__(self, model_id=None, model_storage_location=None, force_retrain=False):
+    def __init__(self, model_id=None, model_storage_location=None):
         self.model_id = "argument_component"
 
-        super().__init__(model_id=self.model_id, model_storage_location=model_storage_location,
-                         force_retrain=force_retrain)
+        super().__init__(model_id=self.model_id, model_storage_location=model_storage_location
+                         )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
         train_data, test_data, train_targets, test_targets = load_essay_corpus()

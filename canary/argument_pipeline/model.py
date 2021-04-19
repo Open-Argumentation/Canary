@@ -1,7 +1,7 @@
 import datetime
 import os
+import zipfile
 from pathlib import Path
-
 from joblib import dump, load
 from sklearn.metrics import classification_report
 
@@ -13,7 +13,7 @@ class Model:
     model = None
     model_id = None
 
-    def __init__(self, model_id=None, model_storage_location=None, force_retrain=False):
+    def __init__(self, model_id=None, model_storage_location=None):
         self.model_id = model_id
         if model_storage_location is None:
             model_storage_location = MODEL_STORAGE_LOCATION
@@ -25,15 +25,6 @@ class Model:
         os.makedirs(self.model_dir, exist_ok=True)
 
         self.__load__()
-
-        if self.model is None or force_retrain is True:
-            self.model = self.train()
-            model_data = {
-                "model_id": self.model_id,
-                "model": self.model,
-                "trained_on": datetime.datetime.now()
-            }
-            self.__save__(model_data)
 
     def __load__(self):
         file = Path(self.model_dir) / f"{self.model_id}.joblib"
@@ -50,7 +41,12 @@ class Model:
         prediction = pipeline_model.predict(test_data)
         logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
 
-        return pipeline_model
+        model_data = {
+            "model_id": self.model_id,
+            "model": self.model,
+            "trained_on": datetime.datetime.now()
+        }
+        self.__save__(model_data)
 
     def detect(self, corpora: list) -> list:
         predictions = []
