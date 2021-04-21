@@ -49,8 +49,8 @@ class ArgumentDetector(Model):
             ('clf', StackingClassifier(
                 estimators=[
                     ('a', ComplementNB()),
-                    ('b', RandomForestClassifier()),
-                    ('c', SGDClassifier()),
+                    ('b', RandomForestClassifier(random_state=0)),
+                    ('c', SGDClassifier(random_state=0)),
                     ('d', KNeighborsClassifier(
                         n_neighbors=50,
                         metric='euclidean'
@@ -58,8 +58,8 @@ class ArgumentDetector(Model):
                 ],
                 final_estimator=LogisticRegression(random_state=0)))
         ])
-        return super(ArgumentDetector, self).train(pipeline_model=model,
-                                                   train_data=train_data,
-                                                   test_data=test_data,
-                                                   train_targets=train_targets,
-                                                   test_targets=test_targets)
+        super(ArgumentDetector, self).train(pipeline_model=model,
+                                            train_data=train_data,
+                                            test_data=test_data,
+                                            train_targets=train_targets,
+                                            test_targets=test_targets)

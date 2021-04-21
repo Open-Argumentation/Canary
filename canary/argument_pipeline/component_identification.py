@@ -1,16 +1,16 @@
 from sklearn.linear_model import LogisticRegression
 
 from canary.argument_pipeline.classification import ArgumentDetector
-from canary.preprocessing import Preprocessor, Lemmatizer
-from sklearn.ensemble import StackingClassifier, RandomForestClassifier, AdaBoostClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from canary.preprocessing import Lemmatizer
+from sklearn.ensemble import StackingClassifier, RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.svm import SVC
 from canary.corpora import load_essay_corpus
 from canary.preprocessing.transformers import TfidfPosVectorizer, DiscourseMatcher, \
     FirstPersonIndicatorMatcher, TfidfPunctuationVectorizer, LengthTransformer, LengthOfSentenceTransformer, \
-    SentimentTransformer, AverageWordLengthTransformer, CountPosVectorizer
+    SentimentTransformer, AverageWordLengthTransformer
 from canary.argument_pipeline.model import Model
 
 _ag = ArgumentDetector()
@@ -74,8 +74,8 @@ class ArgumentComponent(Model):
             ))
         ])
 
-        return super(ArgumentComponent, self).train(pipeline_model=model,
-                                                    train_data=train_data,
-                                                    test_data=test_data,
-                                                    train_targets=train_targets,
-                                                    test_targets=test_targets)
+        super(ArgumentComponent, self).train(pipeline_model=model,
+                                             train_data=train_data,
+                                             test_data=test_data,
+                                             train_targets=train_targets,
+                                             test_targets=test_targets)

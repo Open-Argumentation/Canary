@@ -1,6 +1,5 @@
 import datetime
 import os
-import zipfile
 from pathlib import Path
 from joblib import dump, load
 from sklearn.metrics import classification_report
@@ -37,9 +36,11 @@ class Model:
         dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
+        logger.debug(f"Training of {self.__class__.__name__} has begun")
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
         logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
+        self.model = pipeline_model
 
         model_data = {
             "model_id": self.model_id,

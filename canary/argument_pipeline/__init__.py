@@ -8,10 +8,7 @@ from canary import logger
 from canary.utils import MODEL_DOWNLOAD_LOCATION, MODEL_STORAGE_LOCATION
 
 
-def download_pretrained_models(model_id, location=None, download_to=None, overwrite=False):
-    if model_id is None:
-        raise ValueError("model_id cannot be empty")
-
+def download_pretrained_models(location=None, download_to=None, overwrite=False):
     if location is None:
         location = MODEL_DOWNLOAD_LOCATION
 
@@ -33,4 +30,3 @@ def download_pretrained_models(model_id, location=None, download_to=None, overwr
                     zf.extractall(Path(MODEL_STORAGE_LOCATION))
             else:
                 logger.error("Didn't find a zip file.")
-
