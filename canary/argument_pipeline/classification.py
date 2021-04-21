@@ -15,11 +15,11 @@ from canary.preprocessing.transformers import CountPosVectorizer, DiscourseMatch
 
 class ArgumentDetector(Model):
 
-    def __init__(self, model_id=None, model_storage_location=None, force_retrain=False):
+    def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
             self.model_id = "argument_detector"
         super().__init__(model_id=self.model_id, model_storage_location=model_storage_location,
-                         force_retrain=force_retrain)
+                         )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
         train_data, train_targets, test_data, test_targets = [], [], [], []
@@ -49,8 +49,8 @@ class ArgumentDetector(Model):
             ('clf', StackingClassifier(
                 estimators=[
                     ('a', ComplementNB()),
-                    ('b', RandomForestClassifier()),
-                    ('c', SGDClassifier()),
+                    ('b', RandomForestClassifier(random_state=0)),
+                    ('c', SGDClassifier(random_state=0)),
                     ('d', KNeighborsClassifier(
                         n_neighbors=50,
                         metric='euclidean'
@@ -58,8 +58,8 @@ class ArgumentDetector(Model):
                 ],
                 final_estimator=LogisticRegression(random_state=0)))
         ])
-        return super(ArgumentDetector, self).train(pipeline_model=model,
-                                                   train_data=train_data,
-                                                   test_data=test_data,
-                                                   train_targets=train_targets,
-                                                   test_targets=test_targets)
+        super(ArgumentDetector, self).train(pipeline_model=model,
+                                            train_data=train_data,
+                                            test_data=test_data,
+                                            train_targets=train_targets,
+                                            test_targets=test_targets)

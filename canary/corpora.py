@@ -1,5 +1,4 @@
 from pathlib import Path
-from urllib.error import HTTPError
 from canary.utils import ROOT_DIR
 from canary.utils import CANARY_CORPORA_LOCATION
 from sklearn.model_selection import train_test_split
