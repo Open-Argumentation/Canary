@@ -1,8 +1,7 @@
 from pathlib import Path
-from canary.utils import ROOT_DIR
-from canary.utils import CANARY_CORPORA_LOCATION
-from sklearn.model_selection import train_test_split
+from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
 from canary import logger
+from sklearn.model_selection import train_test_split
 from typing import Union
 import json
 import tarfile
@@ -97,7 +96,8 @@ def load_essay_corpus() -> tuple:
                     X.append(line[2])
                     Y.append(component)
 
-    train_data, test_data, train_targets, test_targets = train_test_split(X, Y, train_size=0.9)
+    train_data, test_data, train_targets, test_targets = train_test_split(X, Y, train_size=0.9, shuffle=True,
+                                                                          random_state=0)
 
     return train_data, test_data, train_targets, test_targets
 

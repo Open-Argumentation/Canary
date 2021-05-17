@@ -1,34 +1,25 @@
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier, LogisticRegression
 
-from canary.argument_pipeline.classification import ArgumentDetector
 from canary.preprocessing import Lemmatizer
 from sklearn.ensemble import StackingClassifier, RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
-
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.svm import SVC
+from sklearn.preprocessing import Normalizer
 from canary.corpora import load_essay_corpus
 from canary.preprocessing.transformers import TfidfPosVectorizer, DiscourseMatcher, \
     FirstPersonIndicatorMatcher, TfidfPunctuationVectorizer, LengthTransformer, LengthOfSentenceTransformer, \
     SentimentTransformer, AverageWordLengthTransformer
 from canary.argument_pipeline.model import Model
 
-_ag = ArgumentDetector()
-
-
-class AGTTransformer(object):
-
-    def fit(self, x, y):
-        return self
-
-    def transform(self, x):
-        return [[_ag.predict(y)] for y in x]
-
 
 class ArgumentComponent(Model):
 
     def __init__(self, model_id=None, model_storage_location=None):
-        self.model_id = "argument_component"
+        if model_id is None:
+            self.model_id = "argument_component"
+        else:
+            self.model_id = model_id
 
         super().__init__(model_id=self.model_id, model_storage_location=model_storage_location
                          )
@@ -37,17 +28,19 @@ class ArgumentComponent(Model):
         train_data, test_data, train_targets, test_targets = load_essay_corpus()
 
         estimators = [
-            ('logistic',
-             LogisticRegression(max_iter=10000000)),
-            ('SVM', SVC(
-                random_state=0,
-                gamma='auto',
-                C=100000000,
-                cache_size=100000,
-                max_iter=-1,
-                class_weight='balanced')
+            ('da', SGDClassifier(loss='log',
+                                 random_state=0,
+                                 warm_start=True,
+                                 early_stopping=True,
+                                 tol=1e-5
+                                 )),
+            ('SVM',
+             SVC(
+                 random_state=0,
+                 C=9000000000,
+                 max_iter=-1,
+             )
              ),
-            ('rf', RandomForestClassifier(n_jobs=2, n_estimators=500))
         ]
 
         model = Pipeline([
@@ -68,6 +61,7 @@ class ArgumentComponent(Model):
                 ('binary_first_person_myself', FirstPersonIndicatorMatcher("myself")),
                 ('binary_first_person_mine', FirstPersonIndicatorMatcher("mine")),
                 ('sentiment', SentimentTransformer()),
+
             ])),
             ('clf', StackingClassifier(
                 estimators=estimators,

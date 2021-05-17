@@ -1,19 +1,18 @@
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.naive_bayes import ComplementNB
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
-
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
-from canary.preprocessing import Preprocessor
-
 from canary.preprocessing.transformers import CountPosVectorizer, DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer
 
 
 class ArgumentDetector(Model):
+    """
+    Argument Detector
+
+    Performs binary classification on text to determine if it is argumentative or not.
+    """
 
     def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
@@ -39,24 +38,22 @@ class ArgumentDetector(Model):
                 ('bow',
                  CountVectorizer(
                      ngram_range=(1, 6),
-                     stop_words=Preprocessor().stopwords)
+                 )
                  ),
                 ('length', LengthOfSentenceTransformer()),
-                ("wp", CountVectorizer(ngram_range=(2, 2))),
                 ("discourse", DiscourseMatcher()),
                 ("punctuation", CountPunctuationVectorizer()),
             ])),
-            ('clf', StackingClassifier(
-                estimators=[
-                    ('a', ComplementNB()),
-                    ('b', RandomForestClassifier(random_state=0)),
-                    ('c', SGDClassifier(random_state=0)),
-                    ('d', KNeighborsClassifier(
-                        n_neighbors=50,
-                        metric='euclidean'
-                    )),
-                ],
-                final_estimator=LogisticRegression(random_state=0)))
+            ('clf', SGDClassifier(
+                alpha=0.0001,
+                class_weight='balanced',
+                average=True,
+                n_jobs=2,
+                warm_start=True,
+                loss="log",
+                early_stopping=True
+            )
+             )
         ])
         super(ArgumentDetector, self).train(pipeline_model=model,
                                             train_data=train_data,

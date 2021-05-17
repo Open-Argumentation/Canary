@@ -1,4 +1,5 @@
 import nltk
+from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 from canary.data.indicators import discourse_indicators
@@ -7,7 +8,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 _analyser = SentimentIntensityAnalyzer()
 
 
-class SentimentTransformer(object):
+class SentimentTransformer(TransformerMixin, BaseEstimator):
     def fit(self, x, y):
         return self
 
@@ -51,7 +52,7 @@ class CountPosVectorizer(CountVectorizer):
         return analyzer
 
 
-class LengthOfSentenceTransformer(object):
+class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, x, y):
         return self
@@ -63,7 +64,7 @@ class LengthOfSentenceTransformer(object):
         return [[len(y.split())] for y in x]
 
 
-class LengthTransformer(object):
+class LengthTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, x, y):
         return self
@@ -72,7 +73,7 @@ class LengthTransformer(object):
         return [[len(y.split()) > 12] for y in x]
 
 
-class AverageWordLengthTransformer(object):
+class AverageWordLengthTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, x, y):
         return self
@@ -86,7 +87,7 @@ class AverageWordLengthTransformer(object):
         return [[self.average(y)] for y in x]
 
 
-class DiscourseMatcher(object):
+class DiscourseMatcher(TransformerMixin, BaseEstimator):
 
     def __init__(self, component=None):
         self.component = component
@@ -113,7 +114,8 @@ class DiscourseMatcher(object):
         return [[self.__contains_indicator__(x)] for x in doc]
 
 
-class FirstPersonIndicatorMatcher(object):
+class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
+
     def __init__(self, indicator):
         self.indicator = indicator
 
@@ -135,15 +137,10 @@ class FirstPersonIndicatorMatcher(object):
 
 
 class CountPunctuationVectorizer(TfidfVectorizer):
-    _punctuation = discourse_indicators['punctuation']
 
-    @property
-    def punctuation(self):
-        return self._punctuation
-
-    @punctuation.setter
-    def punctuation(self, value):
-        self._punctuation = value
+    def __init__(self):
+        super().__init__()
+        self.punctuation = discourse_indicators['punctuation']
 
     def prepare_doc(self, doc):
         _doc = doc
@@ -162,15 +159,18 @@ class CountPunctuationVectorizer(TfidfVectorizer):
 
 
 class TfidfPunctuationVectorizer(TfidfVectorizer):
-    _punctuation = discourse_indicators['punctuation']
+
+    def __init__(self):
+        super().__init__()
+        self.__punctuation = discourse_indicators['punctuation']
 
     @property
     def punctuation(self):
-        return self._punctuation
+        return self.__punctuation
 
     @punctuation.setter
     def punctuation(self, value):
-        self._punctuation = value
+        self.__punctuation = value
 
     def prepare_doc(self, doc):
         _doc = doc

@@ -34,6 +34,10 @@ class Preprocessor:
 
     @property
     def stopwords(self) -> list:
+        """
+
+        :return: a list of stopwords
+        """
         sw = nltk.corpus.stopwords.words('english') + self.__stopwords
         return sw
 

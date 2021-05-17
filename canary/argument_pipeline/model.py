@@ -3,17 +3,28 @@ import os
 from pathlib import Path
 from joblib import dump, load
 from sklearn.metrics import classification_report
-
 from canary.utils import MODEL_STORAGE_LOCATION
 from canary import logger
+from typing import Union
+from canary import __version__
 
 
 class Model:
-    model = None
-    model_id = None
 
     def __init__(self, model_id=None, model_storage_location=None):
+        """
+
+        :param model_id: the model of the ID. Cannot be none
+        :param model_storage_location: the location of the models on the filesystem
+        """
+
         self.model_id = model_id
+        self.model = None
+        self.trained_on = None
+
+        if model_id is None:
+            raise ValueError("Model ID cannot be none")
+
         if model_storage_location is None:
             model_storage_location = MODEL_STORAGE_LOCATION
 
@@ -23,16 +34,34 @@ class Model:
 
         os.makedirs(self.model_dir, exist_ok=True)
 
-        self.__load__()
+        self.load()
+        if self.model is None:
+            logger.warn("No model was loaded. Either download the pretrained ones or run the train() function")
 
-    def __load__(self):
+    def load(self):
+        """
+
+        """
+
         file = Path(self.model_dir) / f"{self.model_id}.joblib"
         if os.path.isfile(file):
             model = load(file)
-            if model:
-                self.model = model['model']
+            if model and 'canary_version' in model:
+                version = model['canary_version']
+                if __version__ == version:
+                    self.model_id = model['model_id']
+                    self.model = model['model']
+                    self.trained_on = model['trained_on']
+                else:
+                    logger.warn(
+                        "This model was trained using an older version of Canary. You may need to retrain the models!")
 
-    def __save__(self, model_data):
+    def save(self, model_data: dict):
+        """
+
+        :param model_data:
+        """
+
         dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
@@ -45,19 +74,37 @@ class Model:
         model_data = {
             "model_id": self.model_id,
             "model": self.model,
-            "trained_on": datetime.datetime.now()
+            "trained_on": datetime.datetime.now(),
+            "canary_version": __version__
         }
-        self.__save__(model_data)
+        self.save(model_data)
 
-    def detect(self, corpora: list) -> list:
-        predictions = []
+    def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
+        """
+        Make a prediction
 
-        for doc in corpora:
-            predictions.append((doc, self.predict(doc)))
-        return predictions
+        :param data:
+        :param probability:
+        :return: a boolean or list of indicationg the prediction
+        """
 
-    def predict(self, sentence: str, probability=False) -> bool:
-        if probability is False:
-            return self.model.predict([sentence])[0]
+        data_type = type(data)
+
+        if data_type is str or data_type is list:
+            if data_type is str:
+                if probability is False:
+                    prediction = self.model.predict([data])[0]
+                    return prediction
+                elif probability is True:
+                    prediction = self.model.predict_proba([data])[0]
+                    return prediction
+            elif data_type is list:
+                predictions = []
+                for i, _ in enumerate(data):
+                    if probability is False:
+                        predictions.append(self.model.predict([data[i]])[0])
+                    else:
+                        predictions.append(self.model.predict_proba([data[i]])[0])
+                return predictions
         else:
-            return self.model.predict_proba([sentence])[0]
+            raise TypeError("Expected a string or list as input")

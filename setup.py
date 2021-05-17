@@ -8,6 +8,7 @@ setup(
     name='canary-am',
     version='0.0.1',
     packages=find_packages(exclude=['tests']),
+    description="A Simple Argument Mining Library",
     long_description=README,
     python_requires=">=3.6",
     long_description_content_type="text/markdown",
@@ -19,7 +20,7 @@ setup(
         "vaderSentiment"
     ],
     url='http://openargumentation.org',
-    project_urls ={
+    project_urls={
         'Source': 'https://github.com/chriswales95/Canary',
     },
     include_package_data=True,
