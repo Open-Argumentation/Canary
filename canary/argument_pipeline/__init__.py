@@ -15,6 +15,9 @@ def download_pretrained_models(location=None, download_to=None, overwrite=False)
     :param overwrite: overwrite existing models
     """
 
+    # Make sure the canary local directory(s) exist beforehand
+    os.makedirs(MODEL_STORAGE_LOCATION, exist_ok=True)
+
     def unzip_models():
         with zipfile.ZipFile(download_to, "r") as zf:
             zf.extractall(Path(MODEL_STORAGE_LOCATION))
