@@ -17,7 +17,7 @@ setup(
         "requests",
         "scikit-learn",
         "nltk",
-        "vaderSentiment"
+        "vaderSentiment",
     ],
     url='http://openargumentation.org',
     project_urls={
