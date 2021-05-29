@@ -1,22 +1,29 @@
 import nltk
+import string
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-
+from canary.preprocessing import PunctuationTokenizer
 from canary.data.indicators import discourse_indicators
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-_analyser = SentimentIntensityAnalyzer()
-
 
 class SentimentTransformer(TransformerMixin, BaseEstimator):
+    """
+        gets sentiment from a segment of text.
+    """
+    _analyser = SentimentIntensityAnalyzer()
+
     def fit(self, x, y):
         return self
 
     def transform(self, x):
-        return [[_analyser.polarity_scores(y)['compound']] for y in x]
+        return [[self._analyser.polarity_scores(y)['compound']] for y in x]
 
 
 class TfidfPosVectorizer(TfidfVectorizer):
+    """
+
+    """
 
     def prepare_doc(self, doc):
         _doc = nltk.WordPunctTokenizer().tokenize(doc)
@@ -35,6 +42,9 @@ class TfidfPosVectorizer(TfidfVectorizer):
 
 
 class CountPosVectorizer(CountVectorizer):
+    """
+
+    """
 
     def prepare_doc(self, doc):
         _doc = nltk.WordPunctTokenizer().tokenize(doc)
@@ -53,6 +63,9 @@ class CountPosVectorizer(CountVectorizer):
 
 
 class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
+    """
+
+    """
 
     def fit(self, x, y):
         return self
@@ -65,15 +78,29 @@ class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
 
 
 class LengthTransformer(TransformerMixin, BaseEstimator):
+    """
+    Returns
+    """
+
+    def __init__(self, word_length=None):
+        if word_length is None:
+            self.word_length = 5
+        else:
+            self.word_length = word_length
+
+        super(LengthTransformer, self).__init__()
 
     def fit(self, x, y):
         return self
 
     def transform(self, x):
-        return [[len(y.split()) > 12] for y in x]
+        return [[len(y.split()) > self.word_length] for y in x]
 
 
 class AverageWordLengthTransformer(TransformerMixin, BaseEstimator):
+    """
+    Calculates the average word length for a document
+    """
 
     def fit(self, x, y):
         return self
@@ -88,6 +115,9 @@ class AverageWordLengthTransformer(TransformerMixin, BaseEstimator):
 
 
 class DiscourseMatcher(TransformerMixin, BaseEstimator):
+    """
+
+    """
 
     def __init__(self, component=None):
         self.component = component
@@ -115,6 +145,8 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
 
 
 class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
+    """
+    """
 
     def __init__(self, indicator):
         self.indicator = indicator
@@ -136,24 +168,24 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
         return [[self.__contains_indicator__(x)] for x in doc]
 
 
-class CountPunctuationVectorizer(TfidfVectorizer):
+class CountPunctuationVectorizer(CountVectorizer):
 
     def __init__(self):
-        super().__init__()
-        self.punctuation = discourse_indicators['punctuation']
+        self.punctuation = [character for character in string.punctuation]
+        super().__init__(tokenizer=PunctuationTokenizer())
 
     def prepare_doc(self, doc):
         _doc = doc
         _doc = _doc.replace("\\r\\n", " ")
-        for character in _doc:
+        for character in (_doc):
             if character not in self.punctuation:
-                _doc = _doc.replace(character, "")
+                _doc = _doc.replace(character, "", 1)
         return _doc
 
     def build_analyzer(self):
         def analyzer(doc):
             p = self.build_preprocessor()
-            return p(self.decode(self.prepare_doc(doc)))
+            return p(self.prepare_doc(doc))
 
         return analyzer
 
@@ -161,28 +193,20 @@ class CountPunctuationVectorizer(TfidfVectorizer):
 class TfidfPunctuationVectorizer(TfidfVectorizer):
 
     def __init__(self):
-        super().__init__()
-        self.__punctuation = discourse_indicators['punctuation']
-
-    @property
-    def punctuation(self):
-        return self.__punctuation
-
-    @punctuation.setter
-    def punctuation(self, value):
-        self.__punctuation = value
+        self.punctuation = [character for character in string.punctuation]
+        super().__init__(tokenizer=PunctuationTokenizer())
 
     def prepare_doc(self, doc):
         _doc = doc
         _doc = _doc.replace("\\r\\n", " ")
-        for character in _doc:
+        for character in (_doc):
             if character not in self.punctuation:
-                _doc = _doc.replace(character, "")
+                _doc = _doc.replace(character, "", 1)
         return _doc
 
     def build_analyzer(self):
         def analyzer(doc):
             p = self.build_preprocessor()
-            return p(self.decode(self.prepare_doc(doc)))
+            return p(self.prepare_doc(doc))
 
         return analyzer

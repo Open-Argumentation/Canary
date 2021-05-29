@@ -49,3 +49,11 @@ class Lemmatizer:
 
     def __call__(self, text):
         return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]
+
+
+class PunctuationTokenizer():
+    def __init__(self):
+        self.word_net = nltk.WordPunctTokenizer()
+
+    def __call__(self, text):
+        return [self.word_net.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]

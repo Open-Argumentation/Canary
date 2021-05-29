@@ -1,16 +1,16 @@
-from sklearn.linear_model import SGDClassifier, LogisticRegression
-
-from canary.preprocessing import Lemmatizer
 from sklearn.ensemble import StackingClassifier, RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.svm import SVC
-from sklearn.preprocessing import Normalizer
+
+from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
+from canary.preprocessing import Lemmatizer, Preprocessor
 from canary.preprocessing.transformers import TfidfPosVectorizer, DiscourseMatcher, \
     FirstPersonIndicatorMatcher, TfidfPunctuationVectorizer, LengthTransformer, LengthOfSentenceTransformer, \
     SentimentTransformer, AverageWordLengthTransformer
-from canary.argument_pipeline.model import Model
 
 
 class ArgumentComponent(Model):
@@ -21,37 +21,47 @@ class ArgumentComponent(Model):
         else:
             self.model_id = model_id
 
-        super().__init__(model_id=self.model_id, model_storage_location=model_storage_location
-                         )
+        super().__init__(
+            model_id=self.model_id,
+            model_storage_location=model_storage_location
+        )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
         train_data, test_data, train_targets, test_targets = load_essay_corpus()
 
         estimators = [
-            ('da', SGDClassifier(loss='log',
-                                 random_state=0,
-                                 warm_start=True,
-                                 early_stopping=True,
-                                 tol=1e-5
-                                 )),
-            ('SVM',
+            ("RandomForestClassifier", RandomForestClassifier(
+                random_state=0,
+                n_jobs=2,
+                warm_start=True
+            )),
+            ('SGDClassifier', SGDClassifier(
+                loss='log',
+                random_state=0,
+                warm_start=True,
+                early_stopping=True,
+            )),
+            ('SVC',
              SVC(
                  random_state=0,
-                 C=9000000000,
+                 C=90000000,
                  max_iter=-1,
              )
              ),
+            ('KNeighborsClassifier', KNeighborsClassifier(leaf_size=60, n_jobs=2)),
         ]
 
         model = Pipeline([
             ('feats', FeatureUnion([
                 ('tfidvectorizer',
-                 TfidfVectorizer(ngram_range=(1, 8), tokenizer=Lemmatizer())),
-                ('pos_tfid', TfidfPosVectorizer()),
-                ('binary_length', LengthTransformer()),
+                 TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False)),
+                ('pos_tfid', TfidfPosVectorizer(stop_words=Preprocessor().stopwords, lowercase=False)),
+                ('binary_length', LengthTransformer(word_length=8)),
+                ('ddddd', LengthTransformer(word_length=12)),
+                ('bl4', LengthTransformer(word_length=4)),
+                ('punctuation_tfid_vectorizer', TfidfPunctuationVectorizer()),
                 ('length_of_sentence', LengthOfSentenceTransformer()),
                 ('average_word_length', AverageWordLengthTransformer()),
-                ('punctuation_tfid_vectorizer', TfidfPunctuationVectorizer()),
                 ('contain_claim', DiscourseMatcher(component='claim')),
                 ('contain_premise', DiscourseMatcher(component='premise')),
                 ('contain_major_claim', DiscourseMatcher(component='major_claim')),
@@ -61,10 +71,10 @@ class ArgumentComponent(Model):
                 ('binary_first_person_myself', FirstPersonIndicatorMatcher("myself")),
                 ('binary_first_person_mine', FirstPersonIndicatorMatcher("mine")),
                 ('sentiment', SentimentTransformer()),
-
             ])),
             ('clf', StackingClassifier(
                 estimators=estimators,
+                final_estimator=LogisticRegression(warm_start=True, random_state=0, max_iter=99999)
             ))
         ])
 

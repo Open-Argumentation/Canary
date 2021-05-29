@@ -10,10 +10,9 @@ from canary import __version__
 
 
 class Model:
-
+    
     def __init__(self, model_id=None, model_storage_location=None):
         """
-
         :param model_id: the model of the ID. Cannot be none
         :param model_storage_location: the location of the models on the filesystem
         """
@@ -40,7 +39,7 @@ class Model:
 
     def load(self):
         """
-
+        Load the model from disk. Currently doesn't allow loading a custom module.
         """
 
         file = Path(self.model_dir) / f"{self.model_id}.joblib"
@@ -58,6 +57,7 @@ class Model:
 
     def save(self, model_data: dict):
         """
+        Save the model to disk after training
 
         :param model_data:
         """
@@ -87,6 +87,8 @@ class Model:
         :param probability:
         :return: a boolean or list of indicationg the prediction
         """
+        if self.model is None:
+            raise ValueError("No model trained. Cannot make predictions")
 
         data_type = type(data)
 

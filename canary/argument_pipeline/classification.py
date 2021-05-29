@@ -1,10 +1,12 @@
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
+
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
+from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import CountPosVectorizer, DiscourseMatcher, CountPunctuationVectorizer, \
-    LengthOfSentenceTransformer
+    LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer
 
 
 class ArgumentDetector(Model):
@@ -17,7 +19,8 @@ class ArgumentDetector(Model):
     def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
             self.model_id = "argument_detector"
-        super().__init__(model_id=self.model_id, model_storage_location=model_storage_location,
+        super().__init__(model_id=self.model_id,
+                         model_storage_location=model_storage_location,
                          )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
@@ -34,25 +37,29 @@ class ArgumentDetector(Model):
 
         model = Pipeline([
             ('features', FeatureUnion([
-                ('pos_tagger', CountPosVectorizer()),
+                ('pos_tagger', CountPosVectorizer(tokenizer=Lemmatizer())),
                 ('bow',
                  CountVectorizer(
-                     ngram_range=(1, 6),
+                     ngram_range=(1, 2),
+                     tokenizer=Lemmatizer()
                  )
                  ),
-                ('length', LengthOfSentenceTransformer()),
+                ("length", LengthOfSentenceTransformer()),
                 ("discourse", DiscourseMatcher()),
                 ("punctuation", CountPunctuationVectorizer()),
+                ("sentiment", SentimentTransformer()),
+                ("average_word_length", AverageWordLengthTransformer()),
             ])),
-            ('clf', SGDClassifier(
-                alpha=0.0001,
-                class_weight='balanced',
-                average=True,
-                n_jobs=2,
-                warm_start=True,
-                loss="log",
-                early_stopping=True
-            )
+            ('SGDClassifier',
+             SGDClassifier(
+                 alpha=0.005,
+                 n_jobs=2,
+                 warm_start=True,
+                 loss="log",
+                 early_stopping=True,
+                 random_state=0,
+                 n_iter_no_change=7,
+             )
              )
         ])
         super(ArgumentDetector, self).train(pipeline_model=model,
