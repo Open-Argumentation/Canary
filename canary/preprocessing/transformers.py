@@ -1,10 +1,13 @@
-import nltk
 import string
+
+import nltk
+import numpy
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from canary.preprocessing import PunctuationTokenizer
-from canary.data.indicators import discourse_indicators
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+from canary.data.indicators import discourse_indicators
+from canary.preprocessing import PunctuationTokenizer
 
 
 class SentimentTransformer(TransformerMixin, BaseEstimator):
@@ -77,6 +80,18 @@ class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
         return [[len(y.split())] for y in x]
 
 
+class UniqueWordsTransformer(TransformerMixin, BaseEstimator):
+    """
+
+    """
+
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[len(numpy.unique(nltk.word_tokenize(y)))] for y in x]
+
+
 class LengthTransformer(TransformerMixin, BaseEstimator):
     """
     Returns
@@ -118,17 +133,25 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
     """
 
     """
+    component = None
 
     def __init__(self, component=None):
-        self.component = component
+        if component is not None and component not in discourse_indicators.keys():
+            raise ValueError(
+                f"Incorrect discourse component passed to constructor. Acceptable values are {[k for k in discourse_indicators.keys()]}")
+        else:
+            self.component = component
 
     @property
     def indicators(self):
+        indicators = []
         if self.component is None:
-            indicators = discourse_indicators['claim'] + discourse_indicators['major_claim'] + discourse_indicators[
-                'premise']
+            for x in discourse_indicators.keys():
+                for y in discourse_indicators[x]:
+                    indicators.append(y)
         else:
             indicators = discourse_indicators[self.component]
+
         return indicators
 
     def fit(self, x, y):
