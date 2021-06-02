@@ -1,12 +1,11 @@
 import logging
 import os as _os
 from configparser import ConfigParser as _ConfigParser
+
 import pkg_resources
 
-# Set the logging level from the config file.
 # This logger should be used wherever possible
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Set up the configuration parser.
 # Should be used wherever possible

@@ -80,6 +80,34 @@ discourse_indicators = {
         "what's more",
 
     ],
+    "conflict": [
+        "however",
+        "but",
+        "though",
+        "except",
+        "not",
+        "never",
+        "no",
+        "whereas",
+        "nonetheless",
+        "yet",
+        "despite"
+    ],
+    "support": [
+        "because",
+        "therefore",
+        "after",
+        "for",
+        "since",
+        "when",
+        "assuming",
+        "so",
+        "accordingly",
+        "thus",
+        "hence",
+        "then",
+        "consequently"
+    ],
     "first_person": [
         "I",
         "me",
@@ -87,31 +115,31 @@ discourse_indicators = {
         "mine",
         "myself"
     ],
-    "modal_aux": {
-        "obligation": [
-            "must",
-            "need",
-            "have to"
-        ],
-        "recommendation": [
-            "should",
-            "ought to",
-            "had better"
-        ],
-        "possible": [
-            "can",
-            "could"
-        ],
-        "option": [
-            "may",
-            "might"
-        ],
-        "intention": [
-            "will",
-            "shall"
-        ],
-        "condition": [
-            "would"
-        ]
-    }
+
+    "obligation": [
+        "must",
+        "need",
+        "have to"
+    ],
+    "recommendation": [
+        "should",
+        "ought to",
+        "had better"
+    ],
+    "possible": [
+        "can",
+        "could"
+    ],
+    "option": [
+        "may",
+        "might"
+    ],
+    "intention": [
+        "will",
+        "shall"
+    ],
+    "condition": [
+        "would"
+    ]
+
 }
