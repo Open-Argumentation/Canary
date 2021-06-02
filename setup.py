@@ -7,7 +7,7 @@ README = (pathlib.Path(__file__).parent / "README.md").read_text()
 setup(
     name='canary-am',
     version='0.0.1',
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(exclude=['tests', 'etc']),
     description="A Simple Argument Mining Library",
     long_description=README,
     python_requires=">=3.6",
