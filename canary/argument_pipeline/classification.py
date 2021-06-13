@@ -6,7 +6,7 @@ from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import CountPosVectorizer, DiscourseMatcher, CountPunctuationVectorizer, \
-    LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer
+    LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
 
 
 class ArgumentDetector(Model):
@@ -42,16 +42,17 @@ class ArgumentDetector(Model):
                 ('pos_tagger', CountPosVectorizer(tokenizer=Lemmatizer())),
                 ('bow',
                  CountVectorizer(
-                     ngram_range=(1, 2),
+                     ngram_range=(1, 3),
                      tokenizer=Lemmatizer()
                  )
                  ),
                 ("length", LengthOfSentenceTransformer()),
-                ("discourse", DiscourseMatcher()),
                 ("support", DiscourseMatcher(component="support")),
                 ("conflict", DiscourseMatcher(component="conflict")),
                 ("punctuation", CountPunctuationVectorizer()),
                 ("sentiment", SentimentTransformer()),
+                ("sentiment_pos", WordSentimentCounter(target="pos")),
+                ("sentiment_neg", WordSentimentCounter(target="neg")),
                 ("average_word_length", AverageWordLengthTransformer()),
             ])),
             ('SGDClassifier',

@@ -2,10 +2,12 @@ discourse_indicators = {
     "major_claim": [
         "from my point of view",
         "in my opinion",
+        "my opinion",
         "i strongly believe that",
         "i think that",
         "i firmly believe that",
-        "agree"
+        "my view",
+        "my belief"
     ],
     "claim": [
         "accordingly",
@@ -115,20 +117,23 @@ discourse_indicators = {
         "mine",
         "myself"
     ],
-
     "obligation": [
         "must",
         "need",
         "have to"
+        "imperative",
+        "duty"
     ],
     "recommendation": [
         "should",
         "ought to",
-        "had better"
+        "had better",
+        "need to"
     ],
     "possible": [
         "can",
-        "could"
+        "could",
+        "perhaps"
     ],
     "option": [
         "may",
@@ -140,6 +145,69 @@ discourse_indicators = {
     ],
     "condition": [
         "would"
-    ]
-
+    ],
+    "rebuttal": [
+        "Admittedly",
+        "admittedly",
+        "Although",
+        "although",
+        "besides these advantages",
+        "Even though",
+        "even though",
+        "However",
+        "Otherwise",
+        "despite",
+        "Despite"
+    ],
+    "thesis":
+        [
+            "All in all",
+            "All things considered",
+            "As far as I am concerned",
+            "Based on some reasons",
+            "by analyzing both the views",
+            "considering both the previous fact",
+            "Finally",
+            "For the reasons mentioned above",
+            "From explanation above",
+            "From this point of view",
+            "I agree that",
+            "I agree with",
+            "I agree with the statement that",
+            "I believe",
+            "I believe that",
+            "I do not agree with this statement",
+            "I firmly believe that",
+            "I highly advocate that",
+            "I highly recommend",
+            "I strongly believe that",
+            "I think that",
+            "I think the view is",
+            "I totally agree",
+            "I totally agree to this opinion",
+            "I would have to argue that",
+            "I would reaffirm my position that",
+            "In conclusion",
+            "in conclusion",
+            "in my opinion",
+            "In my opinion",
+            "In my personal point of view",
+            "in my point of view",
+            "In my point of view",
+            "In summary",
+            "In the light of the facts outlined above",
+            "it can be said that",
+            "it is clear that",
+            "it seems to me that",
+            "my deep conviction",
+            "My sentiments",
+            "Overall",
+            "Personally",
+            "the above explanations and example shows that",
+            "This, however",
+            "To conclude",
+            "To my way of thinking",
+            "To sum up",
+            "Ultimately",
+        ]
 }

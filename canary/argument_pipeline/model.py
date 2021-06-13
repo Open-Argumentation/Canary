@@ -6,8 +6,7 @@ from typing import Union
 from joblib import dump, load
 from sklearn.metrics import classification_report
 
-from canary import __version__
-from canary import logger
+from canary import __version__, logger
 from canary.utils import MODEL_STORAGE_LOCATION
 
 
@@ -23,9 +22,12 @@ class Model:
         self.trained_on = None
         self.metrics = {}
 
+        # Model ID used as part of filename so
+        # Should not be empty
         if model_id is None:
             raise ValueError("Model ID cannot be none")
 
+        # Allow override
         if model_storage_location is None:
             model_storage_location = MODEL_STORAGE_LOCATION
 
@@ -33,8 +35,10 @@ class Model:
         if model_storage_location is not None:
             self.model_dir = model_storage_location
 
+        # Try and make relevant directories
         os.makedirs(self.model_dir, exist_ok=True)
 
+        # Try and load any present model that matches ID
         if load:
             self.load()
             if self.model is None:
@@ -42,7 +46,7 @@ class Model:
         else:
             logger.info("Model loading was overridden. No model loaded.")
 
-    def load(self):
+    def load(self, load_from: Path = None):
         """
         Load the model from disk. Currently doesn't allow loading a custom module.
         """
@@ -63,14 +67,15 @@ class Model:
                 except KeyError as key_error:
                     logger.error(f"There was an error loading the model: {key_error}.")
 
-    def save(self, model_data: dict):
+    def save(self, model_data: dict, save_to: Path = None):
         """
         Save the model to disk after training
 
+        :param save_to:
         :param model_data:
         """
-
-        dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
+        if save_to is None:
+            dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
         logger.debug(f"Training of {self.__class__.__name__} has begun")
