@@ -206,7 +206,7 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
             self.lemmatize = lemmatize
 
     @property
-    def indicators(self) -> list[str]:
+    def indicators(self) -> list:
         indicators = []
         if self.component is None:
             for x in discourse_indicators.keys():
