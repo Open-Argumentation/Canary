@@ -1,48 +1,14 @@
-from canary import config
-import os
 import nltk
-from pathlib import Path
-
-
-class Preprocessor:
-
-    def __init__(self):
-        nltk_data_directory = os.path.join(Path.home(), config.get('nltk', 'storage_directory'))
-        nltk.data.path.append(nltk_data_directory)
-        nltk.download(['stopwords', 'punkt'],
-                      download_dir=nltk_data_directory, quiet=True)
-
-    __stopwords = [
-        "br",
-        "also",
-        "'d",
-        "'ll",
-        "'re",
-        "'s",
-        "'ve",
-        'could',
-        'doe',
-        'ha',
-        'might',
-        'must',
-        "n't",
-        'need',
-        'sha',
-        'wa',
-        'wo',
-    ]
-
-    @property
-    def stopwords(self) -> list:
-        """
-
-        :return: a list of stopwords
-        """
-        sw = nltk.corpus.stopwords.words('english') + self.__stopwords
-        return sw
 
 
 class Lemmatizer:
+    """
+    Transforms text into its lemma form
+
+    e.g.
+    - cats -> cat
+    - corpora -> corpus
+    """
 
     def __init__(self):
         self.word_net = nltk.WordNetLemmatizer()
@@ -51,9 +17,29 @@ class Lemmatizer:
         return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]
 
 
-class PunctuationTokenizer():
+class Stemmer:
+    """
+    Transforms text into its stemmed form
+    """
+
     def __init__(self):
-        self.word_net = nltk.WordPunctTokenizer()
+        self.stemmer = nltk.PorterStemmer()
 
     def __call__(self, text):
-        return [self.word_net.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]
+        return [self.stemmer.stem(token) for token in nltk.word_tokenize(text)]
+
+
+class PunctuationTokenizer:
+    """
+    Extracts only punctuation from a piece of text
+
+    e.g.
+    - Hi, what's up? Did you like the movie last night?
+    -> [[','], ["'", 's'], ['?'], ['?']]
+    """
+
+    def __init__(self):
+        self.tokenizer = nltk.WordPunctTokenizer()
+
+    def __call__(self, text):
+        return [self.tokenizer.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]

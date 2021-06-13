@@ -1,21 +1,29 @@
-from sklearn.ensemble import StackingClassifier, RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import StackingClassifier, RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.svm import SVC
 
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer, Preprocessor
-from canary.preprocessing.transformers import TfidfPosVectorizer, DiscourseMatcher, \
-    FirstPersonIndicatorMatcher, TfidfPunctuationVectorizer, LengthTransformer, LengthOfSentenceTransformer, \
-    SentimentTransformer, AverageWordLengthTransformer, UniqueWordsTransformer
+from canary.preprocessing import Lemmatizer
+from canary.preprocessing.transformers import DiscourseMatcher, \
+    LengthTransformer, LengthOfSentenceTransformer, \
+    AverageWordLengthTransformer, UniqueWordsTransformer, CountPosVectorizer, \
+    WordSentimentCounter, TfidfPunctuationVectorizer
 
 
 class ArgumentComponent(Model):
+    """
+    Detects argumentative components from natural language
+    """
 
-    def __init__(self, model_id=None, model_storage_location=None, load=True):
+    def __init__(self, model_id: str = None, model_storage_location=None, load: bool = True):
+        """
+        :param model_id: the ID of the model
+        :param model_storage_location: where the model should be stored
+        :param load: Whether to automatically load the model
+        """
 
         if model_id is None:
             self.model_id = "argument_component"
@@ -38,48 +46,39 @@ class ArgumentComponent(Model):
                 warm_start=True,
             )),
             ('SGDClassifier', SGDClassifier(
-                loss='log',
                 random_state=0,
-                warm_start=True,
+                alpha=0.0005,
                 early_stopping=True,
+                tol=1e-5,
+                n_jobs=2,
+                n_iter_no_change=7,
+                max_iter=999999999,
             )),
             ('SVC', SVC(
+                gamma='auto',
+                kernel='linear',
                 random_state=0,
                 C=9000000,
                 max_iter=-1,
-            )
-             ),
-            ('KNeighborsClassifier', KNeighborsClassifier(leaf_size=60, n_jobs=2)),
-            ("AdaBoostClassifier", AdaBoostClassifier(n_estimators=100, random_state=0)),
+            )),
         ]
 
         model = Pipeline([
             ('feats', FeatureUnion([
                 ('tfidvectorizer',
-                 TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False)),
-                ('pos_tfid', TfidfPosVectorizer(stop_words=Preprocessor().stopwords)),
-                ('binary_length', LengthTransformer(word_length=8)),
-                ('ddddd', LengthTransformer(word_length=12)),
-                ('bl4', LengthTransformer(word_length=4)),
-                ('punctuation_tfid_vectorizer', TfidfPunctuationVectorizer()),
+                 TfidfVectorizer(ngram_range=(1, 4), tokenizer=Lemmatizer(), lowercase=False)),
+                ('length_5', LengthTransformer()),
+                ('length_10', LengthTransformer(12)),
+                ('CountPunctuationVectorizer', TfidfPunctuationVectorizer()),
+                ('contain_claim', DiscourseMatcher('claim')),
+                ('contain_premise', DiscourseMatcher('premise')),
+                ('contain_major_claim', DiscourseMatcher('major_claim')),
                 ('length_of_sentence', LengthOfSentenceTransformer()),
                 ('average_word_length', AverageWordLengthTransformer()),
-                ('contain_claim', DiscourseMatcher(component='claim')),
-                ('contain_premise', DiscourseMatcher(component='premise')),
-                ('contain_major_claim', DiscourseMatcher(component='major_claim')),
-                ('support', DiscourseMatcher(component='support')),
-                ('conflict', DiscourseMatcher(component='conflict')),
-                ('obligation', DiscourseMatcher(component='obligation')),
-                ('recommendation', DiscourseMatcher(component='recommendation')),
-                ('option', DiscourseMatcher(component='option')),
-                ('intention', DiscourseMatcher(component='intention')),
-                ('binary_first_person_i', FirstPersonIndicatorMatcher("I")),
-                ('binary_first_person_me', FirstPersonIndicatorMatcher("me")),
-                ('binary_first_person_my', FirstPersonIndicatorMatcher("my")),
-                ('binary_first_person_myself', FirstPersonIndicatorMatcher("myself")),
-                ('binary_first_person_mine', FirstPersonIndicatorMatcher("mine")),
-                ('sentiment', SentimentTransformer()),
-                ("UniqueWordsTransformer", UniqueWordsTransformer())
+                ("eee", CountPosVectorizer()),
+                ("eeeareae", UniqueWordsTransformer()),
+                ("pos_sent", WordSentimentCounter("pos")),
+                ("neg_sent", WordSentimentCounter("neg")),
             ])),
             ('clf', StackingClassifier(
                 estimators=estimators,

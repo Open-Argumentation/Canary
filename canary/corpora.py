@@ -1,14 +1,16 @@
-from pathlib import Path
-from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
-from canary import logger
-from sklearn.model_selection import train_test_split
-from typing import Union
+import csv
+import glob
 import json
+import os
 import tarfile
 import zipfile
-import csv
-import os
-import glob
+from pathlib import Path
+from typing import Union
+
+from sklearn.model_selection import train_test_split
+
+from canary import logger
+from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -69,7 +71,14 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             print(f"Corpus already present at {storage_location}")
 
 
-def load_essay_corpus() -> tuple:
+def load_essay_corpus(merge_premises=False) -> tuple:
+    """
+    Loads essay corpus version 2
+
+    :param merge_premises: whether or not to combine claims and major claims
+    :return: the corpus as a tuple
+    """
+
     essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "brat-project-final"
     if os.path.exists(essay_corpus_location) is False:
         corpus = download_corpus("argument_annotated_essays_2")
@@ -94,7 +103,10 @@ def load_essay_corpus() -> tuple:
                 component = str.split(line[1])[0]
                 if component != 'supports' and component != 'Stance' and component != 'attacks':
                     X.append(line[2])
-                    Y.append(component)
+                    if merge_premises is True and component == 'MajorClaim':
+                        Y.append("Claim")
+                    else:
+                        Y.append(component)
 
     train_data, test_data, train_targets, test_targets = train_test_split(X, Y, train_size=0.9, shuffle=True,
                                                                           random_state=0)
@@ -103,6 +115,12 @@ def load_essay_corpus() -> tuple:
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:
+    """
+    Load the imdb debater corpus
+
+    :return: the corpus as a tuple
+    """
+
     train_data, test_data, train_targets, test_targets = [], [], [], []
 
     with open(Path(
@@ -125,6 +143,13 @@ def load_imdb_debater_evidence_sentences() -> tuple:
 
 
 def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list, dict]:
+    """
+    Load the ukp sentential argument corpus
+
+    :param multiclass: whether to return a multiclass problem
+    :return: the dataset
+    """
+
     dataset_format = {'train': [], "test": [], "val": []}
     datasets = {
         "nuclear_energy": dataset_format,
