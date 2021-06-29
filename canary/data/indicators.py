@@ -80,7 +80,6 @@ discourse_indicators = {
         "seeing that",
         "whereas",
         "what's more",
-
     ],
     "conflict": [
         "however",
@@ -108,8 +107,16 @@ discourse_indicators = {
         "thus",
         "hence",
         "then",
-        "consequently"
+        "consequently",
     ],
+    "forward":
+        [
+            "As a result", "As the consequence", "Because", "Clearly", "Consequently", "Considering this subject",
+            "Furthermore", "Hence", "leading to the consequence", "so", "So", "taking account on this fact",
+            "That is the reason why", "The reason is that", "Therefore", "therefore", "This means that",
+            "This shows that", "This will result", "Thus", "thus", "Thus", "it is clearly seen that",
+            "Thus, it is seen", "Thus, the example shows"
+        ],
     "first_person": [
         "I",
         "me",
@@ -142,9 +149,6 @@ discourse_indicators = {
     "intention": [
         "will",
         "shall"
-    ],
-    "condition": [
-        "would"
     ],
     "rebuttal": [
         "Admittedly",

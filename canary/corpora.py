@@ -7,6 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import Union
 
+from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
 from canary import logger
@@ -35,7 +36,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
         else:
             raise ValueError('Invalid corpus id.')
 
-        corpora_already_downloaded = os.path.isfile(file)
+        corpora_already_downloaded = os.path.isdir(file)
 
         if corpora and corpora_already_downloaded is False or corpora and overwrite_existing is True:
             import requests
@@ -68,50 +69,103 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
                 print("There was an error fetching the corpus")
 
         elif corpora_already_downloaded:
-            print(f"Corpus already present at {storage_location}")
+            logger.info(f"Corpus already present at {storage_location}")
+            return {
+                "corpus": corpora,
+                "location": storage_location
+            }
 
 
-def load_essay_corpus(merge_premises=False) -> tuple:
+def load_essay_corpus(purpose=None, merge_premises=False):
     """
     Loads essay corpus version 2
 
+    :param purpose:
     :param merge_premises: whether or not to combine claims and major claims
-    :return: the corpus as a tuple
+    :return:
     """
 
+    _allowed_purpose_values = [
+        None,
+        'component_prediction',
+        'relation_prediction'
+    ]
+
+    if purpose not in _allowed_purpose_values:
+        raise ValueError(f"{purpose} is not a valid value. Valid values are {_allowed_purpose_values}")
+
     essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "brat-project-final"
+
     if os.path.exists(essay_corpus_location) is False:
         corpus = download_corpus("argument_annotated_essays_2")
         corpus_zip = corpus['location'] / "ArgumentAnnotatedEssays-2.0/brat-project-final.zip"
         with zipfile.ZipFile(corpus_zip) as z:
             z.extractall(CANARY_CORPORA_LOCATION)
 
-    documents = []
-    os.chdir(essay_corpus_location)
-    for file in glob.glob("essay*.ann"):
-        file_data = []
-        with open(file, encoding="utf8") as ann:
-            csv_reader = csv.reader(ann, delimiter="\t")
-            for row in csv_reader:
-                file_data.append(row)
-        documents.append(file_data)
+    brat_parser = BratParser(error="ignore")
+    essays = brat_parser.parse(essay_corpus_location)
 
-    X, Y = [], []
-    for doc in documents:
-        for line in doc:
-            if 2 < len(line):
-                component = str.split(line[1])[0]
-                if component != 'supports' and component != 'Stance' and component != 'attacks':
-                    X.append(line[2])
-                    if merge_premises is True and component == 'MajorClaim':
+    if purpose is None:
+        return essays
+
+    elif purpose == "component_prediction":
+        X, Y = [], []
+        for essay in essays:
+            for entity in essay.entities:
+                X.append(entity.mention)
+                if merge_premises is False:
+                    Y.append(entity.type)
+                else:
+                    if entity.type == "MajorClaim":
                         Y.append("Claim")
                     else:
-                        Y.append(component)
+                        Y.append(entity.type)
 
-    train_data, test_data, train_targets, test_targets = train_test_split(X, Y, train_size=0.9, shuffle=True,
-                                                                          random_state=0)
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(X, Y,
+                             train_size=0.9,
+                             shuffle=True,
+                             random_state=0
+                             )
 
-    return train_data, test_data, train_targets, test_targets
+        return train_data, test_data, train_targets, test_targets
+
+    elif purpose == "relation_prediction":
+
+        X = []
+        Y = []
+
+        for essay in essays:
+            for relation in essay.relations:
+                X.append({
+                    "arg1_text": relation.arg1.mention,
+                    "arg1_type": relation.arg1.type,
+                    "arg1_start": relation.arg1.start,
+                    "arg1_end": relation.arg1.end,
+                    "arg2_text": relation.arg2.mention,
+                    "arg2_type": relation.arg2.type,
+                    "arg2_start": relation.arg2.start,
+                    "arg2_end": relation.arg2.end,
+                })
+                Y.append(relation.type)
+
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(X, Y,
+                             train_size=0.9,
+                             shuffle=True,
+                             random_state=0,
+                             # stratify=Y
+                             )
+        return train_data, test_data, train_targets, test_targets
+        # train_features, test_features, test_labels, train_labels = [], [], [], []
+        # ss = StratifiedKFold(n_splits=10, shuffle=False,)
+        #
+        # X = numpy.array(X)
+        # Y = numpy.array(Y)
+        # for train_index, test_index in ss.split(X, Y):
+        #     train_features, test_features = X[train_index], X[test_index]
+        #     train_labels, test_labels = Y[train_index], Y[test_index]
+        # return train_features, test_features, train_labels, test_labels
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:
@@ -128,7 +182,7 @@ def load_imdb_debater_evidence_sentences() -> tuple:
         csv_reader = csv.reader(data)
         next(csv_reader)
         for row in csv_reader:
-            train_data.append(row[2])
+            train_data.append({"text": row[2], "topic": row[1]})
             train_targets.append(int(row[4]))
 
     with open(Path(
@@ -136,7 +190,7 @@ def load_imdb_debater_evidence_sentences() -> tuple:
         csv_reader = csv.reader(data)
         next(csv_reader)
         for row in csv_reader:
-            test_data.append(row[2])
+            test_data.append({"text": row[2], "topic": row[1]})
             test_targets.append(int(row[4]))
 
     return train_data, train_targets, test_data, test_targets
@@ -198,3 +252,46 @@ def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list
         logger.error(e)
     finally:
         return datasets
+
+
+def load_araucaria_corpus(purpose: str = None):
+    """
+    Loads the araucaria corpus
+
+    :return: the corpus
+    """
+
+    corpus_download = download_corpus("araucaria")
+    corpus = None
+    corpus_entries = []
+    if "location" in corpus_download:
+
+        corpus_location = corpus_download["location"]
+        files = glob.glob(str(Path(corpus_location) / "nodeset*.json"))
+
+        for file in files:
+            file = Path(file)
+            entry = {}
+            with open(file, "r", encoding="utf8") as json_file:
+                entry["nodeset"] = file.stem
+                entry["json"] = json.load(json_file)
+            json_file.close()
+            with open(str(Path(corpus_location / f"{file.stem}.txt")), "r", encoding="utf8") as text_file:
+                entry["text"] = text_file.read()
+            text_file.close()
+
+            corpus_entries.append(entry)
+
+        if purpose is None:
+            corpus = corpus_entries
+            return corpus
+    elif purpose == "scheme_prediction":
+        train_data = []
+        test_data = []
+        train_target = []
+        test_target = []
+
+        for entry in corpus_entries:
+            pass
+
+    return corpus

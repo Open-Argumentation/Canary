@@ -3,6 +3,7 @@ from abc import ABCMeta
 
 import nltk
 import numpy as np
+import spacy
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -10,6 +11,8 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from canary import logger
 from canary.data.indicators import discourse_indicators
 from canary.preprocessing import PunctuationTokenizer
+
+nlp = spacy.load('en_core_web_lg')
 
 
 # @TODO this file needs cleaning up
@@ -95,7 +98,7 @@ class WordSentimentCounter(TransformerMixin, BaseEstimator):
         return [[self.countSentiment(y)] for y in x]
 
 
-class TfidfPosVectorizer(TfidfVectorizer, PosVectorizer):
+class TfidfPosVectorizer(PosVectorizer, TfidfVectorizer):
     """
 
     """
@@ -316,3 +319,12 @@ class TfidfPunctuationVectorizer(TfidfVectorizer):
             return p(self.prepare_doc(doc))
 
         return analyzer
+
+
+class EmbeddingTransformer(TransformerMixin, BaseEstimator):
+
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[nlp(y).vector_norm] for y in x]

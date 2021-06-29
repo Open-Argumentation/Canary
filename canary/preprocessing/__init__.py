@@ -1,5 +1,7 @@
 import nltk
+import spacy
 
+nlp = spacy.load("en_core_web_lg")
 
 class Lemmatizer:
     """
@@ -15,6 +17,16 @@ class Lemmatizer:
 
     def __call__(self, text):
         return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]
+
+
+class PosLemmatizer:
+
+    def t(self, x):
+        return f"{x.lemma_}/{x.pos_}"
+
+    def __call__(self, text):
+        text = nlp(text)
+        return [self.t(d) for d in text]
 
 
 class Stemmer:

@@ -18,6 +18,7 @@ setup(
         "scikit-learn",
         "nltk",
         "vaderSentiment",
+        "pybrat"
     ],
     url='http://openargumentation.org',
     project_urls={
