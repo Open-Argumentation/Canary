@@ -15,6 +15,17 @@ from canary.preprocessing import PunctuationTokenizer
 nlp = spacy.load('en_core_web_lg')
 
 
+class SentimentLabelTransformer(TransformerMixin, BaseEstimator):
+    from transformers import pipeline
+    classifier = pipeline('sentiment-analysis')
+
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[self.classifier(y)[0]['label']] for y in x]
+
+
 # @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
@@ -22,26 +33,21 @@ class PosVectorizer(metaclass=ABCMeta):
     Base class for POS tagging vectorisation
     """
 
-    bigrams = False
-
-    def __init__(self, bigrams=False) -> None:
-        if bigrams is not False:
-            self.bigrams = bigrams
+    def __init__(self, ngrams=1) -> None:
+        if type(ngrams) is int:
+            self.ngrams = ngrams
 
         super().__init__()
 
     def prepare_doc(self, doc):
-        _doc = nltk.WordPunctTokenizer().tokenize(doc)
-
-        # @TODO improve lemmatising. Only considers nouns.
-        _doc = [nltk.WordNetLemmatizer().lemmatize(token) for token in _doc]
-        _doc = nltk.pos_tag(_doc)
+        _doc = nlp(doc)
         new_text = []
 
         for word in _doc:
-            new_text.append(word[1])
-        if self.bigrams is True:
-            new_text = list(nltk.bigrams(new_text))
+            new_text.append(f"{word.lemma_}/{word.tag_}")
+        if self.ngrams != 1:
+            new_text = list(nltk.ngrams(new_text, self.ngrams))
+
         return new_text
 
 
@@ -328,3 +334,11 @@ class EmbeddingTransformer(TransformerMixin, BaseEstimator):
 
     def transform(self, x):
         return [[nlp(y).vector_norm] for y in x]
+
+
+class BiasTransformer(TransformerMixin, BaseEstimator):
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[True] for y in x]

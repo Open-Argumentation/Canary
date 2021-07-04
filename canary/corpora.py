@@ -7,6 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import Union
 
+import nltk
 from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
@@ -131,22 +132,75 @@ def load_essay_corpus(purpose=None, merge_premises=False):
         return train_data, test_data, train_targets, test_targets
 
     elif purpose == "relation_prediction":
-
         X = []
         Y = []
 
         for essay in essays:
-            for relation in essay.relations:
-                X.append({
+
+            paras = [k for k in essay.text.split("\n") if k != ""]
+            num_paragraphs = len(paras)
+
+            # helper function
+            def find_paragraph_features(feats, component, essay):
+
+                # find the para the component is in
+                for para in paras:
+                    # found it
+                    if component.arg1.mention in para or component.arg2.mention in para:
+                        # find other relations in paragraph
+                        relations = []
+                        for r in essay:
+                            if r.arg1.mention in para or r.arg2.mention in para:
+                                relations.append(r)
+                        feats["n_para_components"] = len(relations)
+
+                        # find preceding and following components
+                        i = relations.index(component)
+                        feats["n_following_components"] = len(relations[i + 1:])
+                        feats["n_preceding_components"] = len(relations[:i])
+
+                        # calculate ratio of components
+                        feats["n_attack_components"] = len([r for r in relations if r.type == "attacks"])
+                        feats["n_support_components"] = len([r for r in relations if r.type == "supports"])
+
+                        break
+
+            for index, relation in enumerate(essay.relations):
+
+                sentences = nltk.sent_tokenize(essay.text)
+                arg1_covering_sentence = None
+                arg2_covering_sentence = None
+
+                for sentence in sentences:
+                    if relation.arg1.mention in sentence:
+                        arg1_covering_sentence = sentence
+                    else:
+                        arg1_covering_sentence = relation.arg1.mention
+
+                    if relation.arg2.mention in sentence:
+                        arg2_covering_sentence = sentence
+                    else:
+                        arg2_covering_sentence = relation.arg2.mention
+                #     if we can't find covering sentence, it may be split between one or more sentences
+                #     @TODO Try and fix cover sentence part
+
+                features = {
                     "arg1_text": relation.arg1.mention,
                     "arg1_type": relation.arg1.type,
                     "arg1_start": relation.arg1.start,
                     "arg1_end": relation.arg1.end,
+                    "arg1_covering_sentence": arg1_covering_sentence,
                     "arg2_text": relation.arg2.mention,
                     "arg2_type": relation.arg2.type,
                     "arg2_start": relation.arg2.start,
                     "arg2_end": relation.arg2.end,
-                })
+                    "arg2_covering_sentence": arg2_covering_sentence,
+                    "essay_length": len(essay.text),
+                    "num_paragraphs_in_essay": num_paragraphs,
+                    "n_components_in_essay": len(essay.relations),
+                }
+                find_paragraph_features(features, relation, essay.relations)
+                X.append(features)
                 Y.append(relation.type)
 
         train_data, test_data, train_targets, test_targets = \
@@ -154,18 +208,8 @@ def load_essay_corpus(purpose=None, merge_premises=False):
                              train_size=0.9,
                              shuffle=True,
                              random_state=0,
-                             # stratify=Y
                              )
         return train_data, test_data, train_targets, test_targets
-        # train_features, test_features, test_labels, train_labels = [], [], [], []
-        # ss = StratifiedKFold(n_splits=10, shuffle=False,)
-        #
-        # X = numpy.array(X)
-        # Y = numpy.array(Y)
-        # for train_index, test_index in ss.split(X, Y):
-        #     train_features, test_features = X[train_index], X[test_index]
-        #     train_labels, test_labels = Y[train_index], Y[test_index]
-        # return train_features, test_features, train_labels, test_labels
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:

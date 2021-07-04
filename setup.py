@@ -18,7 +18,8 @@ setup(
         "scikit-learn",
         "nltk",
         "vaderSentiment",
-        "pybrat"
+        "pybrat",
+        "transformers[torch]"
     ],
     url='http://openargumentation.org',
     project_urls={
