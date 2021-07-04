@@ -145,25 +145,3 @@ class StructurePredictor(Model):
 
         return train_data, test_data
 
-
-def word2features(sent, i):
-    word = sent[i]
-
-    features = {
-        'bias': 1.0,
-        'word.lower()': word.lower(),
-        'word[-3:]': word[-3:],
-        'word[-2:]': word[-2:],
-        'word.isupper()': word.isupper(),
-        'word.istitle()': word.istitle(),
-        'word.isdigit()': word.isdigit(),
-
-    }
-
-    return features
-
-
-def sent2features(sent):
-    import nltk
-    sent = nltk.word_tokenize(sent)
-    return [word2features(sent, i) for i in range(len(sent))]
