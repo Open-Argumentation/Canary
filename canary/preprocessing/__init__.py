@@ -22,7 +22,7 @@ class Lemmatizer:
 class PosLemmatizer:
 
     def t(self, x):
-        return f"{x.lemma_}/{x.pos_}"
+        return f"{x.lemma_}/{x.tag_}"
 
     def __call__(self, text):
         text = nlp(text)
