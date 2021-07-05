@@ -3,13 +3,9 @@ import spacy
 from scipy.sparse import hstack
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion
 from sklearn.preprocessing import LabelBinarizer, MaxAbsScaler
-from sklearn.svm import SVC, LinearSVC
 
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
@@ -33,8 +29,8 @@ class StructurePredictor(Model):
         pd_test = pd.DataFrame(_test_data)
 
         text_feats = FeatureUnion([
-            ("tfidf_pos",
-             TfidfVectorizer(ngram_range=(1, 1), lowercase=False, tokenizer=Lemmatizer(), )),
+            ("tfidf_unigrams",
+             TfidfVectorizer(ngram_range=(1, 2), lowercase=False, tokenizer=Lemmatizer(), )),
             ('posv', TfidfPosVectorizer()),
             ("sentiment_pos", SentimentTransformer("pos")),
             ("sentiment_neg", SentimentTransformer("neg")),
@@ -90,23 +86,10 @@ class StructurePredictor(Model):
         sgd = SGDClassifier(
             class_weight='balanced',
             random_state=0,
-            warm_start=True,
             loss='modified_huber',
-            verbose=1
         )
 
-        knn = KNeighborsClassifier(n_neighbors=3, p=2, )
-        svc = SVC(kernel='linear', probability=True, random_state=0, gamma='auto')
-        lsvc = LinearSVC(random_state=0)
-        estimators = [
-            ("sgd", sgd),
-            ('knn', knn),
-            ('svc', svc)
-        ]
-        mb = OneVsRestClassifier(MultinomialNB(
-            fit_prior=True, class_prior=None))
-        lg = LogisticRegression(random_state=0, class_weight="balanced")
-        model = lg
+        model = sgd
 
         super(StructurePredictor, self).train(
             pipeline_model=model,
@@ -144,4 +127,3 @@ class StructurePredictor(Model):
         test_data = get_features(test)
 
         return train_data, test_data
-

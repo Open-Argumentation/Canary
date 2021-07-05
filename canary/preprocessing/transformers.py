@@ -116,7 +116,7 @@ class TfidfPosVectorizer(PosVectorizer, TfidfVectorizer):
         return analyzer
 
 
-class CountPosVectorizer(CountVectorizer, PosVectorizer):
+class CountPosVectorizer(PosVectorizer, CountVectorizer):
     """
 
     """
@@ -250,7 +250,7 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
     Matches if any first-person indicators are present in text
     """
 
-    def __init__(self, indicator):
+    def __init__(self, indicator=None):
         self.indicator = indicator
 
     @property
@@ -261,6 +261,7 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
         return self
 
     def __contains_indicator__(self, sen):
+
         sen = [k.lower() for k in sen.split()]
         for x in self.indicators:
             if x.lower() in sen:
