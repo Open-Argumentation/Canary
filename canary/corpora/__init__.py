@@ -1,6 +1,7 @@
 import csv
 import glob
 import json
+import logging
 import os
 import tarfile
 import zipfile
@@ -12,6 +13,7 @@ from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
 from canary import logger
+from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
 
 
@@ -67,7 +69,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
                         "location": storage_location
                     }
             except:
-                print("There was an error fetching the corpus")
+                logging.error("There was an error fetching the corpus")
 
         elif corpora_already_downloaded:
             logger.info(f"Corpus already present at {storage_location}")
@@ -77,12 +79,13 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False):
+def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=None):
     """
-    Loads essay corpus version 2
+    Loads essay corpus version
 
     :param purpose:
     :param merge_premises: whether or not to combine claims and major claims
+    :param version: d
     :return:
     """
 
@@ -92,19 +95,38 @@ def load_essay_corpus(purpose=None, merge_premises=False):
         'relation_prediction'
     ]
 
+    _allowed_version_values = [1, 2, "both"]
+
+    if train_split_size is not None:
+        if not (0 < train_split_size < 1):
+            raise ValueError("Split value should be between 0 and 1.")
+
+    if version not in _allowed_version_values:
+        raise ValueError(f"{version} is not a valid value. Valid values are {_allowed_version_values}")
+
     if purpose not in _allowed_purpose_values:
         raise ValueError(f"{purpose} is not a valid value. Valid values are {_allowed_purpose_values}")
 
-    essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "brat-project-final"
+    def get_corpus(v):
+        essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "brat-project-final" if v == 2 else Path(
+            CANARY_CORPORA_LOCATION) / "brat-project"
+        if os.path.exists(essay_corpus_location) is False:
+            corpus = download_corpus(f"argument_annotated_essays_{v}")
+            zip_name = "brat-project-final" if v == 2 else "brat-project"
+            corpus_zip = corpus['location'] / f"ArgumentAnnotatedEssays-{v}.0/{zip_name}.zip"
+            with zipfile.ZipFile(corpus_zip) as z:
+                z.extractall(CANARY_CORPORA_LOCATION)
 
-    if os.path.exists(essay_corpus_location) is False:
-        corpus = download_corpus("argument_annotated_essays_2")
-        corpus_zip = corpus['location'] / "ArgumentAnnotatedEssays-2.0/brat-project-final.zip"
-        with zipfile.ZipFile(corpus_zip) as z:
-            z.extractall(CANARY_CORPORA_LOCATION)
+        brat_parser = BratParser(error="ignore")
+        e = brat_parser.parse(essay_corpus_location)
+        return e
 
-    brat_parser = BratParser(error="ignore")
-    essays = brat_parser.parse(essay_corpus_location)
+    if version in [1, 2]:
+        essays = get_corpus(version)
+    else:
+        essay_corpus_1 = get_corpus(1)
+        essay_corpus_2 = get_corpus(2)
+        essays = essay_corpus_1 + essay_corpus_2
 
     if purpose is None:
         return essays
@@ -124,7 +146,7 @@ def load_essay_corpus(purpose=None, merge_premises=False):
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(X, Y,
-                             train_size=0.9,
+                             train_size=train_split_size,
                              shuffle=True,
                              random_state=0
                              )
@@ -140,8 +162,40 @@ def load_essay_corpus(purpose=None, merge_premises=False):
             paras = [k for k in essay.text.split("\n") if k != ""]
             num_paragraphs = len(paras)
 
+            def find_cover_sentence_features(feats, _essay, rel):
+                extra_abbreviations = ['i.e', "etc", "e.g"]
+                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+                tokenizer._params.abbrev_types.update(extra_abbreviations)
+
+                sentences = tokenizer.tokenize(_essay.text)
+
+                feats["arg1_covering_sentence"] = None
+                feats["arg2_covering_sentence"] = None
+                feats["arg1_preceding_tokens"] = 0
+                feats["arg1_following_tokens"] = 0
+                feats["arg2_preceding_tokens"] = 0
+                feats["arg2_following_tokens"] = 0
+
+                for sentence in sentences:
+                    if sentence[-1] == '.':
+                        sentence = sentence[:(len(sentence) - 1)]
+                    if rel.arg1.mention in sentence:
+                        feats["arg1_covering_sentence"] = sentence
+                        split = sentence.split(rel.arg1.mention)
+                        feats["arg1_preceding_tokens"] = len(nltk.word_tokenize(split[0]))
+                        feats["arg1_following_tokens"] = len(nltk.word_tokenize(split[1]))
+
+                    if rel.arg2.mention in sentence:
+                        feats["arg2_covering_sentence"] = sentence
+                        split = sentence.split(rel.arg2.mention)
+                        feats["arg2_preceding_tokens"] = len(nltk.word_tokenize(split[0]))
+                        feats["arg2_following_tokens"] = len(nltk.word_tokenize(split[1]))
+
+                if feats['arg2_covering_sentence'] is None or feats['arg1_covering_sentence'] is None:
+                    raise ValueError("Failed in finding cover sentences for one or more relations")
+
             # helper function
-            def find_paragraph_features(feats, component, essay):
+            def find_paragraph_features(feats, component, _essay):
 
                 # find the para the component is in
                 for para in paras:
@@ -149,7 +203,7 @@ def load_essay_corpus(purpose=None, merge_premises=False):
                     if component.arg1.mention in para or component.arg2.mention in para:
                         # find other relations in paragraph
                         relations = []
-                        for r in essay:
+                        for r in _essay:
                             if r.arg1.mention in para or r.arg2.mention in para:
                                 relations.append(r)
                         feats["n_para_components"] = len(relations)
@@ -166,40 +220,25 @@ def load_essay_corpus(purpose=None, merge_premises=False):
                         break
 
             for index, relation in enumerate(essay.relations):
-
-                sentences = nltk.sent_tokenize(essay.text)
-                arg1_covering_sentence = None
-                arg2_covering_sentence = None
-
-                for sentence in sentences:
-                    if relation.arg1.mention in sentence:
-                        arg1_covering_sentence = sentence
-                    else:
-                        arg1_covering_sentence = relation.arg1.mention
-
-                    if relation.arg2.mention in sentence:
-                        arg2_covering_sentence = sentence
-                    else:
-                        arg2_covering_sentence = relation.arg2.mention
-                #     if we can't find covering sentence, it may be split between one or more sentences
-                #     @TODO Try and fix cover sentence part
-
                 features = {
+                    "essay_id": essay.id,
                     "arg1_text": relation.arg1.mention,
                     "arg1_type": relation.arg1.type,
                     "arg1_start": relation.arg1.start,
                     "arg1_end": relation.arg1.end,
-                    "arg1_covering_sentence": arg1_covering_sentence,
                     "arg2_text": relation.arg2.mention,
                     "arg2_type": relation.arg2.type,
                     "arg2_start": relation.arg2.start,
                     "arg2_end": relation.arg2.end,
-                    "arg2_covering_sentence": arg2_covering_sentence,
                     "essay_length": len(essay.text),
                     "num_paragraphs_in_essay": num_paragraphs,
                     "n_components_in_essay": len(essay.relations),
                 }
+
+                find_cover_sentence_features(features, essay, relation)
+
                 find_paragraph_features(features, relation, essay.relations)
+
                 X.append(features)
                 Y.append(relation.type)
 
@@ -306,8 +345,7 @@ def load_araucaria_corpus(purpose: str = None):
     """
 
     corpus_download = download_corpus("araucaria")
-    corpus = None
-    corpus_entries = []
+    corpus = {}
     if "location" in corpus_download:
 
         corpus_location = corpus_download["location"]
@@ -315,27 +353,33 @@ def load_araucaria_corpus(purpose: str = None):
 
         for file in files:
             file = Path(file)
-            entry = {}
+            node = Nodeset()
             with open(file, "r", encoding="utf8") as json_file:
-                entry["nodeset"] = file.stem
-                entry["json"] = json.load(json_file)
+                node.id = file.stem
+                j = json.load(json_file)
+                node.load(j)
             json_file.close()
-            with open(str(Path(corpus_location / f"{file.stem}.txt")), "r", encoding="utf8") as text_file:
-                entry["text"] = text_file.read()
-            text_file.close()
 
-            corpus_entries.append(entry)
+            with open(str(Path(corpus_location / f"{file.stem}.txt")), "r", encoding="utf8") as text_file:
+                node.text = text_file.read()
+            text_file.close()
+            corpus[node.id] = node
 
         if purpose is None:
-            corpus = corpus_entries
             return corpus
-    elif purpose == "scheme_prediction":
+
+    if purpose == "scheme_prediction":
         train_data = []
         test_data = []
         train_target = []
         test_target = []
 
-        for entry in corpus_entries:
-            pass
+        scheme_nodes = {}
+        for entry in corpus:
+            node: Nodeset = corpus[entry]
+            if node.contains_schemes is True:
+                scheme_nodes[node.id] = node
+
+        return scheme_nodes
 
     return corpus

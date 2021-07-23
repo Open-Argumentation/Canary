@@ -1,3 +1,5 @@
+from typing import Union
+
 import pandas as pd
 import spacy
 from scipy.sparse import hstack
@@ -9,9 +11,11 @@ from sklearn.preprocessing import LabelBinarizer, MaxAbsScaler
 
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import WordSentimentCounter, TfidfPosVectorizer, \
-    EmbeddingTransformer, SentimentTransformer
+    EmbeddingTransformer, SentimentTransformer, DiscourseMatcher, AverageWordLengthTransformer, \
+    LengthOfSentenceTransformer
+
+nlp = spacy.load('en_core_web_lg')
 
 
 class StructurePredictor(Model):
@@ -19,6 +23,8 @@ class StructurePredictor(Model):
     def __init__(self, model_id=None, model_storage_location=None, load=True):
         if model_id is None:
             self.model_id = "structure_predictor"
+        else:
+            self.model_id = model_id
 
         super().__init__(model_id=self.model_id, model_storage_location=model_storage_location, load=load)
 
@@ -30,27 +36,34 @@ class StructurePredictor(Model):
 
         text_feats = FeatureUnion([
             ("tfidf_unigrams",
-             TfidfVectorizer(ngram_range=(1, 2), lowercase=False, tokenizer=Lemmatizer(), )),
-            ('posv', TfidfPosVectorizer()),
+             TfidfVectorizer(ngram_range=(1, 2), lowercase=False, )),
+            ('posv', TfidfPosVectorizer(ngrams=2)),
             ("sentiment_pos", SentimentTransformer("pos")),
             ("sentiment_neg", SentimentTransformer("neg")),
             ("sentiment_neu", SentimentTransformer("neu")),
-            ('el', EmbeddingTransformer())
+
         ])
 
-        num_feats = FeatureUnion([
+        cover_feats = FeatureUnion([
+            ("support", DiscourseMatcher("support")),
+            ("conflict", DiscourseMatcher("conflict")),
+            ('forward', DiscourseMatcher('forward')),
+            ('thesis', DiscourseMatcher('thesis')),
+            ("average_word_length", AverageWordLengthTransformer()),
+            ('length_of_sentence', LengthOfSentenceTransformer()),
+            ('el', EmbeddingTransformer()),
             ("wc1", WordSentimentCounter("neu")),
             ("w2", WordSentimentCounter("pos")),
             ("wc3", WordSentimentCounter("neg")),
         ])
 
-        num_feats.fit(pd_train.arg1_text.tolist())
-        n1 = num_feats.transform(pd_train.arg1_text.tolist())
-        n2 = num_feats.transform(pd_test.arg1_text.tolist())
+        cover_feats.fit(pd_train.arg1_covering_sentence.tolist())
+        c1 = cover_feats.transform(pd_train.arg1_covering_sentence.tolist())
+        c2 = cover_feats.transform(pd_test.arg1_covering_sentence.tolist())
 
-        num_feats.fit(pd_train.arg2_text.tolist())
-        n3 = num_feats.transform(pd_train.arg2_text.tolist())
-        n4 = num_feats.transform(pd_test.arg2_text.tolist())
+        cover_feats.fit(pd_train.arg2_covering_sentence.tolist())
+        c3 = cover_feats.transform(pd_train.arg2_covering_sentence.tolist())
+        c4 = cover_feats.transform(pd_test.arg2_covering_sentence.tolist())
 
         text_feats.fit(pd_train.arg1_text.tolist())
         t1 = text_feats.transform(pd_train.arg1_text.tolist())
@@ -73,8 +86,8 @@ class StructurePredictor(Model):
         o3 = ohe.fit_transform(pd_train.arg2_type.tolist())
         o4 = ohe.transform(pd_test.arg2_type.tolist())
 
-        combined_features_train = hstack([t1, t3, f1, n1, n3])
-        combined_features_test = hstack([t2, t4, f2, n2, n4])
+        combined_features_train = hstack([t1, t3, f1, c1, c3])
+        combined_features_test = hstack([t2, t4, f2, c2, c4])
 
         scaler = MaxAbsScaler().fit(combined_features_train)
         combined_features_train = scaler.transform(combined_features_train)
@@ -87,6 +100,7 @@ class StructurePredictor(Model):
             class_weight='balanced',
             random_state=0,
             loss='modified_huber',
+            alpha=0.000001
         )
 
         model = sgd
@@ -96,8 +110,14 @@ class StructurePredictor(Model):
             train_data=combined_features_train,
             test_data=combined_features_test,
             train_targets=train_targets,
-            test_targets=test_targets
+            test_targets=test_targets,
         )
+
+        self.save(model_data={
+            "model_id": self.model_id,
+            "model": self.model,
+            "metrics": self.metrics
+        })
 
     def prepare_dictionary_features(self, train, test):
         nlp = spacy.load('en_core_web_lg')
@@ -114,11 +134,19 @@ class StructurePredictor(Model):
                     "arg2_start": d["arg2_start"],
                     "arg1_end": d["arg1_end"],
                     "arg2_end": d["arg2_end"],
+                    'arg1_preceding_tokens': d['arg1_preceding_tokens'],
+                    "arg1_following_tokens": d["arg1_following_tokens"],
+                    'arg2_preceding_tokens': d['arg2_preceding_tokens'],
+                    "arg2_following_tokens": d["arg2_following_tokens"],
                     "sentence_similarity_norm": sent1.similarity(sent2),
                     "n_preceding_components": d["n_preceding_components"],
                     "n_following_components": d["n_following_components"],
                     "n_attack_components": d["n_attack_components"],
-                    "n_support_components": d["n_support_components"]
+                    "n_support_components": d["n_support_components"],
+                    "arg1_cover_ents": len(sent1.ents),
+                    "arg2_cover_ents": len(sent2.ents),
+                    "neg_present_arg1": binary_neg_present(sent1.text),
+                    "neg_present_arg2": binary_neg_present(sent2.text),
                 })
 
             return features
@@ -127,3 +155,10 @@ class StructurePredictor(Model):
         test_data = get_features(test)
 
         return train_data, test_data
+
+    def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
+        return None
+
+
+def binary_neg_present(sen):
+    return WordSentimentCounter("neg").transform([sen])[0][0] > 0
