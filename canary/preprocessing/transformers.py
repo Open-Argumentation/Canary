@@ -3,6 +3,7 @@ from abc import ABCMeta
 
 import nltk
 import numpy as np
+import spacy
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -10,6 +11,19 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from canary import logger
 from canary.data.indicators import discourse_indicators
 from canary.preprocessing import PunctuationTokenizer
+
+nlp = spacy.load('en_core_web_lg')
+
+
+class SentimentLabelTransformer(TransformerMixin, BaseEstimator):
+    from transformers import pipeline
+    classifier = pipeline('sentiment-analysis')
+
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[self.classifier(y)[0]['label']] for y in x]
 
 
 # @TODO this file needs cleaning up
@@ -19,26 +33,21 @@ class PosVectorizer(metaclass=ABCMeta):
     Base class for POS tagging vectorisation
     """
 
-    bigrams = False
-
-    def __init__(self, bigrams=False) -> None:
-        if bigrams is not False:
-            self.bigrams = bigrams
+    def __init__(self, ngrams=1) -> None:
+        if type(ngrams) is int:
+            self.ngrams = ngrams
 
         super().__init__()
 
     def prepare_doc(self, doc):
-        _doc = nltk.WordPunctTokenizer().tokenize(doc)
-
-        # @TODO improve lemmatising. Only considers nouns.
-        _doc = [nltk.WordNetLemmatizer().lemmatize(token) for token in _doc]
-        _doc = nltk.pos_tag(_doc)
+        _doc = nlp(doc)
         new_text = []
 
         for word in _doc:
-            new_text.append(word[1])
-        if self.bigrams is True:
-            new_text = list(nltk.bigrams(new_text))
+            new_text.append(f"{word.lemma_}/{word.tag_}")
+        if self.ngrams != 1:
+            new_text = list(nltk.ngrams(new_text, self.ngrams))
+
         return new_text
 
 
@@ -95,7 +104,7 @@ class WordSentimentCounter(TransformerMixin, BaseEstimator):
         return [[self.countSentiment(y)] for y in x]
 
 
-class TfidfPosVectorizer(TfidfVectorizer, PosVectorizer):
+class TfidfPosVectorizer(PosVectorizer, TfidfVectorizer):
     """
 
     """
@@ -107,7 +116,7 @@ class TfidfPosVectorizer(TfidfVectorizer, PosVectorizer):
         return analyzer
 
 
-class CountPosVectorizer(CountVectorizer, PosVectorizer):
+class CountPosVectorizer(PosVectorizer, CountVectorizer):
     """
 
     """
@@ -241,7 +250,7 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
     Matches if any first-person indicators are present in text
     """
 
-    def __init__(self, indicator):
+    def __init__(self, indicator=None):
         self.indicator = indicator
 
     @property
@@ -252,6 +261,7 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
         return self
 
     def __contains_indicator__(self, sen):
+
         sen = [k.lower() for k in sen.split()]
         for x in self.indicators:
             if x.lower() in sen:
@@ -316,3 +326,20 @@ class TfidfPunctuationVectorizer(TfidfVectorizer):
             return p(self.prepare_doc(doc))
 
         return analyzer
+
+
+class EmbeddingTransformer(TransformerMixin, BaseEstimator):
+
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[nlp(y).vector_norm] for y in x]
+
+
+class BiasTransformer(TransformerMixin, BaseEstimator):
+    def fit(self, x, y):
+        return self
+
+    def transform(self, x):
+        return [[True] for y in x]

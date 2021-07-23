@@ -74,10 +74,17 @@ class Model:
         :param save_to:
         :param model_data:
         """
+
+        model_data["trained_on"] = datetime.datetime.now()
+        model_data["canary_version"] = __version__
+
         if save_to is None:
             dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
+        else:
+            dump(model_data, Path(save_to) / ".joblib")
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=False):
         logger.debug(f"Training of {self.__class__.__name__} has begun")
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
@@ -85,14 +92,13 @@ class Model:
         self.model = pipeline_model
         self.metrics = classification_report(prediction, test_targets, output_dict=True)
 
-        model_data = {
-            "model_id": self.model_id,
-            "model": self.model,
-            "trained_on": datetime.datetime.now(),
-            "canary_version": __version__,
-            "metrics": self.metrics
-        }
-        self.save(model_data)
+        if save_on_finish is True:
+            model_data = {
+                "model_id": self.model_id,
+                "model": self.model,
+                "metrics": self.metrics
+            }
+            self.save(model_data)
 
     def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
         """

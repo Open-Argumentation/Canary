@@ -10,7 +10,7 @@ setup(
     packages=find_packages(exclude=['tests', 'etc']),
     description="A Simple Argument Mining Library",
     long_description=README,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     long_description_content_type="text/markdown",
     license="MIT",
     install_requires=[
@@ -18,6 +18,9 @@ setup(
         "scikit-learn",
         "nltk",
         "vaderSentiment",
+        "pybrat",
+        "transformers[torch]",
+        "spacy"
     ],
     url='http://openargumentation.org',
     project_urls={
