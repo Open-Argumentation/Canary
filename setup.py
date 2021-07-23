@@ -20,6 +20,7 @@ setup(
         "vaderSentiment",
         "pybrat",
         "transformers[torch]"
+        "spacy"
     ],
     url='http://openargumentation.org',
     project_urls={
