@@ -19,7 +19,7 @@ setup(
         "nltk",
         "vaderSentiment",
         "pybrat",
-        "transformers[torch]"
+        "transformers[torch]",
         "spacy"
     ],
     url='http://openargumentation.org',
