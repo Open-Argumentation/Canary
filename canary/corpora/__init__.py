@@ -9,12 +9,16 @@ from pathlib import Path
 from typing import Union
 
 import nltk
+import spacy
 from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
 from canary import logger
 from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
+from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence
 from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
+
+nlp = spacy.load('en_core_web_lg')
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -92,7 +96,8 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
     _allowed_purpose_values = [
         None,
         'component_prediction',
-        'relation_prediction'
+        'relation_prediction',
+        'sequence_labelling'
     ]
 
     _allowed_version_values = [1, 2, "both"]
@@ -159,66 +164,6 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
         for essay in essays:
 
-            paras = [k for k in essay.text.split("\n") if k != ""]
-            num_paragraphs = len(paras)
-
-            def find_cover_sentence_features(feats, _essay, rel):
-                extra_abbreviations = ['i.e', "etc", "e.g"]
-                tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-                tokenizer._params.abbrev_types.update(extra_abbreviations)
-
-                sentences = tokenizer.tokenize(_essay.text)
-
-                feats["arg1_covering_sentence"] = None
-                feats["arg2_covering_sentence"] = None
-                feats["arg1_preceding_tokens"] = 0
-                feats["arg1_following_tokens"] = 0
-                feats["arg2_preceding_tokens"] = 0
-                feats["arg2_following_tokens"] = 0
-
-                for sentence in sentences:
-                    if sentence[-1] == '.':
-                        sentence = sentence[:(len(sentence) - 1)]
-                    if rel.arg1.mention in sentence:
-                        feats["arg1_covering_sentence"] = sentence
-                        split = sentence.split(rel.arg1.mention)
-                        feats["arg1_preceding_tokens"] = len(nltk.word_tokenize(split[0]))
-                        feats["arg1_following_tokens"] = len(nltk.word_tokenize(split[1]))
-
-                    if rel.arg2.mention in sentence:
-                        feats["arg2_covering_sentence"] = sentence
-                        split = sentence.split(rel.arg2.mention)
-                        feats["arg2_preceding_tokens"] = len(nltk.word_tokenize(split[0]))
-                        feats["arg2_following_tokens"] = len(nltk.word_tokenize(split[1]))
-
-                if feats['arg2_covering_sentence'] is None or feats['arg1_covering_sentence'] is None:
-                    raise ValueError("Failed in finding cover sentences for one or more relations")
-
-            # helper function
-            def find_paragraph_features(feats, component, _essay):
-
-                # find the para the component is in
-                for para in paras:
-                    # found it
-                    if component.arg1.mention in para or component.arg2.mention in para:
-                        # find other relations in paragraph
-                        relations = []
-                        for r in _essay:
-                            if r.arg1.mention in para or r.arg2.mention in para:
-                                relations.append(r)
-                        feats["n_para_components"] = len(relations)
-
-                        # find preceding and following components
-                        i = relations.index(component)
-                        feats["n_following_components"] = len(relations[i + 1:])
-                        feats["n_preceding_components"] = len(relations[:i])
-
-                        # calculate ratio of components
-                        feats["n_attack_components"] = len([r for r in relations if r.type == "attacks"])
-                        feats["n_support_components"] = len([r for r in relations if r.type == "supports"])
-
-                        break
-
             for index, relation in enumerate(essay.relations):
                 features = {
                     "essay_id": essay.id,
@@ -230,14 +175,12 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                     "arg2_type": relation.arg2.type,
                     "arg2_start": relation.arg2.start,
                     "arg2_end": relation.arg2.end,
-                    "essay_length": len(essay.text),
-                    "num_paragraphs_in_essay": num_paragraphs,
                     "n_components_in_essay": len(essay.relations),
                 }
 
                 find_cover_sentence_features(features, essay, relation)
 
-                find_paragraph_features(features, relation, essay.relations)
+                find_paragraph_features(features, relation, essay)
 
                 X.append(features)
                 Y.append(relation.type)
@@ -248,6 +191,159 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                              shuffle=True,
                              random_state=0,
                              )
+        return train_data, test_data, train_targets, test_targets
+
+    elif purpose == "sequence_labelling":
+        X = []
+        Y = []
+
+        sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+        sentence_tokenizer._params.abbrev_types.update(['i.e', "e.g", "etc"])
+
+        for _essay in essays:
+            logger.debug(f"Reading {_essay.id}")
+            # keep track of number of entities found
+            num_f = 0
+            args = []
+
+            # tokenise essay
+            essay_tokens = sentence_tokenizer.tokenize(_essay.text)
+
+            #  sort entities by starting position in the text
+            entities = sorted(_essay.entities, key=lambda x: x.start)
+
+            # initialise
+            x1 = [nltk.word_tokenize(tokens) for tokens in essay_tokens]
+            y1 = [["O" for _ in tokens] for tokens in x1]
+
+            # Deal with a few formatting / misc errors to get data into right shape
+            # @TODO Fix issues with 'etc' segmentation
+
+            if _essay.id == "essay086":
+                x1[13][17] = "etc"
+
+            if _essay.id == 'essay098':
+                entities[4].mention = 'when children take jobs, they tend to be more responsible'
+
+            if _essay.id == "essay114":
+                entities[8].mention += "n"
+
+            if _essay.id == "essay125":
+                x1[11][22] = "etc"
+
+            if _essay.id == "essay138":
+                x1[7][24] = "etc"
+
+            if _essay.id == "essay240":
+                x1[4][34] = "etc"
+
+            if _essay.id == "essay248":
+                entities[1].mention += "t"
+
+            if _essay.id == "essay273":
+                x1[3][23] = "etc"
+
+            if _essay.id == "essay299":
+                x1[8][24] = "etc"
+
+            if _essay.id == "essay322":
+                x1[6][12] = "etc"
+
+            if _essay.id == "essay330":
+                x1[5][15] = "doing"
+                x1[5].insert(16, ".")
+                x1[5].insert(17, "In")
+                y1[5].append("O")
+                y1[5].append("O")
+
+            if _essay.id == "essay335":
+                x1[6][34] = "etc"
+
+            if _essay.id == "essay337":
+                entities[11].mention += "n"
+
+            if _essay.id == "essay350":
+                x1[13][20] = "etc"
+
+            if _essay.id == "essay390":
+                x1[8][28] = "etc"
+
+            # get first entity to look for
+            current_ent = entities.pop(0)
+
+            # look through each sentence
+            while (len(entities) > 0) is True:
+                for i in range(len(essay_tokens)):
+                    ent_tokens = nltk.word_tokenize(current_ent.mention)
+
+                    try:
+                        # check if we have all the elements we need
+                        if all(e in x1[i] for e in ent_tokens) is True:
+
+                            # navigate through sentence looking for arg component span
+                            for j in range(len(x1[i])):
+                                matches = []
+
+                                # look through sentence from this position and see if it matches the tokens in ent
+                                # start: j
+                                # end: ent_token end...
+
+                                l: int = 0
+                                for k in range(j, len(x1[i])):
+                                    try:
+                                        if 0 <= k < len(x1[i]) and 0 <= l < len(ent_tokens):
+                                            if x1[i][k] == ent_tokens[l]:
+                                                matches.append((x1[i][k], True, k))
+                                                l = l + 1
+                                            else:
+                                                matches.append((x1[i][k], False, k))
+                                    except IndexError as e:
+                                        logger.error(e)
+
+                                # we have an argumentative match
+                                if all(x[1] is True for x in matches) and matches != []:
+                                    num_f += 1
+                                    args.append([m[0] for m in matches])
+                                    # get next entity to search for
+                                    if len(entities) > 0:
+                                        current_ent = entities.pop(0)
+
+                                    for index, m in enumerate(matches):
+                                        if index == 0:
+                                            y1[i][m[2]] = "Arg-B"
+                                        else:
+                                            y1[i][m[2]] = "Arg-I"
+                    except IndexError as e:
+                        logger.error(e)
+
+            if [nltk.word_tokenize(m.mention) for m in sorted(_essay.entities, key=lambda x: x.start)] == args is False:
+                raise ValueError("damn")
+
+            if num_f != len(_essay.entities):
+                logger.warn(ValueError(
+                    f"Did not find all the argument components on {_essay.id}. {num_f} / {len(_essay.entities)}"))
+
+            else:
+                X = x1 + X
+                Y = y1 + Y
+
+        # If data and label shapes are not the same, the algorithm will not work.
+        # Check this ahead of time
+        errors = 0
+        for j in zip(X, Y):
+            if len(j[0]) != len(j[1]):
+                errors += 1
+
+        if errors > 0:
+            raise ValueError(f'Data is incorrect shape. Number of errors {errors}')
+
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(X, Y,
+                             train_size=0.7,
+                             shuffle=True,
+                             random_state=0,
+                             )
+
         return train_data, test_data, train_targets, test_targets
 
 
@@ -329,7 +425,7 @@ def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list
                         else:
                             datasets[d]['val'].append([row[4], multiclass_transformer(row[5])])
 
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error("Could not find a file from the UKP sentential dataset. Please ensure it has been downloaded.")
     except Exception as e:
         logger.error(e)
