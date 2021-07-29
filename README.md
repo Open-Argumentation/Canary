@@ -204,3 +204,124 @@ Canary is currently still in development and performance is being improved as wo
   </tr>
 </tbody>
 </table>
+
+**Detection of support/attack relations:**
+<table>
+<thead>
+  <tr>
+    <th></th>
+    <th>precision</th>
+    <th>recall</th>
+    <th>f1-score</th>
+    <th>support</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <th>Attacks</th>
+    <td>0.75</td>
+    <td>0.60</td>
+    <td>0.67</td>
+    <td>25</td>
+  </tr>
+  <tr>
+    <th>Supports</th>
+    <td>0.97</td>
+    <td>0.99</td>
+    <td>0.98</td>
+    <td>359</td>
+  </tr>
+   <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>accuracy</th>
+    <td></td>
+    <td></td>
+    <td>0.96</td>
+    <td>384</td>
+  </tr>
+  <tr>
+    <th>macro avg</th>
+    <td>0.86</td>
+    <td>0.79</td>
+    <td>0.82</td>
+    <td>384</td>
+  </tr>
+  <tr>
+    <th>weighted avg</th>
+    <td>0.96</td>
+    <td>0.96</td>
+    <td>0.96</td>
+    <td>384</td>
+  </tr>
+</tbody>
+</table>
+
+**Argument Segmentation:**
+<table>
+<thead>
+  <tr>
+    <th></th>
+    <th>precision</th>
+    <th>recall</th>
+    <th>f1-score</th>
+    <th>support</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <th>O</th>
+    <td>0.71</td>
+    <td>0.67</td>
+    <td>0.69</td>
+    <td>9071</td>
+  </tr>
+  <tr>
+    <th>Arg-B</th>
+    <td>0.73</td>
+    <td>0.71</td>
+    <td>0.73</td>
+    <td>1174</td>
+  </tr>
+  <tr>
+    <th>Arg-I</th>
+    <td>0.84</td>
+    <td>0.87</td>
+    <td>0.86</td>
+    <td>17915</td>
+  </tr>
+   <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>accuracy</th>
+    <td></td>
+    <td></td>
+    <td>0.8</td>
+    <td>28160</td>
+  </tr>
+  <tr>
+    <th>macro avg</th>
+    <td>0.76</td>
+    <td>0.75</td>
+    <td>0.75</td>
+    <td>28160</td>
+  </tr>
+  <tr>
+    <th>weighted avg</th>
+    <td>0.80</td>
+    <td>0.80</td>
+    <td>0.80</td>
+    <td>28160</td>
+  </tr>
+</tbody>
+</table>
