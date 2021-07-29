@@ -1,7 +1,6 @@
-from sklearn.ensemble import StackingClassifier, RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.preprocessing import MaxAbsScaler
 from sklearn.svm import SVC
 
 from canary.argument_pipeline.model import Model
@@ -10,7 +9,7 @@ from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, \
     LengthTransformer, LengthOfSentenceTransformer, \
     AverageWordLengthTransformer, UniqueWordsTransformer, CountPosVectorizer, \
-    WordSentimentCounter, TfidfPunctuationVectorizer
+    WordSentimentCounter, EmbeddingTransformer, FirstPersonIndicatorMatcher
 
 
 class ArgumentComponent(Model):
@@ -36,57 +35,38 @@ class ArgumentComponent(Model):
             load=load
         )
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
-        train_data, test_data, train_targets, test_targets = load_essay_corpus()
-
-        estimators = [
-            ("RandomForestClassifier", RandomForestClassifier(
-                random_state=0,
-                n_jobs=2,
-                warm_start=True,
-            )),
-            ('SGDClassifier', SGDClassifier(
-                random_state=0,
-                alpha=0.0005,
-                early_stopping=True,
-                tol=1e-5,
-                n_jobs=2,
-                n_iter_no_change=7,
-                max_iter=999999999,
-            )),
-            ('SVC', SVC(
-                gamma='auto',
-                kernel='linear',
-                random_state=0,
-                C=9000000,
-                max_iter=-1,
-            )),
-        ]
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=False, *args, **kwargs):
+        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose="component_prediction")
 
         model = Pipeline([
             ('feats', FeatureUnion([
                 ('tfidvectorizer',
-                 TfidfVectorizer(ngram_range=(1, 4), tokenizer=Lemmatizer(), lowercase=False)),
-                ('length_5', LengthTransformer()),
+                 TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False)),
                 ('length_10', LengthTransformer(12)),
-                ('CountPunctuationVectorizer', TfidfPunctuationVectorizer()),
                 ('contain_claim', DiscourseMatcher('claim')),
                 ('contain_premise', DiscourseMatcher('premise')),
                 ('contain_major_claim', DiscourseMatcher('major_claim')),
+                ('forward', DiscourseMatcher('forward')),
+                ('thesis', DiscourseMatcher('thesis')),
+                ('rebuttal', DiscourseMatcher('rebuttal')),
+                ('backward', DiscourseMatcher('backward')),
                 ('length_of_sentence', LengthOfSentenceTransformer()),
                 ('average_word_length', AverageWordLengthTransformer()),
+                ("fp", FirstPersonIndicatorMatcher()),
                 ("eee", CountPosVectorizer()),
                 ("eeeareae", UniqueWordsTransformer()),
                 ("pos_sent", WordSentimentCounter("pos")),
                 ("neg_sent", WordSentimentCounter("neg")),
+                ("neu_sent", WordSentimentCounter("neu")),
+                ("embeddings", EmbeddingTransformer())
             ])),
-            ('clf', StackingClassifier(
-                estimators=estimators,
-                final_estimator=LogisticRegression(
-                    warm_start=True,
-                    random_state=0,
-                    max_iter=99999,
-                )
+            ('stan', MaxAbsScaler()),
+            ('clf', SVC(
+                # gamma='auto',
+                kernel='linear',
+                random_state=0,
+                probability=True,
             ))
         ])
 
@@ -94,4 +74,5 @@ class ArgumentComponent(Model):
                                              train_data=train_data,
                                              test_data=test_data,
                                              train_targets=train_targets,
-                                             test_targets=test_targets)
+                                             test_targets=test_targets,
+                                             save_on_finish=True)

@@ -1,6 +1,7 @@
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.preprocessing import MaxAbsScaler, StandardScaler
 
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
@@ -25,7 +26,8 @@ class ArgumentDetector(Model):
                          load=load
                          )
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=False, *args, **kwargs):
         train_data, train_targets, test_data, test_targets = [], [], [], []
         for dataset in load_ukp_sentential_argument_detection_corpus(multiclass=False).values():
             for x in dataset['train']:
@@ -39,13 +41,14 @@ class ArgumentDetector(Model):
 
         model = Pipeline([
             ('features', FeatureUnion([
-                ('pos_tagger', CountPosVectorizer(tokenizer=Lemmatizer())),
                 ('bow',
                  CountVectorizer(
                      ngram_range=(1, 3),
-                     tokenizer=Lemmatizer()
+                     tokenizer=Lemmatizer(),
+                     lowercase=False
                  )
                  ),
+                ('pos_tagger', CountPosVectorizer()),
                 ("length", LengthOfSentenceTransformer()),
                 ("support", DiscourseMatcher(component="support")),
                 ("conflict", DiscourseMatcher(component="conflict")),
@@ -55,20 +58,19 @@ class ArgumentDetector(Model):
                 ("sentiment_neg", WordSentimentCounter(target="neg")),
                 ("average_word_length", AverageWordLengthTransformer()),
             ])),
+            ("scaler", MaxAbsScaler()),
             ('SGDClassifier',
              SGDClassifier(
-                 alpha=0.005,
-                 n_jobs=2,
-                 warm_start=True,
-                 loss="log",
-                 early_stopping=True,
+                 class_weight='balanced',
                  random_state=0,
-                 n_iter_no_change=7,
+                 loss='modified_huber',
              )
              )
         ])
+
         super(ArgumentDetector, self).train(pipeline_model=model,
                                             train_data=train_data,
                                             test_data=test_data,
                                             train_targets=train_targets,
-                                            test_targets=test_targets)
+                                            test_targets=test_targets,
+                                            save_on_finish=True)

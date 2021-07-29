@@ -1,3 +1,5 @@
+from typing import Union
+
 import nltk
 import sklearn_crfsuite
 from sklearn_crfsuite import metrics
@@ -8,6 +10,7 @@ from canary.corpora import load_essay_corpus
 
 
 class ArgumentSegmenter(Model):
+
     def __init__(self, model_id=None, model_storage_location=None, load=True):
         if model_id is None:
             self.model_id = "arg_segmenter"
@@ -19,7 +22,8 @@ class ArgumentSegmenter(Model):
         )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=True):
+              save_on_finish=False, *args, **kwargs):
+
         # Need to get data into a usable shape
 
         logger.debug("Getting raw data")

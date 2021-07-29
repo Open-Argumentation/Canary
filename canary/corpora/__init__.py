@@ -83,10 +83,11 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=None):
+def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=None, **kwargs):
     """
     Loads essay corpus version
 
+    :param train_split_size:
     :param purpose:
     :param merge_premises: whether or not to combine claims and major claims
     :param version: d
@@ -317,7 +318,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                         logger.error(e)
 
             if [nltk.word_tokenize(m.mention) for m in sorted(_essay.entities, key=lambda x: x.start)] == args is False:
-                raise ValueError("damn")
+                raise ValueError("Something went wrong when getting corpora")
 
             if num_f != len(_essay.entities):
                 logger.warn(ValueError(
@@ -339,7 +340,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(X, Y,
-                             train_size=0.7,
+                             train_size=train_split_size,
                              shuffle=True,
                              random_state=0,
                              )

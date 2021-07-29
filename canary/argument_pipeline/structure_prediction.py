@@ -28,7 +28,9 @@ class StructurePredictor(Model):
 
         super().__init__(model_id=self.model_id, model_storage_location=model_storage_location, load=load)
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None):
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=False, **kwargs):
+
         _train_data, _test_data, train_targets, test_targets = load_essay_corpus(purpose="relation_prediction")
 
         pd_train = pd.DataFrame(_train_data)
@@ -96,14 +98,17 @@ class StructurePredictor(Model):
         combined_features_train = hstack([combined_features_train, o1, o3, ])
         combined_features_test = hstack([combined_features_test, o2, o4, ])
 
-        sgd = SGDClassifier(
-            class_weight='balanced',
-            random_state=0,
-            loss='modified_huber',
-            alpha=0.000001
-        )
+        if pipeline_model is None:
+            sgd = SGDClassifier(
+                class_weight='balanced',
+                random_state=0,
+                loss='modified_huber',
+                alpha=0.000001
+            )
 
-        model = sgd
+            model = sgd
+        else:
+            model = pipeline_model
 
         super(StructurePredictor, self).train(
             pipeline_model=model,
