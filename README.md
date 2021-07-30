@@ -73,7 +73,15 @@ if __name__ == "__main__":
 ```
 
 ### Detecting argument relations
-Not implemented yet.
+To be documented.
+
+
+### Argument boundary detection
+To be documented.
+
+
+### Scheme prediction
+To be implemented.
 
 ## What kind of performance is Canary achieving?
 Canary is currently still in development and performance is being improved as work continues. 
