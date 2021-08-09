@@ -15,8 +15,6 @@ from canary.preprocessing.transformers import WordSentimentCounter, TfidfPosVect
     EmbeddingTransformer, SentimentTransformer, DiscourseMatcher, AverageWordLengthTransformer, \
     LengthOfSentenceTransformer
 
-nlp = spacy.load('en_core_web_lg')
-
 
 class StructurePredictor(Model):
 

@@ -1,11 +1,11 @@
-import logging
+import logging as _logging
 import os as _os
 from configparser import ConfigParser as _ConfigParser
 
 import pkg_resources
 
 # This logger should be used wherever possible
-logger = logging.getLogger(__name__)
+logger = _logging.getLogger(__name__)
 
 # Set up the configuration parser.
 # Should be used wherever possible

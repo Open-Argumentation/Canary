@@ -9,16 +9,15 @@ from pathlib import Path
 from typing import Union
 
 import nltk
-import spacy
 from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
+import canary.utils
 from canary import logger
 from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
-from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence
+from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
+    tokenize_essay_sentences, find_component_position
 from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
-
-nlp = spacy.load('en_core_web_lg')
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -83,7 +82,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=None, **kwargs):
+def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=0.5, **kwargs):
     """
     Loads essay corpus version
 
@@ -101,6 +100,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         'sequence_labelling'
     ]
 
+    canary.utils.nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
 
     if train_split_size is not None:
@@ -140,8 +140,14 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
     elif purpose == "component_prediction":
         X, Y = [], []
         for essay in essays:
+            essay.sentences = tokenize_essay_sentences(essay)
             for entity in essay.entities:
-                X.append(entity.mention)
+                component_feats = {
+                    "component": entity.mention,
+                    "cover_sentence": find_cover_sentence(essay, entity)
+                }
+                component_feats.update(find_component_position(essay, entity))
+                X.append(component_feats)
                 if merge_premises is False:
                     Y.append(entity.type)
                 else:
@@ -188,7 +194,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(X, Y,
-                             train_size=0.9,
+                             train_size=train_split_size,
                              shuffle=True,
                              random_state=0,
                              )
@@ -208,7 +214,8 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             args = []
 
             # tokenise essay
-            essay_tokens = sentence_tokenizer.tokenize(_essay.text)
+            _essay.sentences = tokenize_essay_sentences(_essay)
+            essay_tokens = _essay.sentences
 
             #  sort entities by starting position in the text
             entities = sorted(_essay.entities, key=lambda x: x.start)
@@ -218,10 +225,6 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             y1 = [["O" for _ in tokens] for tokens in x1]
 
             # Deal with a few formatting / misc errors to get data into right shape
-            # @TODO Fix issues with 'etc' segmentation
-
-            if _essay.id == "essay086":
-                x1[13][17] = "etc"
 
             if _essay.id == 'essay098':
                 entities[4].mention = 'when children take jobs, they tend to be more responsible'
@@ -229,26 +232,11 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             if _essay.id == "essay114":
                 entities[8].mention += "n"
 
-            if _essay.id == "essay125":
-                x1[11][22] = "etc"
-
-            if _essay.id == "essay138":
-                x1[7][24] = "etc"
-
-            if _essay.id == "essay240":
-                x1[4][34] = "etc"
+            if _essay.id == "essay182":
+                entities[19].mention += "t"
 
             if _essay.id == "essay248":
                 entities[1].mention += "t"
-
-            if _essay.id == "essay273":
-                x1[3][23] = "etc"
-
-            if _essay.id == "essay299":
-                x1[8][24] = "etc"
-
-            if _essay.id == "essay322":
-                x1[6][12] = "etc"
 
             if _essay.id == "essay330":
                 x1[5][15] = "doing"
@@ -257,23 +245,14 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                 y1[5].append("O")
                 y1[5].append("O")
 
-            if _essay.id == "essay335":
-                x1[6][34] = "etc"
-
             if _essay.id == "essay337":
                 entities[11].mention += "n"
-
-            if _essay.id == "essay350":
-                x1[13][20] = "etc"
-
-            if _essay.id == "essay390":
-                x1[8][28] = "etc"
 
             # get first entity to look for
             current_ent = entities.pop(0)
 
             # look through each sentence
-            while (len(entities) > 0) is True:
+            while 0 <= num_f < len(_essay.entities):
                 for i in range(len(essay_tokens)):
                     ent_tokens = nltk.word_tokenize(current_ent.mention)
 
@@ -323,6 +302,10 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             if num_f != len(_essay.entities):
                 logger.warn(ValueError(
                     f"Did not find all the argument components on {_essay.id}. {num_f} / {len(_essay.entities)}"))
+
+            if num_f > len(_essay.entities):
+                # essay186
+                logger.warn("...")
 
             else:
                 X = x1 + X
@@ -464,19 +447,5 @@ def load_araucaria_corpus(purpose: str = None):
 
         if purpose is None:
             return corpus
-
-    if purpose == "scheme_prediction":
-        train_data = []
-        test_data = []
-        train_target = []
-        test_target = []
-
-        scheme_nodes = {}
-        for entry in corpus:
-            node: Nodeset = corpus[entry]
-            if node.contains_schemes is True:
-                scheme_nodes[node.id] = node
-
-        return scheme_nodes
 
     return corpus

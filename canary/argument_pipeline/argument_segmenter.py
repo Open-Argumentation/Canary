@@ -1,12 +1,12 @@
-from typing import Union
-
 import nltk
 import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 
+import canary
 from canary import logger
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
+from canary.utils import nltk_download
 
 
 class ArgumentSegmenter(Model):
@@ -18,16 +18,18 @@ class ArgumentSegmenter(Model):
         super().__init__(
             model_id=self.model_id,
             model_storage_location=model_storage_location,
-            load=load
+            load=load,
+            supports_probability=False
         )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=False, *args, **kwargs):
+              save_on_finish=True, *args, **kwargs):
 
         # Need to get data into a usable shape
 
-        logger.debug("Getting raw data")
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose="sequence_labelling")
+        logger.debug("Getting training data")
+        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose="sequence_labelling",
+                                                                               train_split_size=0.7)
 
         logger.debug("Getting training features")
         train_data = [get_sentence_features(s) for s in train_data]
@@ -41,17 +43,21 @@ class ArgumentSegmenter(Model):
         logger.debug("Getting test labels")
         test_targets = [get_labels(s) for s in test_targets]
 
+        logger.debug("Training algorithm")
         crf = sklearn_crfsuite.CRF(
             algorithm='lbfgs',
-            all_possible_transitions=True
+            all_possible_transitions=True,
         )
 
         crf.fit(train_data, train_targets)
 
         labels = list(crf.classes_)
         y_pred = crf.predict(test_data)
-        metrics.flat_f1_score(test_targets, y_pred,
-                              average='weighted', labels=labels)
+        metrics.flat_f1_score(test_targets,
+                              y_pred,
+                              average='weighted',
+                              labels=labels)
+
         sorted_labels = sorted(
             labels,
             key=lambda name: (name[1:], name[0])
@@ -66,14 +72,23 @@ class ArgumentSegmenter(Model):
         )
 
         self.model = crf
+        if save_on_finish is True:
+            self.save({
+                "model_id": self.model_id,
+                "model": self.model,
+                "metrics": self.metrics
+            })
 
-        self.save({
-            "model_id": self.model_id,
-            "model": self.model,
-            "metrics": self.metrics
-        })
+    def predict(self, data, probability=False, binary=False):
+        """
 
-    def predict(self, data, probability=False):
+        :param data:
+        :param probability:
+        :param binary: binary detection of arguments
+        :return:
+        """
+
+        nltk_download(['punkt', 'averaged_perceptron_tagger'])
         if probability is True:
             logger.warn(
                 f"{self.__class__.__name__} does not support probability predictions. This parameter is ignored.")
@@ -81,8 +96,16 @@ class ArgumentSegmenter(Model):
         data_type = type(data)
 
         if data_type is str:
-            data = nltk.word_tokenize(data)
-            data = [get_sentence_features(data)]
+            tokens = nltk.word_tokenize(data)
+            data = [get_sentence_features(tokens)]
+            predictions = super().predict(data, probability=False)[0]
+            if binary is not None:
+                if binary is True:
+                    if all(k == "O" for k in super().predict(data, probability=False)[0]):
+                        return False
+                    else:
+                        return True
+            return list(zip(tokens, predictions))
 
         if data_type is list:
             if all(type(item) is dict for item in data) is False:
@@ -93,7 +116,7 @@ class ArgumentSegmenter(Model):
 
 
 def get_word_features(sent, i):
-    word = sent[i]
+    word = sent[i][0]
 
     features = {
         'bias': 1.0,
@@ -103,31 +126,62 @@ def get_word_features(sent, i):
         'word.is_lower': word.isupper(),
         'word.istitle()': word.istitle(),
         'word.isdigit()': word.isdigit(),
-        'postag': nltk.pos_tag([word])[0][1]
+        'postag': sent[i][1],
+        'ent': sent[i][2]
     }
 
     if i > 0:
-        word1 = sent[i - 1]
-        postag1 = nltk.pos_tag([word1])[0][1]
+        word1 = sent[i - 1][0]
+        postag1 = sent[i - 1][1]
+        ent1 = sent[i - 1][2]
         features.update({
             '-1:word.lower()': str(word1).lower(),
             '-1:word.istitle()': word1.istitle(),
             '-1:word.isupper()': word1.isupper(),
             '-1:postag': postag1,
             '-1:postag[:2]': str(postag1)[:2],
+            '-1:ent': ent1
         })
     else:
         features['BOS'] = True
 
+    if i > 1:
+        word2 = sent[i - 2][0]
+        postag2 = sent[i - 2][1]
+        ent2 = sent[i - 2][2]
+        features.update({
+            '-2:word.lower()': str(word2).lower(),
+            '-2:word.istitle()': word2.istitle(),
+            '-2:word.isupper()': word2.isupper(),
+            '-2:postag': postag2,
+            '-2:postag[:2]': str(postag2)[:2],
+            '-2:ent': ent2,
+        })
+
+    if i < len(sent) - 2:
+        word2 = sent[i + 2][0]
+        postag2 = sent[i + 2][1]
+        ent2 = sent[i + 2][2]
+        features.update({
+            '+2:word.lower()': str(word2).lower(),
+            '+2:word.istitle()': word2.istitle(),
+            '+2:word.isupper()': word2.isupper(),
+            '+2:postag': postag2,
+            '+2:postag[:2]': str(postag2)[:2],
+            '+2:ent': ent2,
+        })
+
     if i < len(sent) - 1:
-        word1 = sent[i + 1]
-        postag1 = nltk.pos_tag([word1])[0][1]
+        word1 = sent[i + 1][0]
+        postag1 = sent[i + 1][1]
+        ent1 = sent[i + 1][2]
         features.update({
             '+1:word.lower()': str(word1).lower(),
             '+1:word.istitle()': word1.istitle(),
             '+1:word.isupper()': word1.isupper(),
             '+1:postag': postag1,
             '+1:postag[:2]': str(postag1)[:2],
+            '+1:ent': ent1,
         })
     else:
         features['EOS'] = True
@@ -136,8 +190,15 @@ def get_word_features(sent, i):
 
 
 def get_sentence_features(sent):
+    sent = chunk(sent)
     return [get_word_features(sent, i) for i in range(len(sent))]
 
 
 def get_labels(sent):
     return [label for label in sent]
+
+
+def chunk(sen):
+    canary.utils.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words'])
+    from nltk.chunk import tree2conlltags
+    return tree2conlltags(nltk.ne_chunk(nltk.pos_tag(sen)))

@@ -3,17 +3,16 @@ from abc import ABCMeta
 
 import nltk
 import numpy as np
-import spacy
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+import canary.utils
 from canary import logger
 from canary.data.indicators import discourse_indicators
 from canary.preprocessing import PunctuationTokenizer
 
-nlp = spacy.load('en_core_web_lg')
-
+nlp = canary.utils.spacy_download('en_core_web_lg')
 
 class SentimentLabelTransformer(TransformerMixin, BaseEstimator):
     from transformers import pipeline
@@ -34,12 +33,14 @@ class PosVectorizer(metaclass=ABCMeta):
     """
 
     def __init__(self, ngrams=1) -> None:
+
         if type(ngrams) is int:
             self.ngrams = ngrams
 
         super().__init__()
 
     def prepare_doc(self, doc):
+
         _doc = nlp(doc)
         new_text = []
 
@@ -147,6 +148,9 @@ class UniqueWordsTransformer(TransformerMixin, BaseEstimator):
     """
      Returns the number of unique words in a sentence
     """
+
+    def __init__(self) -> None:
+        super().__init__()
 
     def fit(self, x, y):
         return self
@@ -340,6 +344,18 @@ class EmbeddingTransformer(TransformerMixin, BaseEstimator):
 class BiasTransformer(TransformerMixin, BaseEstimator):
     def fit(self, x, y):
         return self
+
+    def transform(self, x):
+        return [[True] for y in x]
+
+
+class PosDistribution(BaseEstimator, TransformerMixin):
+
+    def fit(self, x, y):
+        return self
+
+    def get_distribution(self, sentence):
+        pass
 
     def transform(self, x):
         return [[True] for y in x]

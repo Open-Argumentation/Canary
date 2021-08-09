@@ -12,7 +12,7 @@ from canary.utils import MODEL_STORAGE_LOCATION
 
 class Model:
 
-    def __init__(self, model_id=None, model_storage_location=None, load=True):
+    def __init__(self, model_id=None, model_storage_location=None, load=True, supports_probability=True):
         """
         :param model_id: the model of the ID. Cannot be none
         :param model_storage_location: the location of the models on the filesystem
@@ -21,6 +21,7 @@ class Model:
         self.model = None
         self.trained_on = None
         self.metrics = {}
+        self.supports_probability = supports_probability
 
         # Model ID used as part of filename so
         # Should not be empty
@@ -48,24 +49,32 @@ class Model:
 
     def load(self, load_from: Path = None):
         """
-        Load the model from disk. Currently doesn't allow loading a custom module.
+        Load the model from a custom location.
         """
 
         file = Path(self.model_dir) / f"{self.model_id}.joblib"
-        if os.path.isfile(file):
-            model = load(file)
-            if model and 'canary_version' in model:
-                version = model['canary_version']
-                if __version__ != version:
-                    logger.warn(
-                        "This model was trained using an older version of Canary. You may need to retrain the models!")
-                try:
-                    self.model_id = model['model_id']
-                    self.model = model['model']
-                    self.trained_on = model['trained_on']
-                    self.metrics = model['metrics']
-                except KeyError as key_error:
-                    logger.error(f"There was an error loading the model: {key_error}.")
+        if load_from is not None:
+            file = Path(load_from) / f"{self.model_id}.joblib"
+
+        try:
+            if os.path.isfile(file):
+                model = load(file)
+                if model and 'canary_version' in model:
+                    version = model['canary_version']
+                    if __version__ != version:
+                        logger.warn(
+                            "This model was trained using an older version of Canary. You may need to retrain the models!")
+                    try:
+                        self.model_id = model['model_id']
+                        self.model = model['model']
+                        self.trained_on = model['trained_on']
+                        self.metrics = model['metrics']
+                    except KeyError as key_error:
+                        logger.error(f"There was an error loading the model: {key_error}.")
+        except FileExistsError as e:
+            logger.error(e)
+        except FileNotFoundError as e:
+            logger.error(e)
 
     def save(self, model_data: dict, save_to: Path = None):
         """
@@ -84,8 +93,21 @@ class Model:
             dump(model_data, Path(save_to) / ".joblib")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=False):
+              save_on_finish=False, *args, **kwargs):
+        """
+        :param pipeline_model:
+        :param train_data:
+        :param test_data:
+        :param train_targets:
+        :param test_targets:
+        :param save_on_finish:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
         logger.debug(f"Training of {self.__class__.__name__} has begun")
+
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
         logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
@@ -114,6 +136,10 @@ class Model:
                 " Either train a model or download the pretrained models.")
 
         data_type = type(data)
+
+        if probability is True and self.supports_probability is False:
+            logger.warn("This model does not support probabily predictions. This parameter has been set to false.")
+            probability = False
 
         def probability_predict(inp: Union[str, list]) -> Union[list[dict], dict]:
             """

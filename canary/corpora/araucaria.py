@@ -23,6 +23,10 @@ class Nodeset:
                     return True
         return False
 
+    @property
+    def scheme_nodes(self):
+        return self.get_scheme_nodes()
+
     def get_scheme_nodes(self) -> list:
         nodes = []
         if self.nodes != [] and self.nodes is not None:

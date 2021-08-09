@@ -1,7 +1,8 @@
 import nltk
 import spacy
 
-nlp = spacy.load("en_core_web_lg")
+from canary.utils import nltk_download
+
 
 class Lemmatizer:
     """
@@ -12,10 +13,12 @@ class Lemmatizer:
     - corpora -> corpus
     """
 
+
     def __init__(self):
         self.word_net = nltk.WordNetLemmatizer()
 
     def __call__(self, text):
+        nltk_download(['punkt', 'wordnet'])
         return [self.word_net.lemmatize(t) for t in nltk.word_tokenize(text)]
 
 
@@ -25,6 +28,7 @@ class PosLemmatizer:
         return f"{x.lemma_}/{x.tag_}"
 
     def __call__(self, text):
+        nlp = spacy.load("en_core_web_lg")
         text = nlp(text)
         return [self.t(d) for d in text]
 

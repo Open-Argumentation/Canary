@@ -1,7 +1,6 @@
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.preprocessing import MaxAbsScaler, StandardScaler
 
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
@@ -29,6 +28,7 @@ class ArgumentDetector(Model):
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, *args, **kwargs):
         train_data, train_targets, test_data, test_targets = [], [], [], []
+
         for dataset in load_ukp_sentential_argument_detection_corpus(multiclass=False).values():
             for x in dataset['train']:
                 test, target = x[0], x[1]
@@ -58,7 +58,6 @@ class ArgumentDetector(Model):
                 ("sentiment_neg", WordSentimentCounter(target="neg")),
                 ("average_word_length", AverageWordLengthTransformer()),
             ])),
-            ("scaler", MaxAbsScaler()),
             ('SGDClassifier',
              SGDClassifier(
                  class_weight='balanced',
