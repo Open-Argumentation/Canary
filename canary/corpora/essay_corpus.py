@@ -72,7 +72,6 @@ def tokenize_essay_sentences(essay):
             sen = sentence.partition("\n\n")
             sentences[index] = sen[0]
             sentences.insert(index + 1, sen[2])
-            k = 1
 
     for index, sentence in enumerate(sentences):
         if "etc. " in sentence:

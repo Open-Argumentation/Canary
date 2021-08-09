@@ -239,11 +239,11 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                 entities[1].mention += "t"
 
             if _essay.id == "essay330":
-                x1[5][15] = "doing"
-                x1[5].insert(16, ".")
-                x1[5].insert(17, "In")
-                y1[5].append("O")
-                y1[5].append("O")
+                x1[6][15] = "doing"
+                x1[6].insert(16, ".")
+                x1[6].insert(17, "In")
+                y1[6].append("O")
+                y1[6].append("O")
 
             if _essay.id == "essay337":
                 entities[11].mention += "n"
