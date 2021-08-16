@@ -27,21 +27,4 @@ class ArgumentPipeline(TestCase):
         download_pretrained_models()
         self.assertTrue(os.path.isfile(Path(CANARY_MODEL_STORAGE_LOCATION) / "models.zip"))
 
-    def test_instantiate_argument_detector(self) -> None:
-        """
-        Test that we can instantiate the ArgumentDetector class without error.
-        The model property should not be null.
-        """
-        from canary.argument_pipeline.classification import ArgumentDetector
 
-        ad = ArgumentDetector()
-        self.assertTrue(ad.__model is not None)
-
-    def test_instantiate_argument_component(self) -> None:
-        """
-        Test that we can instantiate the ArgumentComponent class without error.
-        The model property should not be null.
-        """
-        from canary.argument_pipeline.component_identification import ArgumentComponent
-        ag = ArgumentComponent()
-        self.assertTrue(ag.__model is not None)
