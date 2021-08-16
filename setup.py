@@ -21,7 +21,8 @@ setup(
         "pybrat",
         "transformers[torch]",
         "spacy",
-        "pandas"
+        "pandas",
+        "benepar"
     ],
     url='http://openargumentation.org',
     project_urls={

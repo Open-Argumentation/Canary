@@ -14,6 +14,7 @@ from canary.preprocessing import PunctuationTokenizer
 
 nlp = canary.utils.spacy_download('en_core_web_lg')
 
+
 class SentimentLabelTransformer(TransformerMixin, BaseEstimator):
     from transformers import pipeline
     classifier = pipeline('sentiment-analysis')
@@ -346,16 +347,4 @@ class BiasTransformer(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
-        return [[True] for y in x]
-
-
-class PosDistribution(BaseEstimator, TransformerMixin):
-
-    def fit(self, x, y):
-        return self
-
-    def get_distribution(self, sentence):
-        pass
-
-    def transform(self, x):
-        return [[True] for y in x]
+        return [[True] for _ in x]

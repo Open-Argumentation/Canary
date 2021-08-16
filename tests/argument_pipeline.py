@@ -20,12 +20,12 @@ class ArgumentPipeline(TestCase):
         Assert that the models.zip file has indeed downloaded.
         """
         from canary.argument_pipeline import download_pretrained_models
-        from canary.utils import MODEL_STORAGE_LOCATION
+        from canary.utils import CANARY_MODEL_STORAGE_LOCATION
         from pathlib import Path
         import os
 
         download_pretrained_models()
-        self.assertTrue(os.path.isfile(Path(MODEL_STORAGE_LOCATION) / "models.zip"))
+        self.assertTrue(os.path.isfile(Path(CANARY_MODEL_STORAGE_LOCATION) / "models.zip"))
 
     def test_instantiate_argument_detector(self) -> None:
         """
@@ -35,7 +35,7 @@ class ArgumentPipeline(TestCase):
         from canary.argument_pipeline.classification import ArgumentDetector
 
         ad = ArgumentDetector()
-        self.assertTrue(ad.model is not None)
+        self.assertTrue(ad.__model is not None)
 
     def test_instantiate_argument_component(self) -> None:
         """
@@ -44,4 +44,4 @@ class ArgumentPipeline(TestCase):
         """
         from canary.argument_pipeline.component_identification import ArgumentComponent
         ag = ArgumentComponent()
-        self.assertTrue(ag.model is not None)
+        self.assertTrue(ag.__model is not None)

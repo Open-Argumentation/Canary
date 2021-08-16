@@ -16,8 +16,8 @@ import canary.utils
 from canary import logger
 from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
-    tokenize_essay_sentences, find_component_position
-from canary.utils import ROOT_DIR, CANARY_CORPORA_LOCATION
+    tokenize_essay_sentences, find_component_features
+from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -34,7 +34,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     file = f'{storage_location}/{corpus_id}'
     storage_location = Path(f"{storage_location}/{corpus_id}")
 
-    with open(f"{ROOT_DIR}/data/corpora.json") as corpora:
+    with open(f"{CANARY_ROOT_DIR}/data/corpora.json") as corpora:
         corpora = json.load(corpora)
         corpora = [corpus for corpus in corpora if corpus_id == corpus['id']]
         if len(corpora) == 1:
@@ -143,10 +143,22 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             essay.sentences = tokenize_essay_sentences(essay)
             for entity in essay.entities:
                 component_feats = {
+                    "id": f"{essay.id}_{entity.id}",
+                    "essay_ref": essay.id,
+                    "ent_ref": entity.id,
                     "component": entity.mention,
-                    "cover_sentence": find_cover_sentence(essay, entity)
+                    "cover_sentence": find_cover_sentence(essay, entity),
                 }
-                component_feats.update(find_component_position(essay, entity))
+
+                cover_sen_comp_split = component_feats['cover_sentence'].split(entity.mention)
+                cover_sen_comp_split[0] = nltk.word_tokenize(cover_sen_comp_split[0])
+                cover_sen_comp_split[1] = nltk.word_tokenize(cover_sen_comp_split[1])
+
+                component_feats['n_preceding_comp_tokens'] = len(cover_sen_comp_split[0])
+                component_feats['n_following_comp_tokens'] = len(cover_sen_comp_split[1])
+
+                component_feats.update({"len_cover_sen": len(nltk.word_tokenize(component_feats['cover_sentence']))})
+                component_feats.update(find_component_features(essay, entity))
                 X.append(component_feats)
                 if merge_premises is False:
                     Y.append(entity.type)
@@ -160,7 +172,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             train_test_split(X, Y,
                              train_size=train_split_size,
                              shuffle=True,
-                             random_state=0
+                             random_state=0,
                              )
 
         return train_data, test_data, train_targets, test_targets
@@ -341,7 +353,7 @@ def load_imdb_debater_evidence_sentences() -> tuple:
     train_data, test_data, train_targets, test_targets = [], [], [], []
 
     with open(Path(
-            f'{ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/train.csv'), encoding="utf8") as data:
+            f'{CANARY_ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/train.csv'), encoding="utf8") as data:
         csv_reader = csv.reader(data)
         next(csv_reader)
         for row in csv_reader:
@@ -349,7 +361,7 @@ def load_imdb_debater_evidence_sentences() -> tuple:
             train_targets.append(int(row[4]))
 
     with open(Path(
-            f'{ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/test.csv'), encoding="utf8") as data:
+            f'{CANARY_ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/test.csv'), encoding="utf8") as data:
         csv_reader = csv.reader(data)
         next(csv_reader)
         for row in csv_reader:
@@ -390,8 +402,9 @@ def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list
 
     try:
         for d in datasets:
-            file = Path(f"{ROOT_DIR}/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/{d}.tsv",
-                        encoding="utf8")
+            file = Path(
+                f"{CANARY_ROOT_DIR}/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/{d}.tsv",
+                encoding="utf8")
 
             if os.path.isfile(file) is False:
                 raise FileNotFoundError(f"{d}.tsv from the UKP dataset does not exist. Has it been downloaded?")

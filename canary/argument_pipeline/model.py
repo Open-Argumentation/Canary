@@ -1,27 +1,28 @@
-import datetime
 import os
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-from joblib import dump, load
+import joblib
 from sklearn.metrics import classification_report
 
 from canary import __version__, logger
-from canary.utils import MODEL_STORAGE_LOCATION
+from canary.utils import CANARY_MODEL_STORAGE_LOCATION
 
 
 class Model:
 
-    def __init__(self, model_id=None, model_storage_location=None, load=True, supports_probability=True):
+    def __init__(self, model_id=None, model_storage_location=None):
         """
         :param model_id: the model of the ID. Cannot be none
         :param model_storage_location: the location of the models on the filesystem
         """
-        self.model_id = model_id
-        self.model = None
-        self.trained_on = None
-        self.metrics = {}
-        self.supports_probability = supports_probability
+
+        self.__model_id = model_id
+        self._model = None
+        self._metrics = {}
+        self._metadata = {}
 
         # Model ID used as part of filename so
         # Should not be empty
@@ -30,70 +31,53 @@ class Model:
 
         # Allow override
         if model_storage_location is None:
-            model_storage_location = MODEL_STORAGE_LOCATION
+            model_storage_location = CANARY_MODEL_STORAGE_LOCATION
 
         # Allow override
         if model_storage_location is not None:
-            self.model_dir = model_storage_location
+            self.__model_dir = model_storage_location
 
         # Try and make relevant directories
-        os.makedirs(self.model_dir, exist_ok=True)
+        os.makedirs(self.__model_dir, exist_ok=True)
 
-        # Try and load any present model that matches ID
-        if load:
-            self.load()
-            if self.model is None:
-                logger.warn("No model was loaded. Either download the pretrained ones or run the train() function")
-        else:
-            logger.info("Model loading was overridden. No model loaded.")
+    def __repr__(self):
+        return self.model_id
 
-    def load(self, load_from: Path = None):
-        """
-        Load the model from a custom location.
-        """
+    @property
+    def model_id(self):
+        return self.__model_id
 
-        file = Path(self.model_dir) / f"{self.model_id}.joblib"
-        if load_from is not None:
-            file = Path(load_from) / f"{self.model_id}.joblib"
+    @property
+    def supports_probability(self):
+        if hasattr(self._model, 'predict_proba'):
+            return True
+        return False
 
-        try:
-            if os.path.isfile(file):
-                model = load(file)
-                if model and 'canary_version' in model:
-                    version = model['canary_version']
-                    if __version__ != version:
-                        logger.warn(
-                            "This model was trained using an older version of Canary. You may need to retrain the models!")
-                    try:
-                        self.model_id = model['model_id']
-                        self.model = model['model']
-                        self.trained_on = model['trained_on']
-                        self.metrics = model['metrics']
-                    except KeyError as key_error:
-                        logger.error(f"There was an error loading the model: {key_error}.")
-        except FileExistsError as e:
-            logger.error(e)
-        except FileNotFoundError as e:
-            logger.error(e)
+    @property
+    def metrics(self):
+        return self._metrics
 
-    def save(self, model_data: dict, save_to: Path = None):
+    def save(self, additional_data: dict = None, save_to: Path = None):
         """
         Save the model to disk after training
 
         :param save_to:
-        :param model_data:
+        :param additional_data:
         """
 
-        model_data["trained_on"] = datetime.datetime.now()
-        model_data["canary_version"] = __version__
+        self._metadata = {
+            "canary_version_trained_with": __version__,
+            "python_version_trained_with": tuple(sys.version_info),
+            "trained_on": datetime.now()
+        }
 
         if save_to is None:
-            dump(model_data, Path(self.model_dir) / f"{self.model_id}.joblib")
+            joblib.dump(self, Path(self.__model_dir) / f"{self.model_id}.joblib")
         else:
-            dump(model_data, Path(save_to) / ".joblib")
+            joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=False, *args, **kwargs):
+              save_on_finish=True, *args, **kwargs):
         """
         :param pipeline_model:
         :param train_data:
@@ -111,16 +95,11 @@ class Model:
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
         logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
-        self.model = pipeline_model
-        self.metrics = classification_report(prediction, test_targets, output_dict=True)
+        self._model = pipeline_model
+        self._metrics = classification_report(prediction, test_targets, output_dict=True)
 
         if save_on_finish is True:
-            model_data = {
-                "model_id": self.model_id,
-                "model": self.model,
-                "metrics": self.metrics
-            }
-            self.save(model_data)
+            self.save()
 
     def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
         """
@@ -128,18 +107,19 @@ class Model:
 
         :param data:
         :param probability:
-        :return: a boolean or list of indicationg the prediction
+        :return: a boolean or list of indi the prediction
         """
-        if self.model is None:
+
+        if self._model is None:
             raise ValueError(
-                "Cannot make a prediction because there are no models trained."
+                "Cannot make a prediction because no model has been loaded."
                 " Either train a model or download the pretrained models.")
 
-        data_type = type(data)
-
-        if probability is True and self.supports_probability is False:
-            logger.warn("This model does not support probabily predictions. This parameter has been set to false.")
+        if self.supports_probability is False and probability is True:
             probability = False
+            logger.warn(f"This model doesn't support probability. Probability has been set to {probability}.")
+
+        data_type = type(data)
 
         def probability_predict(inp: Union[str, list]) -> Union[list[dict], dict]:
             """
@@ -150,17 +130,17 @@ class Model:
                 predictions_list = []
                 for i, item in enumerate(inp):
                     predictions_dict = {}
-                    p = self.model.predict_proba([item])[0]
-                    for j, class_ in enumerate(self.model.classes_):
-                        predictions_dict[self.model.classes_[j]] = p[j]
+                    p = self._model.predict_proba([item])[0]
+                    for j, class_ in enumerate(self._model.classes_):
+                        predictions_dict[self._model.classes_[j]] = p[j]
                     predictions_list.append(predictions_dict)
                 return predictions_list
 
             elif type(inp) is str:
                 predictions_dict = {}
-                p = self.model.predict_proba([inp])[0]
-                for i, class_ in enumerate(self.model.classes_):
-                    predictions_dict[self.model.classes_[i]] = p[i]
+                p = self._model.predict_proba([inp])[0]
+                for i, class_ in enumerate(self._model.classes_):
+                    predictions_dict[self._model.classes_[i]] = p[i]
                 return predictions_dict
             else:
                 raise TypeError("Incorrect type passed to function")
@@ -168,7 +148,7 @@ class Model:
         if data_type is str or data_type is list:
             if data_type is str:
                 if probability is False:
-                    prediction = self.model.predict([data])[0]
+                    prediction = self._model.predict([data])[0]
                     return prediction
                 elif probability is True:
                     return probability_predict(data)
@@ -176,7 +156,7 @@ class Model:
                 predictions = []
                 if probability is False:
                     for i, _ in enumerate(data):
-                        predictions.append(self.model.predict([data[i]])[0])
+                        predictions.append(self._model.predict([data[i]])[0])
                     return predictions
                 else:
                     return probability_predict(data)

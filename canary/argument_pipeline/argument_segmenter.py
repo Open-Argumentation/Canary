@@ -13,13 +13,11 @@ class ArgumentSegmenter(Model):
 
     def __init__(self, model_id=None, model_storage_location=None, load=True):
         if model_id is None:
-            self.model_id = "arg_segmenter"
+            model_id = "arg_segmenter"
 
         super().__init__(
-            model_id=self.model_id,
+            model_id=model_id,
             model_storage_location=model_storage_location,
-            load=load,
-            supports_probability=False
         )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
@@ -67,16 +65,16 @@ class ArgumentSegmenter(Model):
             test_targets, y_pred, labels=sorted_labels, digits=4
         ))
 
-        self.metrics = metrics.flat_classification_report(
+        self._metrics = metrics.flat_classification_report(
             test_targets, y_pred, labels=sorted_labels, digits=4, output_dict=True
         )
 
-        self.model = crf
+        self._model = crf
         if save_on_finish is True:
             self.save({
                 "model_id": self.model_id,
-                "model": self.model,
-                "metrics": self.metrics
+                "model": self._model,
+                "metrics": self._metrics
             })
 
     def predict(self, data, probability=False, binary=False):

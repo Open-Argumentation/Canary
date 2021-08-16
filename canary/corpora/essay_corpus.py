@@ -16,7 +16,6 @@ def find_paragraph_features(feats, component, _essay):
             for r in _essay.relations:
                 if r.arg1.mention in para or r.arg2.mention in para:
                     relations.append(r)
-            feats["n_para_components"] = len(relations)
 
             # find preceding and following components
             i = relations.index(component)
@@ -94,24 +93,41 @@ def find_cover_sentence(_essay, rel):
         if rel.mention in sentence:
             return sentence
 
-    raise ValueError("...")
+    raise ValueError("Didn't find cover sentence when there should be one.")
 
 
-def find_component_position(_essay, comp):
+def find_component_features(_essay, component):
     feats = {
-        "is_intro": False,
-        "is_conclusion": False
+        "is_in_intro": False,
+        "is_in_conclusion": False,
+        "len_component": len(nltk.word_tokenize(component.mention))
     }
-    paragraphs = _essay.text.split('\n')
-    for index, sen in enumerate(paragraphs):
-        if sen == "":
-            paragraphs.pop(index)
-            break
 
-    if comp.mention in paragraphs[1]:
+    paragraphs = [k for k in _essay.text.split("\n") if k != ""]
+
+    if component.mention in paragraphs[1]:
         feats["is_intro"] = True
-    elif comp.mention in paragraphs[-1]:
+    elif component.mention in paragraphs[-1]:
         feats["is_conclusion"] = True
+
+    for index, para in enumerate(paragraphs):
+        # found it
+        if component.mention in para:
+            feats['para_ref'] = paragraphs.index(para)
+            feats['len_paragraph'] = len(nltk.word_tokenize(para))
+            # find other components in paragraph
+            components = []
+            for c in sorted(_essay.entities, key=lambda x: x.start):
+                if c.mention in para:
+                    components.append(c)
+
+            i = components.index(component)
+            feats["component_position"] = i + 1
+            feats["n_following_components"] = len(components[i + 1:])
+            feats["n_preceding_components"] = len(components[:i])
+            feats['first_in_paragraph'] = True if feats["n_preceding_components"] == 0 else False
+            feats['last_in_paragraph'] = True if feats["n_following_components"] == 0 else False
+
     return feats
 
 

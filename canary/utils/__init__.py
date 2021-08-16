@@ -5,11 +5,11 @@ import canary
 from canary import config as _config
 
 # Various utility variables
-ROOT_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)))
-CONFIG_LOCATION = _Path(f"{ROOT_DIR}/etc") / "canary.cfg"
+CANARY_ROOT_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(canary.__file__)))
+CONFIG_LOCATION = _Path(f"{CANARY_ROOT_DIR}/etc") / "canary.cfg"
 CANARY_LOCAL_STORAGE = _Path(f"{_Path.home()}/{_config.get('canary', 'storage_location')}")
-MODEL_STORAGE_LOCATION = _Path(f"{CANARY_LOCAL_STORAGE}/models")
-MODEL_DOWNLOAD_LOCATION = _config.get('canary', 'model_download_location')
+CANARY_MODEL_STORAGE_LOCATION = _Path(f"{CANARY_LOCAL_STORAGE}/models")
+CANARY_MODEL_DOWNLOAD_LOCATION = _config.get('canary', 'model_download_location')
 CANARY_CORPORA_LOCATION = _os.path.join(_Path.home(), _config.get('canary',
                                                                   'corpora_home_storage_directory'))
 
@@ -45,18 +45,30 @@ def nltk_download(packages):
                 nltk.download(package, quiet=True, download_dir=nltk_data_dir)
 
 
-def spacy_download(package: str):
+def spacy_download(package: str = None):
     """
     Wrapper around spacy.load which will download the necessary package if it is not present
-    :param package: the name of the package
     :return:spacy model
     """
 
     from spacy import load
     from spacy.cli import download
+    import benepar
+    import nltk
 
+    nltk_data_dir = _Path(f"{_Path.home()}") / _config.get("nltk", "storage_directory")
+
+    if nltk_data_dir not in nltk.data.path:
+        nltk.data.path.append(nltk_data_dir)
+
+    if package is None:
+        package = "en_core_web_lg"
     try:
+        nltk_data_dir = _Path(f"{_Path.home()}") / _config.get("nltk", "storage_directory")
+        benepar.download('benepar_en3', download_dir=nltk_data_dir, quiet=True)
         nlp = load(package)
+        nlp.add_pipe("benepar", config={"model": "benepar_en3"})
+
         return nlp
     except OSError:
         try:

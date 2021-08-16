@@ -20,11 +20,9 @@ class StructurePredictor(Model):
 
     def __init__(self, model_id=None, model_storage_location=None, load=True):
         if model_id is None:
-            self.model_id = "structure_predictor"
-        else:
-            self.model_id = model_id
+            model_id = "structure_predictor"
 
-        super().__init__(model_id=self.model_id, model_storage_location=model_storage_location, load=load)
+        super().__init__(model_id=model_id, model_storage_location=model_storage_location)
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, **kwargs):
@@ -41,7 +39,6 @@ class StructurePredictor(Model):
             ("sentiment_pos", SentimentTransformer("pos")),
             ("sentiment_neg", SentimentTransformer("neg")),
             ("sentiment_neu", SentimentTransformer("neu")),
-
         ])
 
         cover_feats = FeatureUnion([
@@ -116,11 +113,7 @@ class StructurePredictor(Model):
             test_targets=test_targets,
         )
 
-        self.save(model_data={
-            "model_id": self.model_id,
-            "model": self.model,
-            "metrics": self.metrics
-        })
+        self.save()
 
     def prepare_dictionary_features(self, train, test):
         nlp = spacy.load('en_core_web_lg')

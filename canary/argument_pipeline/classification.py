@@ -16,13 +16,12 @@ class ArgumentDetector(Model):
     Performs binary classification on text to determine if it is argumentative or not.
     """
 
-    def __init__(self, model_id=None, model_storage_location=None, load=True):
+    def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
-            self.model_id = "argument_detector"
+            model_id = "argument_detector"
 
-        super().__init__(model_id=self.model_id,
+        super().__init__(model_id=model_id,
                          model_storage_location=model_storage_location,
-                         load=load
                          )
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
