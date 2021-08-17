@@ -19,7 +19,6 @@ setup(
         "nltk",
         "vaderSentiment",
         "pybrat",
-        "transformers[torch]",
         "spacy",
         "pandas",
         "benepar"

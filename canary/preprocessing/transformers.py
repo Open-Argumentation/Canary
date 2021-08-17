@@ -14,18 +14,6 @@ from canary.preprocessing import PunctuationTokenizer
 
 nlp = canary.utils.spacy_download('en_core_web_lg')
 
-
-class SentimentLabelTransformer(TransformerMixin, BaseEstimator):
-    from transformers import pipeline
-    classifier = pipeline('sentiment-analysis')
-
-    def fit(self, x, y):
-        return self
-
-    def transform(self, x):
-        return [[self.classifier(y)[0]['label']] for y in x]
-
-
 # @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
