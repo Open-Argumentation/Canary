@@ -1,3 +1,4 @@
+import glob
 from unittest import TestCase
 
 
@@ -13,18 +14,14 @@ class ArgumentPipeline(TestCase):
         from canary.argument_pipeline import download_pretrained_models
 
         super().setUp()
-        download_pretrained_models()
+        download_pretrained_models("all")
 
     def test_download_models(self) -> None:
         """
         Assert that the models.zip file has indeed downloaded.
         """
-        from canary.argument_pipeline import download_pretrained_models
         from canary.utils import CANARY_MODEL_STORAGE_LOCATION
-        from pathlib import Path
-        import os
 
-        download_pretrained_models()
-        self.assertTrue(os.path.isfile(Path(CANARY_MODEL_STORAGE_LOCATION) / "models.zip"))
-
-
+        models = glob.glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))
+        # test model dir created
+        self.assertTrue(len(models) > 0)
