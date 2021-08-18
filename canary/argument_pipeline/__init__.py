@@ -1,3 +1,4 @@
+import glob
 import os
 import zipfile
 from pathlib import Path
@@ -6,63 +7,116 @@ import joblib
 import requests
 
 import canary
-from canary import logger
 from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
 
-def download_pretrained_models(location=None, download_to=None, overwrite=False):
+def download_pretrained_models(model: str, location=None, download_to=None, overwrite=False):
     """
-    Download the pretrained models from a web location
+    Download the pretrained models from a GitHub.
 
-    :param location: the url of the model zip archive
-    :param download_to: an alternative place to download the models
-    :param overwrite: overwrite existing models
+    :param model. The model(s) to download. Defaults to "all"
+    :param location: the url of the model zip archive. Defaults to None
+    :param download_to: an alternative place to download the models. Defaults to None
+    :param overwrite: overwrite existing models. Defaults to False.
     """
 
     # Make sure the canary local directory(s) exist beforehand
     os.makedirs(CANARY_MODEL_STORAGE_LOCATION, exist_ok=True)
 
-    def unzip_models():
-        with zipfile.ZipFile(download_to, "r") as zf:
-            zf.extractall(Path(CANARY_MODEL_STORAGE_LOCATION))
-            logger.debug("models extracted.")
-
     if location is None:
         location = CANARY_MODEL_DOWNLOAD_LOCATION
 
     if download_to is None:
-        download_to = Path(CANARY_MODEL_STORAGE_LOCATION / "models.zip")
+        download_to = Path(CANARY_MODEL_STORAGE_LOCATION)
 
-    model_zip_present = os.path.isfile(download_to)
+    if type(model) not in [str, list]:
+        raise ValueError("Model value should be a string or a list")
 
-    # Let's get the pretrained stuff
-    if model_zip_present is False or overwrite is True:
-        response = requests.get(location, stream=True)
+    def unzip_model(model_zip: str):
+        with zipfile.ZipFile(model_zip, "r") as zf:
+            zf.extractall(download_to)
+            canary.logger.info("models extracted.")
+        os.remove(model_zip)
 
-        if response.status_code == 200:
-            with open(download_to, "wb") as f:
-                f.write(response.raw.read())
-                f.close()
-                logger.debug("Models downloaded! Attempting to unzip.")
+    def download_asset(asset):
+        if 'url' in asset:
+            asset_res = requests.get(asset['url'], headers={
+                "Accept": "application/octet-stream"
+            }, stream=True)
 
-            unzip_models()
-        else:
-            logger.error(f"There was an issue getting the models. Http response code: {response.status_code}")
-    elif model_zip_present is True:
-        logger.debug("model zip already present.")
-        unzip_models()
+            if asset_res.status_code == 200:
+                file = download_to / asset['name']
+                with open(file, "wb") as f:
+                    f.write(asset_res.raw.read())
+                    canary.logger.info("downloaded model")
+
+                if file.suffix == ".zip":
+                    unzip_model(download_to / asset['name'])
+
+                if file.suffix == ".joblib":
+                    canary.logger.info(f"{file.name} downloaded to {file.parent}")
+            else:
+                canary.logger.error("There was an error downloading the asset.")
+                return
+
+    # check if we have already have the model downloaded
+    if overwrite is False:
+        models = glob.glob(str(download_to / "*.joblib"))
+        if len(models) > 0:
+            for model in models:
+                if os.path.isfile(model) is True:
+                    canary.logger.info("This model already exists")
+                    print("This model already exists")
+                    return
+
+    # Use GitHub's REST API to find releases.
+    import json
+    res = requests.get(f"https://api.github.com/repos/{location}/releases/tags/latest",
+                       headers={"Accept": "application/vnd.github.v3+json"})
+    if res.status_code == 200:
+        # parse JSON response
+        payload = json.loads(res.text)
+        if 'assets' in payload:
+            if len(payload['assets']) > 0:
+                for asset in payload['assets']:
+                    name = asset['name'].split(".")[0]
+                    if type(model) is str:
+                        if model != "all":
+                            if name == model:
+                                download_asset(asset)
+                        elif model == "all":
+                            download_asset(asset)
+                    if type(model) is list:
+                        if all(type(j) is str for j in model) is True:
+                            if name in model:
+                                download_asset(asset)
+                        else:
+                            raise ValueError("All items in the list should be strings.")
+            else:
+                canary.logger.info("No assets to download.")
+                return
+        if 'prerelease' in payload:
+            canary.logger.info("This has been marked as a pre-release.")
+    else:
+        canary.logger.error(f"There was an issue getting the models. Http response code: {res.status_code}")
 
 
-def analyse(doc: str = None, docs: list = None, out: str = "str", **kwargs):
+def analyse(doc: str = None, docs: list = None, out_format: str = "stdout", **kwargs):
     """
 
+    :param out_format:
     :param docs:
     :param doc:
     :param kwargs:
     :return:
     """
 
-    allowed_out_values = ["str"]
+    if type(out_format) is not str:
+        pass
+
+    if out_format not in ['stdout', 'json', 'csv']:
+        pass
+
     if doc is not None and docs is not None:
         raise ValueError("come one man")
 
