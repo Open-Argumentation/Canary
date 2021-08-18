@@ -51,6 +51,7 @@ def spacy_download(package: str = None):
     :return:spacy model
     """
 
+    canary.logger.debug("spacy loading")
     from spacy import load
     from spacy.cli import download
     import benepar

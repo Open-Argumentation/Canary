@@ -20,9 +20,8 @@ class ArgumentSegmenter(Model):
             model_storage_location=model_storage_location,
         )
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=True, *args, **kwargs):
-
+    @staticmethod
+    def default_train():
         # Need to get data into a usable shape
 
         logger.debug("Getting training data")
@@ -41,16 +40,27 @@ class ArgumentSegmenter(Model):
         logger.debug("Getting test labels")
         test_targets = [get_labels(s) for s in test_targets]
 
+        return train_data, test_data, train_targets, test_targets
+
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=True, *args, **kwargs):
+
+        if any(item is None for item in [train_data, test_data, train_targets, test_targets]):
+            # get default data if the above is not present
+            train_data, test_data, train_targets, test_targets = self.default_train()
+
         logger.debug("Training algorithm")
-        crf = sklearn_crfsuite.CRF(
-            algorithm='lbfgs',
-            all_possible_transitions=True,
-        )
 
-        crf.fit(train_data, train_targets)
+        if pipeline_model is None:
+            pipeline_model = sklearn_crfsuite.CRF(
+                algorithm='lbfgs',
+                all_possible_transitions=True,
+            )
 
-        labels = list(crf.classes_)
-        y_pred = crf.predict(test_data)
+        pipeline_model.fit(train_data, train_targets)
+
+        labels = list(pipeline_model.classes_)
+        y_pred = pipeline_model.predict(test_data)
         metrics.flat_f1_score(test_targets,
                               y_pred,
                               average='weighted',
@@ -69,13 +79,9 @@ class ArgumentSegmenter(Model):
             test_targets, y_pred, labels=sorted_labels, digits=4, output_dict=True
         )
 
-        self._model = crf
+        self._model = pipeline_model
         if save_on_finish is True:
-            self.save({
-                "model_id": self.model_id,
-                "model": self._model,
-                "metrics": self._metrics
-            })
+            self.save()
 
     def predict(self, data, probability=False, binary=False):
         """

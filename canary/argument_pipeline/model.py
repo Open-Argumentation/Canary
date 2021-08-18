@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Union
 
 import joblib
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 
-from canary import __version__, logger
+import canary
 from canary.utils import CANARY_MODEL_STORAGE_LOCATION
 
 
@@ -57,24 +58,25 @@ class Model:
     def metrics(self):
         return self._metrics
 
-    def save(self, additional_data: dict = None, save_to: Path = None):
+    def save(self, save_to: Path = None):
         """
         Save the model to disk after training
 
         :param save_to:
-        :param additional_data:
         """
 
         self._metadata = {
-            "canary_version_trained_with": __version__,
+            "canary_version_trained_with": canary.__version__,
             "python_version_trained_with": tuple(sys.version_info),
             "trained_on": datetime.now()
         }
 
         if save_to is None:
-            joblib.dump(self, Path(self.__model_dir) / f"{self.model_id}.joblib")
+            canary.logger.info(f"Saving {self.model_id}")
+            joblib.dump(self, Path(self.__model_dir) / f"{self.model_id}.joblib", compress=2)
         else:
-            joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib")
+            canary.logger.info(f"Saving {self.model_id} to {save_to}.")
+            joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib", compress=2)
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
@@ -90,11 +92,34 @@ class Model:
         :return:
         """
 
-        logger.debug(f"Training of {self.__class__.__name__} has begun")
+        # We need all of the below items to continue
+        if any(item is None for item in [train_data, test_data, train_targets, test_targets]):
+
+            # Check if we have a default training method
+            if hasattr(self, "default_train"):
+                canary.logger.debug("Using default training method")
+                train_data, test_data, train_targets, test_targets = self.default_train()
+
+                return self.train(pipeline_model=pipeline_model, train_data=train_data, test_data=test_data,
+                                  train_targets=train_targets, test_targets=test_targets, save_on_finish=save_on_finish,
+                                  *args,
+                                  **kwargs)
+            else:
+                raise ValueError(
+                    "Missing required training / test data in method call. "
+                    "There is no default training method for this model."
+                    " Please supply these and try again.")
+
+        canary.logger.debug(f"Training of {self.__class__.__name__} has begun")
+
+        if pipeline_model is None:
+            pipeline_model = LogisticRegression(random_state=0)
+            canary.logger.warn("No model selected. Defaulting to Logistic Regression.")
 
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
-        logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
+        canary.logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
+
         self._model = pipeline_model
         self._metrics = classification_report(prediction, test_targets, output_dict=True)
 
@@ -117,7 +142,7 @@ class Model:
 
         if self.supports_probability is False and probability is True:
             probability = False
-            logger.warn(f"This model doesn't support probability. Probability has been set to {probability}.")
+            canary.logger.warn(f"This model doesn't support probability. Probability has been set to {probability}.")
 
         data_type = type(data)
 

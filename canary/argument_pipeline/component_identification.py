@@ -11,7 +11,6 @@ from sklearn.preprocessing import RobustScaler
 
 import canary
 import canary.utils
-import canary.utils.cache
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer
@@ -34,7 +33,7 @@ class ArgumentComponent(Model):
 
         self.__feats = FeatureUnion([
             ('tfidvectorizer',
-             TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False, max_features=1000)),
+             TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False, max_features=1000)),
             ('forward', DiscourseMatcher('forward', lemmatize=True)),
             ('thesis', DiscourseMatcher('thesis', lemmatize=True)),
             ('rebuttal', DiscourseMatcher('rebuttal', lemmatize=True)),
@@ -54,47 +53,51 @@ class ArgumentComponent(Model):
             model_storage_location=model_storage_location,
         )
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
-              save_on_finish=True, *args, **kwargs):
-
+    @staticmethod
+    def default_train():
         # get training and test data
         train_data, test_data, train_targets, test_targets = load_essay_corpus(
             purpose="component_prediction",
             train_split_size=0.6
         )
 
-        cache = canary.utils.cache.Cache()
+        return train_data, test_data, train_targets, test_targets
 
-        train_dict = cache.load("component_train_dict.json")
-        test_dict = cache.load("component_test_dict.json")
+    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+              save_on_finish=True, *args, **kwargs):
 
-        if train_dict is None or test_dict is None:
+        train_feats = None
+        test_feats = None
+
+        # The below functionality requires the following is not None.
+        if all(item is not None for item in [train_data, test_data, train_targets, test_targets]):
+            canary.logger.debug("Getting dictionary features")
             train_dict, test_dict = self.prepare_dictionary_features(train_data, test_data)
-            cache.cache("component_train_dict.json", train_dict)
-            cache.cache("component_test_dict.json", test_dict)
 
-        train_data = pandas.DataFrame(train_data)
-        test_data = pandas.DataFrame(test_data)
+            train_data = pandas.DataFrame(train_data)
+            test_data = pandas.DataFrame(test_data)
 
-        # Fit training data
-        self.__dict_feats.fit(train_dict)
-        self.__feats.fit(train_data.cover_sentence.tolist())
+            # Fit training data
+            canary.logger.debug("fitting features")
+            self.__dict_feats.fit(train_dict)
+            self.__feats.fit(train_data.cover_sentence.tolist())
 
-        train_feats = self.__feats.transform(train_data.cover_sentence.tolist())
-        test_feats = self.__feats.transform(test_data.cover_sentence.tolist())
+            train_feats = self.__feats.transform(train_data.cover_sentence.tolist())
+            test_feats = self.__feats.transform(test_data.cover_sentence.tolist())
 
-        train_dict_feats = self.__dict_feats.transform(train_dict)
-        test_dict_feats = self.__dict_feats.transform(test_dict)
+            train_dict_feats = self.__dict_feats.transform(train_dict)
+            test_dict_feats = self.__dict_feats.transform(test_dict)
 
-        # combine feats into one vector
-        train_feats = hstack([train_feats, train_dict_feats])
-        test_feats = hstack([test_feats, test_dict_feats])
+            # combine feats into one vector
+            train_feats = hstack([train_feats, train_dict_feats])
+            test_feats = hstack([test_feats, test_dict_feats])
 
-        # scale
-        self.__scaler.fit(train_feats)
-        train_feats = self.__scaler.transform(train_feats)
-        test_feats = self.__scaler.transform(test_feats)
+            # scale
+            self.__scaler.fit(train_feats)
+            train_feats = self.__scaler.transform(train_feats)
+            test_feats = self.__scaler.transform(test_feats)
 
+        # If the pipeline model is none, use this algorithm
         if pipeline_model is None:
             pipeline_model = LogisticRegression(
                 class_weight='balanced',
@@ -117,10 +120,9 @@ class ArgumentComponent(Model):
     def prepare_dictionary_features(*feats):
         ret_tuple = ()
         nlp = canary.utils.spacy_download()
-        from canary.preprocessing import PosDistribution
-        pd = PosDistribution()
 
         def get_features(data):
+            canary.logger.debug("getting dictionary features.")
             features = []
 
             for d in data:
@@ -142,15 +144,13 @@ class ArgumentComponent(Model):
                     'first_in_paragraph': d['first_in_paragraph'],
                     'last_in_paragraph': d['last_in_paragraph']
                 }
-                items.update(pd(d["cover_sentence"]))
+                # items.update(pd(d["cover_sentence"]))
                 features.append(items)
 
             return features
 
         for d in feats:
             ret_tuple = (*ret_tuple, get_features(d))
-        # train_data = get_features(train)
-        # test_data = get_features(test)
 
         return ret_tuple
 
