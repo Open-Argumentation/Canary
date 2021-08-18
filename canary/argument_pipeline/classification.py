@@ -5,7 +5,7 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
 from canary.preprocessing import Lemmatizer
-from canary.preprocessing.transformers import CountPosVectorizer, DiscourseMatcher, CountPunctuationVectorizer, \
+from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
 
 
@@ -50,12 +50,11 @@ class ArgumentDetector(Model):
                 ('features', FeatureUnion([
                     ('bow',
                      CountVectorizer(
-                         ngram_range=(1, 3),
+                         ngram_range=(1, 2),
                          tokenizer=Lemmatizer(),
                          lowercase=False
                      )
                      ),
-                    ('pos_tagger', CountPosVectorizer()),
                     ("length", LengthOfSentenceTransformer()),
                     ("support", DiscourseMatcher(component="support")),
                     ("conflict", DiscourseMatcher(component="conflict")),
