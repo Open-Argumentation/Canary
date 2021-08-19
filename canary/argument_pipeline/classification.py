@@ -3,7 +3,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 from canary.argument_pipeline.model import Model
-from canary.corpora import load_ukp_sentential_argument_detection_corpus
+from canary.corpora import load_ukp_sentential_argument_detection_corpus, load_essay_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
@@ -25,7 +25,12 @@ class ArgumentDetector(Model):
                          )
 
     @staticmethod
-    def default_train():
+    def essay_corpus_load():
+        return load_essay_corpus(purpose="argument_detection",
+                                 train_split_size=0.7)
+
+    @staticmethod
+    def ukp_corpus():
         train_data = []
         test_data = []
         train_targets = []
@@ -41,6 +46,10 @@ class ArgumentDetector(Model):
                 train_data.append(train)
                 train_targets.append(target)
         return train_data, test_data, train_targets, test_targets
+
+    @staticmethod
+    def default_train():
+        return ArgumentDetector.essay_corpus_load()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, *args, **kwargs):

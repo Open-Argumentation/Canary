@@ -95,6 +95,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
     _allowed_purpose_values = [
         None,
+        'argument_detection',
         'component_prediction',
         'relation_prediction',
         'sequence_labelling'
@@ -136,6 +137,28 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
     if purpose is None:
         return essays
+
+    elif purpose == "argument_detection":
+        X, Y = [], []
+        for essay in essays:
+            sentences, labels = [], []
+            essay.sentences = tokenize_essay_sentences(essay)
+            for sentence in essay.sentences:
+                sentences.append(sentence)
+                is_argumentative = False
+                for component in essay.entities:
+                    if component.mention in sentence:
+                        is_argumentative = True
+                        break
+                labels.append(is_argumentative)
+            X += sentences
+            Y += labels
+
+        return train_test_split(X, Y,
+                                train_size=train_split_size,
+                                shuffle=True,
+                                random_state=0,
+                                )
 
     elif purpose == "component_prediction":
         X, Y = [], []
