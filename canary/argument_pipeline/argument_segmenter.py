@@ -3,7 +3,6 @@ import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 
 import canary
-from canary import logger
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
 from canary.utils import nltk_download
@@ -11,7 +10,7 @@ from canary.utils import nltk_download
 
 class ArgumentSegmenter(Model):
 
-    def __init__(self, model_id=None, model_storage_location=None, load=True):
+    def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
             model_id = "arg_segmenter"
 
@@ -24,20 +23,22 @@ class ArgumentSegmenter(Model):
     def default_train():
         # Need to get data into a usable shape
 
-        logger.debug("Getting training data")
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose="sequence_labelling",
-                                                                               train_split_size=0.7)
+        canary.logger.debug("Getting training data")
+        train_data, test_data, train_targets, test_targets = load_essay_corpus(
+            purpose="sequence_labelling",
+            train_split_size=0.66
+        )
 
-        logger.debug("Getting training features")
+        canary.logger.debug("Getting training features")
         train_data = [get_sentence_features(s) for s in train_data]
 
-        logger.debug("Getting training labels")
+        canary.logger.debug("Getting training labels")
         train_targets = [get_labels(s) for s in train_targets]
 
-        logger.debug("Getting test features")
+        canary.logger.debug("Getting test features")
         test_data = [get_sentence_features(s) for s in test_data]
 
-        logger.debug("Getting test labels")
+        canary.logger.debug("Getting test labels")
         test_targets = [get_labels(s) for s in test_targets]
 
         return train_data, test_data, train_targets, test_targets
@@ -49,7 +50,7 @@ class ArgumentSegmenter(Model):
             # get default data if the above is not present
             train_data, test_data, train_targets, test_targets = self.default_train()
 
-        logger.debug("Training algorithm")
+        canary.logger.debug("Training algorithm")
 
         if pipeline_model is None:
             pipeline_model = sklearn_crfsuite.CRF(
@@ -71,7 +72,7 @@ class ArgumentSegmenter(Model):
             key=lambda name: (name[1:], name[0])
         )
 
-        logger.debug("\n\n" + metrics.flat_classification_report(
+        canary.logger.debug("\n\n" + metrics.flat_classification_report(
             test_targets, y_pred, labels=sorted_labels, digits=4
         ))
 
@@ -94,7 +95,7 @@ class ArgumentSegmenter(Model):
 
         nltk_download(['punkt', 'averaged_perceptron_tagger'])
         if probability is True:
-            logger.warn(
+            canary.logger.warn(
                 f"{self.__class__.__name__} does not support probability predictions. This parameter is ignored.")
 
         data_type = type(data)
@@ -113,10 +114,110 @@ class ArgumentSegmenter(Model):
 
         if data_type is list:
             if all(type(item) is dict for item in data) is False:
-                logger.error("The list passed in needs to only contain dictionary features")
+                canary.logger.error("The list passed in needs to only contain dictionary features")
                 return
 
         return super().predict(data, probability=False)
+
+    def get_components_from_document(self, document: str) -> list:
+        from nltk.tokenize.treebank import TreebankWordDetokenizer
+
+        detokenizer = TreebankWordDetokenizer()
+
+        # Segment from full text
+        components = []
+        current_component = []
+        sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
+        if len(sentences) < 2:
+            canary.logger.warn("There doesn't seem to be much to analyse in the document.")
+
+        predictions = [self.predict(sentence) for sentence in sentences]
+
+        for prediction in predictions:
+            for i, token in enumerate(prediction):
+                if token[1] == "Arg-B":
+                    current_component = [token[0]]
+                elif token[1] == "Arg-I":
+                    current_component.append(token[0])
+                    if i < len(prediction):
+                        if prediction[i + 1][1] == "O":
+                            components.append(current_component)
+
+        # Delete these
+        del current_component
+        del prediction
+        del predictions
+
+        canary.logger.debug(f"{len(components)} components found from segmenter.")
+
+        # Get covering sentences
+        for i, component in enumerate(components):
+            for sen in sentences:
+                if detokenizer.detokenize(component) in sen or all(x in nltk.word_tokenize(sen) for x in component):
+                    components[i] = {
+                        'component_ref': i,
+                        "cover_sentence": sen,
+                        "component": detokenizer.detokenize(component),
+                        "len_component": len(component),
+                        "len_cover_sen": len(nltk.word_tokenize(sen)),
+                        "tokens": component
+                    }
+                    split = components[i]['cover_sentence'].split((components[i]['component']))
+                    try:
+                        components[i].update({
+                            'n_following_comp_tokens': len(nltk.word_tokenize(split[0])),
+                            'n_preceding_comp_tokens': len(nltk.word_tokenize(split[1])),
+                        })
+                    except IndexError:
+                        # kind of hackish but detokenising isn't a perfect process
+                        cs = detokenizer.detokenize(nltk.word_tokenize(components[i]['cover_sentence']))
+                        split = cs.split((components[i]['component']))
+                        try:
+                            components[i].update({
+                                'n_following_comp_tokens': len(nltk.word_tokenize(split[0])),
+                                'n_preceding_comp_tokens': len(nltk.word_tokenize(split[1])),
+                            })
+                        except IndexError as e:
+                            canary.logger.error(e)
+
+        paragraphs = [p for p in document.split("\n") if p and not p.isspace()]
+        canary.logger.debug(f"{len(paragraphs)} paragraphs in document.")
+
+        for i, component in enumerate(components):
+            for j, para in enumerate(paragraphs):
+                if detokenizer.detokenize(component['tokens']) in para or all(
+                        x in nltk.word_tokenize(para) for x in component['tokens']):
+                    components[i].update({
+                        'len_paragraph': len(nltk.word_tokenize(para)),
+                        'para_ref': j + 1,
+                        'is_in_intro': True if j == (0 or 1) else False,
+                        'is_in_conclusion': True if j == (len(paragraphs) - 1) else False,
+                    })
+
+        # find n_following_components and n_preceding_components
+        for component in components:
+            neighbouring_components = [c for c in components if
+                                       c['para_ref'] == component['para_ref'] and c != component]
+            if len(neighbouring_components) < 2:
+                component['n_following_components'] = 0
+                component['n_preceding_components'] = 0
+                component['component_position'] = 1
+                component['first_in_paragraph'] = True
+                component['last_in_paragraph'] = True
+
+            else:
+                component['n_preceding_components'] = len(
+                    [c for c in neighbouring_components if c['component_ref'] < component['component_ref']])
+                component['n_following_components'] = len(
+                    [c for c in neighbouring_components if c['component_ref'] > component['component_ref']])
+                component['component_position'] = (len(neighbouring_components) - component[
+                    'n_following_components']) + 1
+                component['first_in_paragraph'] = True if component["n_preceding_components"] == 0 else False
+                component['last_in_paragraph'] = True if component["n_following_components"] == 0 else False
+
+        for c in components:
+            del c['tokens']
+        return components
 
 
 def get_word_features(sent, i):

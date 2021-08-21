@@ -1,6 +1,7 @@
 import glob
 import os
 import zipfile
+from functools import cache
 from pathlib import Path
 
 import joblib
@@ -10,6 +11,31 @@ import canary
 from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
 
+@cache
+def get_downloadable_assets_from_github():
+    canary_repo = canary.config.get('canary', 'model_download_location')
+    res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
+                       headers={"Accept": "application/vnd.github.v3+json"})
+    if res.status_code == 200:
+        import json
+        return json.loads(res.text)
+    else:
+        canary.logger.error("Could not get details from github")
+        return None
+
+
+def get_models_not_on_disk():
+    current_models = models_available_on_disk()
+    github_assets = [j['name'].split(".")[0] for j in get_downloadable_assets_from_github()['assets']]
+    return list(set(github_assets) - set(current_models))
+
+
+def models_available_on_disk() -> list:
+    from glob import glob
+    return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
+
+
+@cache
 def download_pretrained_models(model: str, location=None, download_to=None, overwrite=False):
     """
     Download the pretrained models from a GitHub.
@@ -69,16 +95,12 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
                     print("This model already exists")
                     return
 
-    # Use GitHub's REST API to find releases.
-    import json
-    res = requests.get(f"https://api.github.com/repos/{location}/releases/tags/latest",
-                       headers={"Accept": "application/vnd.github.v3+json"})
-    if res.status_code == 200:
+    github_releases = get_downloadable_assets_from_github()
+    if github_releases is not None:
         # parse JSON response
-        payload = json.loads(res.text)
-        if 'assets' in payload:
-            if len(payload['assets']) > 0:
-                for asset in payload['assets']:
+        if 'assets' in github_releases:
+            if len(github_releases['assets']) > 0:
+                for asset in github_releases['assets']:
                     name = asset['name'].split(".")[0]
                     if type(model) is str:
                         if model != "all":
@@ -95,56 +117,67 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
             else:
                 canary.logger.info("No assets to download.")
                 return
-        if 'prerelease' in payload:
+        if 'prerelease' in github_releases:
             canary.logger.info("This has been marked as a pre-release.")
     else:
-        canary.logger.error(f"There was an issue getting the models. Http response code: {res.status_code}")
+        canary.logger.error(f"There was an issue getting the models")
 
 
-def analyse(doc: str = None, docs: list = None, out_format: str = "stdout", **kwargs):
+@cache
+def analyse(document: str, out_format: str = "stdout", steps=None, **kwargs):
     """
-
-    :param out_format:
-    :param docs:
-    :param doc:
-    :param kwargs:
-    :return:
     """
-
-    if type(out_format) is not str:
-        pass
-
-    if out_format not in ['stdout', 'json', 'csv']:
-        pass
-
-    if doc is not None and docs is not None:
-        raise ValueError("come one man")
-
-    if doc is not None and type(doc) is not str:
-        raise ValueError("")
-
-    if docs is not None and type(docs) is not list:
-        raise ValueError("")
-
     from canary.argument_pipeline.argument_segmenter import ArgumentSegmenter
-    import nltk
+    from canary.argument_pipeline.component_identification import ArgumentComponent
 
-    if doc is not None:
-        argumentative_sentences = []
-        non_argumentative_sentences = []
+    if steps is None:
+        canary.logger.debug("Default pipeline being used")
+        steps = [""]
 
-        sentences = nltk.sent_tokenize(doc)
-        for s in sentences:
-            if ArgumentSegmenter().predict(s, binary=True) is False:
-                non_argumentative_sentences.append(s)
-            else:
-                argumentative_sentences.append(s)
+    canary.logger.debug(document)
+    allowed_out_format_values = ['stdout', 'json', 'csv']
+    if type(out_format) is not str:
+        raise TypeError("Parameter out_format should be a string")
+
+    if out_format not in allowed_out_format_values:
+        raise ValueError(f"Incorrect out_format value. Allowed values are {allowed_out_format_values}")
+
+    if type(document) is not str:
+        raise TypeError("The inputted document should be a string.")
+
+    # load segmenter
+    canary.logger.debug("Loading Argument Segmenter")
+    segmenter: ArgumentSegmenter = load('arg_segmenter')
+
+    if segmenter is None:
+        canary.logger.error("Failed to load segmenter")
+        raise ValueError("Could not load segmenter.")
+
+    components = segmenter.get_components_from_document(document)
+
+    if len(components) > 0:
+        canary.logger.debug("Loading component predictor.")
+        component_predictor: ArgumentComponent = canary.load('argument_component')
+        if component_predictor is None:
+            raise TypeError("Could not load argument component predictor")
+
+        for component in components:
+            component['type'] = component_predictor.predict(component)
+
+        canary.logger.debug("Done")
+        return components
+    else:
+        canary.logger.warn("Didn't find any evidence of argumentation")
+        return
 
 
-def load(model_id: str, **kwargs):
+@cache
+def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     """
     load a model
 
+    :param download_if_missing:
+    :param model_dir:
     :param model_id:
     :return:
     """
@@ -160,6 +193,8 @@ def load(model_id: str, **kwargs):
         absolute_model_path = Path(CANARY_MODEL_STORAGE_LOCATION) / model_id
 
     if os.path.isfile(absolute_model_path):
+        canary.logger.debug(f"Loading {model_id} from {absolute_model_path}")
         return joblib.load(absolute_model_path)
     else:
-        canary.logger.error("Did not manage to load the model specified.")
+        canary.logger.error(
+            f"Did not manage to load the model specified. Available models on disk are: {models_available_on_disk()}")

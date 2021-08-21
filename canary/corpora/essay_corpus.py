@@ -64,7 +64,10 @@ def find_cover_sentence_features(feats, _essay, rel):
 def tokenize_essay_sentences(essay):
     tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
     tokenizer._params.abbrev_types.update(['i.e', "etc", "e.g"])
-    sentences = tokenizer.tokenize(essay.text)
+    if hasattr(essay, 'text'):
+        sentences = tokenizer.tokenize(essay.text)
+    else:
+        sentences = tokenizer.tokenize(essay)
 
     for index, sentence in enumerate(sentences):
         if "\n\n" in sentence:

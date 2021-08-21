@@ -16,6 +16,8 @@ from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, FirstPersonIndicatorMatcher
 
+_nlp = canary.utils.spacy_download()
+
 
 class ArgumentComponent(Model):
     """
@@ -119,14 +121,13 @@ class ArgumentComponent(Model):
     @staticmethod
     def prepare_dictionary_features(*feats):
         ret_tuple = ()
-        nlp = canary.utils.spacy_download()
 
         def get_features(data):
             canary.logger.debug("getting dictionary features.")
             features = []
 
             for d in data:
-                sen = nlp(d['cover_sentence'])
+                sen = _nlp(d['cover_sentence'])
                 cover_sen_parse_tree = Tree.fromstring(list(sen.sents)[0]._.parse_string)
 
                 items = {
@@ -144,7 +145,6 @@ class ArgumentComponent(Model):
                     'first_in_paragraph': d['first_in_paragraph'],
                     'last_in_paragraph': d['last_in_paragraph']
                 }
-                # items.update(pd(d["cover_sentence"]))
                 features.append(items)
 
             return features
@@ -155,12 +155,11 @@ class ArgumentComponent(Model):
         return ret_tuple
 
     def predict(self, data, probability=False) -> Union[list, bool]:
-        if type(data) is str:
-            data = [data]
 
-        feats = self.__feats.transform(data)
-        dict_feats = self.__dict_feats.transform(data)
+        feats = self.__feats.transform([data['cover_sentence']])
+        dict_feats = self.__dict_feats.transform(self.prepare_dictionary_features([data])[0])
 
         combined_feats = hstack([feats, dict_feats])
         combined_feats = self.__scaler.transform(combined_feats)
-        return super().predict(combined_feats, probability)
+
+        return super().predict(combined_feats, probability=probability)

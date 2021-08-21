@@ -126,7 +126,7 @@ class Model:
         if save_on_finish is True:
             self.save()
 
-    def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
+    def predict(self, data, probability=False) -> Union[list, bool]:
         """
         Make a prediction
 
@@ -146,7 +146,7 @@ class Model:
 
         data_type = type(data)
 
-        def probability_predict(inp: Union[str, list]) -> Union[list[dict], dict]:
+        def probability_predict(inp) -> Union[list[dict], dict]:
             """
             internal helper function to provide a nicer way of returning probability predictions
             """
@@ -161,29 +161,24 @@ class Model:
                     predictions_list.append(predictions_dict)
                 return predictions_list
 
-            elif type(inp) is str:
+            else:
                 predictions_dict = {}
-                p = self._model.predict_proba([inp])[0]
+                p = self._model.predict_proba(inp)[0]
                 for i, class_ in enumerate(self._model.classes_):
                     predictions_dict[self._model.classes_[i]] = p[i]
                 return predictions_dict
-            else:
-                raise TypeError("Incorrect type passed to function")
 
-        if data_type is str or data_type is list:
-            if data_type is str:
-                if probability is False:
-                    prediction = self._model.predict([data])[0]
-                    return prediction
-                elif probability is True:
-                    return probability_predict(data)
-            elif data_type is list:
-                predictions = []
-                if probability is False:
-                    for i, _ in enumerate(data):
-                        predictions.append(self._model.predict([data[i]])[0])
-                    return predictions
-                else:
-                    return probability_predict(data)
+        if data_type is list:
+            predictions = []
+            if probability is False:
+                for i, _ in enumerate(data):
+                    predictions.append(self._model.predict([data[i]])[0])
+                return predictions
+            else:
+                return probability_predict(data)
         else:
-            raise TypeError("Expected a string or list as input")
+            if probability is False:
+                prediction = self._model.predict(data)[0]
+                return prediction
+            elif probability is True:
+                return probability_predict(data)
