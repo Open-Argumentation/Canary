@@ -54,8 +54,9 @@ class ArgumentSegmenter(Model):
 
         if pipeline_model is None:
             pipeline_model = sklearn_crfsuite.CRF(
-                algorithm='lbfgs',
+                algorithm='pa',
                 all_possible_transitions=True,
+                all_possible_states=True
             )
 
         pipeline_model.fit(train_data, train_targets)
@@ -261,6 +262,32 @@ def get_word_features(sent, i):
             '-2:postag': postag2,
             '-2:postag[:2]': str(postag2)[:2],
             '-2:ent': ent2,
+        })
+
+    if i > 2:
+        word3 = sent[i - 3][0]
+        postag3 = sent[i - 3][1]
+        ent3 = sent[i - 3][2]
+        features.update({
+            '-3:word.lower()': str(word3).lower(),
+            '-3:word.istitle()': word3.istitle(),
+            '-3:word.isupper()': word3.isupper(),
+            '-3:postag': postag3,
+            '-3:postag[:2]': str(postag3)[:2],
+            '-3:ent': ent3,
+        })
+
+    if i < len(sent) - 3:
+        word3 = sent[i + 3][0]
+        postag3 = sent[i + 3][1]
+        ent3 = sent[i + 3][2]
+        features.update({
+            '+3:word.lower()': str(word3).lower(),
+            '+3:word.istitle()': word3.istitle(),
+            '+3:word.isupper()': word3.isupper(),
+            '+3:postag': postag3,
+            '+3:postag[:2]': str(postag3)[:2],
+            '+3:ent': ent3,
         })
 
     if i < len(sent) - 2:
