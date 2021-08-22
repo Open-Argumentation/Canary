@@ -134,6 +134,7 @@ class ArgumentSegmenter(Model):
 
         predictions = [self.predict(sentence) for sentence in sentences]
 
+        # @TODO Ensure this works properly
         for prediction in predictions:
             for i, token in enumerate(prediction):
                 if token[1] == "Arg-B":
@@ -143,6 +144,7 @@ class ArgumentSegmenter(Model):
                     if i < len(prediction):
                         if prediction[i + 1][1] == "O":
                             components.append(current_component)
+                            current_component = []
 
         # Delete these
         del current_component
@@ -179,10 +181,18 @@ class ArgumentSegmenter(Model):
                                 'n_preceding_comp_tokens': len(nltk.word_tokenize(split[1])),
                             })
                         except IndexError as e:
+                            # @TODO Fix this bit
                             canary.logger.error(e)
+                            components[i].update({
+                                'n_following_comp_tokens': 0,
+                                'n_preceding_comp_tokens': 0,
+                            })
 
-        paragraphs = [p for p in document.split("\n") if p and not p.isspace()]
+        paragraphs = [p.strip() for p in document.split("\n") if p and not p.isspace()]
         canary.logger.debug(f"{len(paragraphs)} paragraphs in document.")
+
+        if not all('tokens' in c for c in components):
+            raise KeyError("There was an error finding argumentative components")
 
         for i, component in enumerate(components):
             for j, para in enumerate(paragraphs):
@@ -197,6 +207,8 @@ class ArgumentSegmenter(Model):
 
         # find n_following_components and n_preceding_components
         for component in components:
+            if 'para_ref' not in component:
+                raise ValueError("failed to find ...")
             neighbouring_components = [c for c in components if
                                        c['para_ref'] == component['para_ref'] and c != component]
             if len(neighbouring_components) < 2:
