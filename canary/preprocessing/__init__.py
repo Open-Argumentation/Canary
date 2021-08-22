@@ -22,7 +22,6 @@ class Lemmatizer:
     - corpora -> corpus
     """
 
-    @cache
     def get_wordnet_pos(self, treebank_tag):
 
         if treebank_tag.startswith('J'):
@@ -41,14 +40,12 @@ class Lemmatizer:
         tag = nltk.pos_tag([t])[0][1]
         return _word_net.lemmatize(t, self.get_wordnet_pos(tag))
 
-    @cache
     def __call__(self, text):
         return [self.__process(t) for t in nltk.word_tokenize(text)]
 
 
 class PosLemmatizer:
 
-    @cache
     def t(self, x):
         return f"{x.lemma_}/{x.tag_}"
 
@@ -79,7 +76,6 @@ class PunctuationTokenizer:
     def __init__(self):
         self.__tokenizer = nltk.WordPunctTokenizer()
 
-    @cache
     def __call__(self, text):
         return [self.__tokenizer.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]
 
