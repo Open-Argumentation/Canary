@@ -1,5 +1,4 @@
 from collections import Counter
-from functools import cache
 
 import nltk
 import spacy
@@ -35,7 +34,6 @@ class Lemmatizer:
         else:
             return wordnet.NOUN
 
-    @cache
     def __process(self, t):
         tag = nltk.pos_tag([t])[0][1]
         return _word_net.lemmatize(t, self.get_wordnet_pos(tag))
@@ -49,7 +47,6 @@ class PosLemmatizer:
     def t(self, x):
         return f"{x.lemma_}/{x.tag_}"
 
-    @cache
     def __call__(self, text):
         text = _nlp(text)
         return [self.t(d) for d in text]

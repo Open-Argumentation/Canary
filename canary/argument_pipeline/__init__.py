@@ -1,7 +1,6 @@
 import glob
 import os
 import zipfile
-from functools import cache
 from pathlib import Path
 
 import joblib
@@ -11,7 +10,6 @@ import canary
 from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
 
-@cache
 def get_downloadable_assets_from_github():
     canary_repo = canary.config.get('canary', 'model_download_location')
     res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
@@ -35,7 +33,6 @@ def models_available_on_disk() -> list:
     return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
 
 
-@cache
 def download_pretrained_models(model: str, location=None, download_to=None, overwrite=False):
     """
     Download the pretrained models from a GitHub.
@@ -136,7 +133,6 @@ def analyse_file(file, out_format: str = "stdout", steps=None):
         return analyse(document.read(), out_format=out_format, steps=steps)
 
 
-@cache
 def analyse(document: str, out_format=None, steps=None, **kwargs):
     """
     """
@@ -191,7 +187,6 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
         canary.logger.warn("Didn't find any evidence of argumentation")
 
 
-@cache
 def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     """
     load a model
