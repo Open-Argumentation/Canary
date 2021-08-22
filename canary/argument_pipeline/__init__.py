@@ -123,10 +123,26 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
         canary.logger.error(f"There was an issue getting the models")
 
 
+def analyse_file(file, out_format: str = "stdout", steps=None):
+    supported_file_types = ["txt"]
+
+    if not os.path.isfile(file):
+        raise TypeError("file argument should be a valid file")
+
+    # file_path = Path(file)
+    # if file_path.suffix
+
+    with open(file, "r", encoding='utf-8') as document:
+        return analyse(document.read(), out_format=out_format, steps=steps)
+
+
 @cache
-def analyse(document: str, out_format: str = "stdout", steps=None, **kwargs):
+def analyse(document: str, out_format=None, steps=None, **kwargs):
     """
     """
+
+    allowed_output_formats = [None, "stdout", "json", "csv"]
+
     from canary.argument_pipeline.argument_segmenter import ArgumentSegmenter
     from canary.argument_pipeline.component_identification import ArgumentComponent
 
@@ -165,10 +181,14 @@ def analyse(document: str, out_format: str = "stdout", steps=None, **kwargs):
             component['type'] = component_predictor.predict(component)
 
         canary.logger.debug("Done")
+        if out_format == "json":
+            import json
+            return json.dumps(components)
+
         return components
+
     else:
         canary.logger.warn("Didn't find any evidence of argumentation")
-        return
 
 
 @cache
