@@ -25,4 +25,4 @@ class Cache:
             with open(name, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            canary.logger.warn(f"Could not find {name.name} in the cache")
+            canary.utils.logger.warn(f"Could not find {name.name} in the cache")

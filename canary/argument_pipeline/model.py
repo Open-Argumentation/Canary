@@ -72,10 +72,10 @@ class Model:
         }
 
         if save_to is None:
-            canary.logger.info(f"Saving {self.model_id}")
+            canary.utils.logger.info(f"Saving {self.model_id}")
             joblib.dump(self, Path(self.__model_dir) / f"{self.model_id}.joblib", compress=2)
         else:
-            canary.logger.info(f"Saving {self.model_id} to {save_to}.")
+            canary.utils.logger.info(f"Saving {self.model_id} to {save_to}.")
             joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib", compress=2)
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
@@ -97,7 +97,7 @@ class Model:
 
             # Check if we have a default training method
             if hasattr(self, "default_train"):
-                canary.logger.debug("Using default training method")
+                canary.utils.logger.debug("Using default training method")
                 train_data, test_data, train_targets, test_targets = self.default_train()
 
                 return self.train(pipeline_model=pipeline_model, train_data=train_data, test_data=test_data,
@@ -110,15 +110,15 @@ class Model:
                     "There is no default training method for this model."
                     " Please supply these and try again.")
 
-        canary.logger.debug(f"Training of {self.__class__.__name__} has begun")
+        canary.utils.logger.debug(f"Training of {self.__class__.__name__} has begun")
 
         if pipeline_model is None:
             pipeline_model = LogisticRegression(random_state=0)
-            canary.logger.warn("No model selected. Defaulting to Logistic Regression.")
+            canary.utils.logger.warn("No model selected. Defaulting to Logistic Regression.")
 
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
-        canary.logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
+        canary.utils.logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
 
         self._model = pipeline_model
         self._metrics = classification_report(prediction, test_targets, output_dict=True)
@@ -142,7 +142,8 @@ class Model:
 
         if self.supports_probability is False and probability is True:
             probability = False
-            canary.logger.warn(f"This model doesn't support probability. Probability has been set to {probability}.")
+            canary.utils.logger.warn(
+                f"This model doesn't support probability. Probability has been set to {probability}.")
 
         data_type = type(data)
 

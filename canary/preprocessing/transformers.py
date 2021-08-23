@@ -8,11 +8,10 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 import canary.utils
-from canary import logger
 from canary.data.indicators import discourse_indicators
 from canary.preprocessing import PunctuationTokenizer
 
-nlp = canary.utils.spacy_download('en_core_web_lg')
+nlp = canary.preprocessing.nlp.spacy_download('en_core_web_lg')
 
 # @TODO this file needs cleaning up
 
@@ -52,7 +51,7 @@ class SentimentTransformer(TransformerMixin, BaseEstimator):
 
     def __init__(self, target="compound") -> None:
         if target not in self._allowed_targets:
-            logger.warn(
+            canary.utils.logger.warn(
                 f"{target} is not in the allowed value list: {self._allowed_targets}. Defaulting to 'compound'")
         else:
             self.target = target
@@ -76,7 +75,7 @@ class WordSentimentCounter(TransformerMixin, BaseEstimator):
 
     def __init__(self, target: str = "pos"):
         if target not in self._allowed_targets:
-            logger.warn("")
+            canary.utils.logger.warn("")
         else:
             self.target = target
 

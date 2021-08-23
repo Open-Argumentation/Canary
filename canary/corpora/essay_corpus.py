@@ -1,8 +1,8 @@
 import nltk
 
-import canary.utils
+from canary.preprocessing.nlp import spacy_download
 
-_nlp = canary.utils.spacy_download('en_core_web_lg')
+_nlp = spacy_download()
 
 
 def find_paragraph_features(feats, component, _essay):

@@ -4,7 +4,7 @@ import nltk
 import spacy
 from nltk.corpus import wordnet
 
-from canary.utils import nltk_download
+from canary.preprocessing.nlp import nltk_download
 
 _nlp = spacy.load("en_core_web_lg")
 _word_net = nltk.WordNetLemmatizer()
@@ -94,3 +94,9 @@ class PosDistribution:
             count_dict[tag] = count
 
         return count_dict
+
+
+class Tokenizer:
+
+    def __init__(self):
+        pass

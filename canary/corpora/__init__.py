@@ -12,12 +12,13 @@ import nltk
 from pybrat.parser import BratParser
 from sklearn.model_selection import train_test_split
 
+import canary.preprocessing.nlp
 import canary.utils
-from canary import logger
 from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
     tokenize_essay_sentences, find_component_features
 from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
+from canary.utils import logger
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -100,7 +101,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         'sequence_labelling'
     ]
 
-    canary.utils.nltk_download(['punkt'])
+    canary.preprocessing.nlp.nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
 
     if train_split_size is not None:

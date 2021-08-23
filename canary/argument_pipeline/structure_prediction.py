@@ -52,7 +52,7 @@ class StructurePredictor(Model):
 
     @staticmethod
     def default_train():
-        canary.logger.debug("Getting default data")
+        canary.utils.logger.debug("Getting default data")
         return load_essay_corpus(purpose="relation_prediction")
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
@@ -61,10 +61,10 @@ class StructurePredictor(Model):
             pd_train = pd.DataFrame(train_data)
             pd_test = pd.DataFrame(test_data)
 
-            canary.logger.debug("Getting dictionary features")
+            canary.utils.logger.debug("Getting dictionary features")
             _train_data_dict, _test_data_dict = self.prepare_dictionary_features(train_data, test_data)
 
-            canary.logger.debug("Fitting features")
+            canary.utils.logger.debug("Fitting features")
             self.__cover_feats.fit(pd_train.arg1_covering_sentence.tolist())
             c1 = self.__cover_feats.transform(pd_train.arg1_covering_sentence.tolist())
             c2 = self.__cover_feats.transform(pd_test.arg1_covering_sentence.tolist())
@@ -94,7 +94,7 @@ class StructurePredictor(Model):
             combined_features_train = hstack([t1, t3, f1, c1, c3])
             combined_features_test = hstack([t2, t4, f2, c2, c4])
 
-            canary.logger.debug("Scale features")
+            canary.utils.logger.debug("Scale features")
             self.__scaler.fit(combined_features_train)
             combined_features_train = self.__scaler.transform(combined_features_train)
             combined_features_test = self.__scaler.transform(combined_features_test)
@@ -121,7 +121,7 @@ class StructurePredictor(Model):
 
     @staticmethod
     def prepare_dictionary_features(train, test):
-        nlp = canary.utils.spacy_download()
+        nlp = canary.preprocessing.nlp.spacy_download()
 
         def get_features(data):
             features = []

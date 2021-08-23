@@ -3,9 +3,10 @@ import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 
 import canary
+import canary.utils
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
-from canary.utils import nltk_download
+from canary.preprocessing.nlp import nltk_download
 
 
 class ArgumentSegmenter(Model):
@@ -23,22 +24,22 @@ class ArgumentSegmenter(Model):
     def default_train():
         # Need to get data into a usable shape
 
-        canary.logger.debug("Getting training data")
+        canary.utils.logger.debug("Getting training data")
         train_data, test_data, train_targets, test_targets = load_essay_corpus(
             purpose="sequence_labelling",
-            train_split_size=0.66
+            train_split_size=0.8
         )
 
-        canary.logger.debug("Getting training features")
+        canary.utils.logger.debug("Getting training features")
         train_data = [get_sentence_features(s) for s in train_data]
 
-        canary.logger.debug("Getting training labels")
+        canary.utils.logger.debug("Getting training labels")
         train_targets = [get_labels(s) for s in train_targets]
 
-        canary.logger.debug("Getting test features")
+        canary.utils.logger.debug("Getting test features")
         test_data = [get_sentence_features(s) for s in test_data]
 
-        canary.logger.debug("Getting test labels")
+        canary.utils.logger.debug("Getting test labels")
         test_targets = [get_labels(s) for s in test_targets]
 
         return train_data, test_data, train_targets, test_targets
@@ -50,7 +51,7 @@ class ArgumentSegmenter(Model):
             # get default data if the above is not present
             train_data, test_data, train_targets, test_targets = self.default_train()
 
-        canary.logger.debug("Training algorithm")
+        canary.utils.logger.debug("Training algorithm")
 
         if pipeline_model is None:
             pipeline_model = sklearn_crfsuite.CRF(
@@ -73,7 +74,7 @@ class ArgumentSegmenter(Model):
             key=lambda name: (name[1:], name[0])
         )
 
-        canary.logger.debug("\n\n" + metrics.flat_classification_report(
+        canary.utils.logger.debug("\n\n" + metrics.flat_classification_report(
             test_targets, y_pred, labels=sorted_labels, digits=4
         ))
 
@@ -96,7 +97,7 @@ class ArgumentSegmenter(Model):
 
         nltk_download(['punkt', 'averaged_perceptron_tagger'])
         if probability is True:
-            canary.logger.warn(
+            canary.utils.logger.warn(
                 f"{self.__class__.__name__} does not support probability predictions. This parameter is ignored.")
 
         data_type = type(data)
@@ -115,7 +116,7 @@ class ArgumentSegmenter(Model):
 
         if data_type is list:
             if all(type(item) is dict for item in data) is False:
-                canary.logger.error("The list passed in needs to only contain dictionary features")
+                canary.utils.logger.error("The list passed in needs to only contain dictionary features")
                 return
 
         return super().predict(data, probability=False)
@@ -130,7 +131,7 @@ class ArgumentSegmenter(Model):
         current_component = []
         sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
         if len(sentences) < 2:
-            canary.logger.warn("There doesn't seem to be much to analyse in the document.")
+            canary.utils.logger.warn("There doesn't seem to be much to analyse in the document.")
 
         predictions = [self.predict(sentence) for sentence in sentences]
 
@@ -151,7 +152,7 @@ class ArgumentSegmenter(Model):
         del prediction
         del predictions
 
-        canary.logger.debug(f"{len(components)} components found from segmenter.")
+        canary.utils.logger.debug(f"{len(components)} components found from segmenter.")
 
         # Get covering sentences
         for i, component in enumerate(components):
@@ -182,14 +183,14 @@ class ArgumentSegmenter(Model):
                             })
                         except IndexError as e:
                             # @TODO Fix this bit
-                            canary.logger.error(e)
+                            canary.utils.logger.error(e)
                             components[i].update({
                                 'n_following_comp_tokens': 0,
                                 'n_preceding_comp_tokens': 0,
                             })
 
         paragraphs = [p.strip() for p in document.split("\n") if p and not p.isspace()]
-        canary.logger.debug(f"{len(paragraphs)} paragraphs in document.")
+        canary.utils.logger.debug(f"{len(paragraphs)} paragraphs in document.")
 
         if not all('tokens' in c for c in components):
             raise KeyError("There was an error finding argumentative components")
@@ -343,6 +344,6 @@ def get_labels(sent):
 
 
 def chunk(sen):
-    canary.utils.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words'])
+    canary.preprocessing.nlp.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words'])
     from nltk.chunk import tree2conlltags
     return tree2conlltags(nltk.ne_chunk(nltk.pos_tag(sen)))

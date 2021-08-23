@@ -16,7 +16,7 @@ from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, FirstPersonIndicatorMatcher
 
-_nlp = canary.utils.spacy_download()
+_nlp = canary.preprocessing.nlp.spacy_download()
 
 
 class ArgumentComponent(Model):
@@ -73,14 +73,14 @@ class ArgumentComponent(Model):
 
         # The below functionality requires the following is not None.
         if all(item is not None for item in [train_data, test_data, train_targets, test_targets]):
-            canary.logger.debug("Getting dictionary features")
+            canary.utils.logger.debug("Getting dictionary features")
             train_dict, test_dict = self.prepare_dictionary_features(train_data, test_data)
 
             train_data = pandas.DataFrame(train_data)
             test_data = pandas.DataFrame(test_data)
 
             # Fit training data
-            canary.logger.debug("fitting features")
+            canary.utils.logger.debug("fitting features")
             self.__dict_feats.fit(train_dict)
             self.__feats.fit(train_data.cover_sentence.tolist())
 
@@ -123,7 +123,7 @@ class ArgumentComponent(Model):
         ret_tuple = ()
 
         def get_features(data):
-            canary.logger.debug("getting dictionary features.")
+            canary.utils.logger.debug("getting dictionary features.")
             features = []
 
             for d in data:
