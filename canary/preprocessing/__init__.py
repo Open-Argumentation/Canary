@@ -1,12 +1,12 @@
 from collections import Counter
 
 import nltk
-import spacy
 from nltk.corpus import wordnet
 
+import canary.preprocessing.nlp
 from canary.preprocessing.nlp import nltk_download
 
-_nlp = spacy.load("en_core_web_lg")
+_nlp = None
 _word_net = nltk.WordNetLemmatizer()
 _stemmer = nltk.PorterStemmer()
 nltk_download(['punkt', 'wordnet', 'tagsets'])
@@ -48,6 +48,9 @@ class PosLemmatizer:
         return f"{x.lemma_}/{x.tag_}"
 
     def __call__(self, text):
+        global _nlp
+        if _nlp is None:
+            _nlp = nlp.spacy_download()
         text = _nlp(text)
         return [self.t(d) for d in text]
 
