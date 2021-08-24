@@ -20,12 +20,11 @@ class ArgumentPipeline(TestCase):
 
     def test_download_models(self) -> None:
         """
-        Assert that the models.zip file has indeed downloaded.
+        Assert that the models has indeed downloaded.
         """
         from canary.utils import CANARY_MODEL_STORAGE_LOCATION
 
         models = glob.glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))
-        # test model dir created
         self.assertTrue(len(models) > 0)
 
     def test_arg_detection_model_type(self):
@@ -51,3 +50,4 @@ class ArgumentPipeline(TestCase):
         from canary.argument_pipeline.structure_prediction import StructurePredictor
 
         self.assertTrue(type(argument_detector) is StructurePredictor)
+
