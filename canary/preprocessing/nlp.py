@@ -1,6 +1,8 @@
+import os
 from pathlib import Path as _Path
 
 import canary as _canary
+import canary.utils
 from canary.utils import config as _config
 
 
@@ -8,7 +10,7 @@ def nltk_download(packages):
     """Wrapper around nltk.download """
     import nltk
     nltk_data_dir = _Path(f"{_Path.home()}") / _config.get("nltk", "storage_directory")
-
+    os.makedirs(canary.utils.CANARY_LOCAL_STORAGE, exist_ok=True)
     if nltk_data_dir not in nltk.data.path:
         nltk.data.path.append(nltk_data_dir)
 

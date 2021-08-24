@@ -11,7 +11,7 @@ from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LO
 
 
 def get_downloadable_assets_from_github():
-    canary_repo = canary.utils.canary.utils.logger('canary', 'model_download_location')
+    canary_repo = canary.utils.config.get('canary', 'model_download_location')
     res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
                        headers={"Accept": "application/vnd.github.v3+json"})
     if res.status_code == 200:
