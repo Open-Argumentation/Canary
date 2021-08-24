@@ -16,6 +16,7 @@ setup(
     install_requires=[
         "requests",
         "scikit-learn",
+        "sklearn_crfsuite",
         "nltk",
         "vaderSentiment",
         "pybrat",
