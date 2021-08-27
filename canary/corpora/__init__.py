@@ -1,5 +1,6 @@
 import csv
 import glob
+import itertools
 import json
 import logging
 import os
@@ -97,6 +98,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
     _allowed_purpose_values = [
         None,
         'component_prediction',
+        "link_prediction",
         'relation_prediction',
         'sequence_labelling'
     ]
@@ -171,6 +173,76 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(X, Y,
+                             train_size=train_split_size,
+                             shuffle=True,
+                             random_state=0,
+                             )
+
+        return train_data, test_data, train_targets, test_targets
+
+    elif purpose == "link_prediction":
+
+        x, y = [], []
+
+        for essay in essays:
+            _x = []
+            _y = []
+            logger.debug(f"Parsing {essay.id}")
+            # This could get quite large... depending on n components
+
+            # find paragraph(s) in essay
+            paragraphs = [k for k in essay.text.split("\n") if not k.isspace() and k != ""]
+            essay.sentences = tokenize_essay_sentences(essay)
+
+            # loop paragraphs
+            for para in paragraphs:
+                components = [c for c in essay.entities if c.mention in para]
+                relations = [r for r in essay.relations if r.arg2.mention in para and r.arg1.mention in para]
+
+                if len(components) > 0:
+                    component_pairs = [tuple(reversed(p)) for p in list(itertools.combinations(components, 2))]
+                    for p in component_pairs:
+                        arg1, arg2 = p
+                        for r in relations:
+                            if (arg1.id == r.arg1.id and arg2.id == r.arg2.id) or (
+                                    arg2.id == r.arg1.id and arg1.id == r.arg2.id):
+                                feats = {
+                                    "essay_ref": essay.id,
+                                    "para_ref": paragraphs.index(para) + 1,
+                                    "arg1_component": arg1.mention,
+                                    "arg1_cover_sen": find_cover_sentence(essay, arg1),
+                                    "arg1_type": arg1.type,
+                                    "arg2_component": arg2.mention,
+                                    "arg2_cover_sen": find_cover_sentence(essay, arg2),
+                                    "arg2_type": arg2.type,
+                                }
+                                _x.append(feats)
+                                _y.append("Linked")
+
+            for para in paragraphs:
+                components = [c for c in essay.entities if c.mention in para]
+                component_pairs = [p for p in list(itertools.permutations(components, 2))]
+                for p in component_pairs:
+                    arg1, arg2 = p
+                    feats = {
+                        "essay_ref": essay.id,
+                        "para_ref": paragraphs.index(para) + 1,
+                        "arg1_component": arg1.mention,
+                        "arg1_cover_sen": find_cover_sentence(essay, arg1),
+                        "arg1_type": arg1.type,
+                        "arg2_component": arg2.mention,
+                        "arg2_cover_sen": find_cover_sentence(essay, arg2),
+                        "arg2_type": arg2.type,
+                    }
+                    if feats not in _x:
+                        _x.append(feats)
+                        _y.append("Not Linked")
+
+            x += _x
+            y += _y
+
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
                              train_size=train_split_size,
                              shuffle=True,
                              random_state=0,
