@@ -21,7 +21,8 @@ class Lemmatizer:
     - corpora -> corpus
     """
 
-    def get_wordnet_pos(self, treebank_tag):
+    @staticmethod
+    def get_wordnet_pos(treebank_tag):
 
         if treebank_tag.startswith('J'):
             return wordnet.ADJ
@@ -45,14 +46,12 @@ class Lemmatizer:
 class PosLemmatizer:
 
     def t(self, x):
-        return f"{x.lemma_}/{x.tag_}"
+        tag = nltk.pos_tag([x])[0][1]
+
+        return f"{_word_net.lemmatize(x, Lemmatizer.get_wordnet_pos(tag))}/{tag}"
 
     def __call__(self, text):
-        global _nlp
-        if _nlp is None:
-            _nlp = nlp.spacy_download()
-        text = _nlp(text)
-        return [self.t(d) for d in text]
+        return [self.t(d) for d in nltk.word_tokenize(text)]
 
 
 class Stemmer:
@@ -80,12 +79,14 @@ class PunctuationTokenizer:
         return [self.__tokenizer.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]
 
 
+keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
+
+
 class PosDistribution:
 
     def __init__(self):
         self.keys = {}
 
-        keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
         for key in keys:
             self.keys[key] = 0
 

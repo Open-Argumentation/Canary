@@ -145,5 +145,16 @@ def find_component_features(_essay, component):
     return feats
 
 
+def relations_in_same_sentence(arg1, arg2, essay):
+    if not hasattr(essay, 'sentences'):
+        essay.sentences = tokenize_essay_sentences(essay)
+
+    for sen in essay.sentences:
+        if arg1.mention in sen and arg2.mention in sen:
+            return True
+
+    return False
+
+
 def _find_stances(essay):
     pass

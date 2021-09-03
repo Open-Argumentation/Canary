@@ -13,6 +13,7 @@ from canary.preprocessing import PunctuationTokenizer
 
 nlp = canary.preprocessing.nlp.spacy_download('en_core_web_lg')
 
+
 # @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
@@ -335,3 +336,15 @@ class BiasTransformer(TransformerMixin, BaseEstimator):
 
     def transform(self, x):
         return [[True] for _ in x]
+
+
+class SharedNouns(TransformerMixin, BaseEstimator):
+
+    def fit(self, x, y):
+        pass
+
+    def transform(self, arg1, arg2):
+        nouns_in_arg1 = [word for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg1)) if (pos[:2] == 'NN')]
+        nouns_in_arg2 = [word for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg2)) if (pos[:2] == 'NN')]
+
+        return len(set(nouns_in_arg1).intersection(nouns_in_arg2))

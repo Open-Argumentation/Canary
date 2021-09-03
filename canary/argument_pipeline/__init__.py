@@ -1,4 +1,5 @@
 import glob
+import itertools
 import os
 import zipfile
 from pathlib import Path
@@ -7,6 +8,7 @@ import joblib
 import requests
 
 import canary
+import canary.corpora
 from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
 
@@ -170,18 +172,67 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
     if len(components) > 0:
         canary.utils.logger.debug("Loading component predictor.")
         component_predictor: ArgumentComponent = canary.load('argument_component')
+
         if component_predictor is None:
             raise TypeError("Could not load argument component predictor")
 
         for component in components:
             component['type'] = component_predictor.predict(component)
 
+        from canary.argument_pipeline.link_predictor import LinkPredictor
+        link_predictor: LinkPredictor = canary.load('link_predictor')
+
+        if link_predictor is None:
+            raise TypeError("Could not load link predictor")
+
+        all_possible_component_pairs = [j for j in list(itertools.product(components, repeat=2)) if j[0] != j[1]]
+        canary.utils.logger.debug(f"{len(all_possible_component_pairs)} possible combinations.")
+
+        sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
+        for i, pair in enumerate(all_possible_component_pairs):
+            arg1, arg2 = pair
+            same_sentence = False
+
+            for s in sentences:
+                if arg1['component'] in s and arg2['component'] in s:
+                    same_sentence = True
+
+            all_possible_component_pairs[i] = {
+                "source_before_target": arg1['component_position'] > arg2['component_position'],
+                "arg1_component": arg1["component"],
+                "arg2_component": arg2["component"],
+                "arg1_cover_sen": arg1["cover_sentence"],
+                "arg2_cover_sen": arg2["cover_sentence"],
+                "arg1_n_preceding_components": arg1['n_preceding_components'],
+                "arg1_n_following_components": arg1['n_following_comp_tokens'],
+                "arg2_n_preceding_components": arg2['n_preceding_components'],
+                "arg2_n_following_components": arg2['n_following_comp_tokens'],
+                "arg1_first_in_paragraph": arg1["first_in_paragraph"],
+                "arg2_first_in_paragraph": arg2["first_in_paragraph"],
+                "arg2_last_in_paragraph": arg2['last_in_paragraph'],
+                "arg1_last_in_paragraph": arg1['last_in_paragraph'],
+                "arg1_in_intro": arg1["is_in_intro"],
+                "arg2_in_intro": arg2["is_in_intro"],
+                "arg1_in_conclusion": arg1["is_in_conclusion"],
+                "arg2_in_conclusion": arg2["is_in_conclusion"],
+                "arg1_type": arg1["type"],
+                "arg2_type": arg2["type"],
+                "arg1_and_arg2_in_same_sentence": same_sentence,
+                "n_para_components": arg1['n_following_components'] + arg2['n_preceding_components'],
+                "arg1_position": arg1['component_position'],
+                "arg2_position": arg2['component_position'],
+            }
+            args_linked = link_predictor.predict(all_possible_component_pairs[i]) == "Linked"
+            all_possible_component_pairs[i].update({"args_linked": args_linked})
+
         canary.utils.logger.debug("Done")
+        linked_relations = [pair for pair in all_possible_component_pairs if pair["args_linked"] is True]
+
         if out_format == "json":
             import json
             return json.dumps(components)
 
-        return components
+        return components, linked_relations
 
     else:
         canary.utils.logger.warn("Didn't find any evidence of argumentation")

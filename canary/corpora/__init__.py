@@ -17,7 +17,7 @@ import canary.preprocessing.nlp
 import canary.utils
 from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
-    tokenize_essay_sentences, find_component_features
+    tokenize_essay_sentences, find_component_features, relations_in_same_sentence
 from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
 from canary.utils import logger
 
@@ -187,11 +187,12 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         for essay in essays:
             _x = []
             _y = []
+            _linked = []
             logger.debug(f"Parsing {essay.id}")
             # This could get quite large... depending on n components
 
             # find paragraph(s) in essay
-            paragraphs = [k for k in essay.text.split("\n") if not k.isspace() and k != ""]
+            paragraphs = [k for k in essay.text.split("\n") if k != ""]
             essay.sentences = tokenize_essay_sentences(essay)
 
             # loop paragraphs
@@ -206,34 +207,82 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                         for r in relations:
                             if (arg1.id == r.arg1.id and arg2.id == r.arg2.id) or (
                                     arg2.id == r.arg1.id and arg1.id == r.arg2.id):
+                                arg1_feats = find_component_features(essay, arg1)
+                                arg2_feats = find_component_features(essay, arg2)
+
                                 feats = {
+                                    "source_before_target": arg1_feats['component_position'] > arg2_feats[
+                                        'component_position'],
                                     "essay_ref": essay.id,
-                                    "para_ref": paragraphs.index(para) + 1,
+                                    "para_ref": paragraphs.index(para),
+                                    "n_paragraphs": len(paragraphs),
+                                    "arg1_in_intro": arg1_feats['is_in_intro'],
+                                    "arg1_position": arg1_feats['component_position'],
+                                    "arg1_in_conclusion": arg1_feats['is_in_conclusion'],
+                                    "arg1_n_preceding_components": arg1_feats['n_preceding_components'],
+                                    "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
+                                    "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
                                     "arg1_component": arg1.mention,
                                     "arg1_cover_sen": find_cover_sentence(essay, arg1),
                                     "arg1_type": arg1.type,
+                                    "arg1_n_following_components": arg1_feats['n_following_components'],
                                     "arg2_component": arg2.mention,
                                     "arg2_cover_sen": find_cover_sentence(essay, arg2),
                                     "arg2_type": arg2.type,
+                                    "arg2_position": arg2_feats['component_position'],
+                                    "arg2_in_intro": arg2_feats['is_in_intro'],
+                                    "arg2_in_conclusion": arg2_feats['is_in_conclusion'],
+                                    "arg2_n_following_components": arg2_feats['n_following_components'],
+                                    "arg2_n_preceding_components": arg2_feats['n_preceding_components'],
+                                    "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
+                                    "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
+                                    "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
+                                    "n_para_components": len(components),
                                 }
-                                _x.append(feats)
-                                _y.append("Linked")
+                                if feats not in _x:
+                                    _linked.append(p)
+                                    _x.append(feats)
+                                    _y.append("Linked")
 
             for para in paragraphs:
                 components = [c for c in essay.entities if c.mention in para]
-                component_pairs = [p for p in list(itertools.permutations(components, 2))]
+                component_pairs = [p for p in list(itertools.permutations(components, 2)) if
+                                   p not in _linked]
+
                 for p in component_pairs:
                     arg1, arg2 = p
+                    arg1_feats = find_component_features(essay, arg1)
+                    arg2_feats = find_component_features(essay, arg2)
+
                     feats = {
+                        "source_before_target": arg1.start > arg2.end,
                         "essay_ref": essay.id,
-                        "para_ref": paragraphs.index(para) + 1,
+                        "para_ref": paragraphs.index(para),
+                        "n_paragraphs": len(paragraphs),
+                        "arg1_in_intro": arg1_feats['is_in_intro'],
+                        "arg1_position": arg1_feats['component_position'],
+                        "arg1_in_conclusion": arg1_feats['is_in_conclusion'],
+                        "arg1_n_preceding_components": arg1_feats['n_preceding_components'],
+                        "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
+                        "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
                         "arg1_component": arg1.mention,
                         "arg1_cover_sen": find_cover_sentence(essay, arg1),
                         "arg1_type": arg1.type,
+                        "arg1_n_following_components": arg1_feats['n_following_components'],
                         "arg2_component": arg2.mention,
                         "arg2_cover_sen": find_cover_sentence(essay, arg2),
                         "arg2_type": arg2.type,
+                        "arg2_position": arg2_feats['component_position'],
+                        "arg2_in_intro": arg2_feats['is_in_intro'],
+                        "arg2_in_conclusion": arg2_feats['is_in_conclusion'],
+                        "arg2_n_following_components": arg2_feats['n_following_components'],
+                        "arg2_n_preceding_components": arg2_feats['n_preceding_components'],
+                        "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
+                        "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
+                        "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
+                        "n_para_components": len(components)
                     }
+
                     if feats not in _x:
                         _x.append(feats)
                         _y.append("Not Linked")
@@ -241,11 +290,17 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             x += _x
             y += _y
 
+        # 14227 + 4113
+        # 18340
+        from collections import Counter
+        counts = Counter(y)
+        logger.debug(counts)
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
                              train_size=train_split_size,
                              shuffle=True,
                              random_state=0,
+                             stratify=y
                              )
 
         return train_data, test_data, train_targets, test_targets
