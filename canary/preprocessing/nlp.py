@@ -30,6 +30,8 @@ def nltk_download(packages):
                     nltk.data.find("chunkers/maxent_ne_chunker")
                 elif package == "words":
                     nltk.data.find("corpora/words")
+                elif package == "tagsets":
+                    nltk.data.find("tagsets")
             except LookupError:
                 _canary.utils.logger.debug(f"Didn't find {package}. Attempting download.")
                 nltk.download(package, quiet=True, download_dir=nltk_data_dir)
