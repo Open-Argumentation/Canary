@@ -1,17 +1,13 @@
 from typing import Union
 
 import nltk
-import numpy
 import pandas
 from scipy.sparse import hstack
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.metrics import classification_report
-from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import RobustScaler, Normalizer
-from sklearn.svm import LinearSVC
+from sklearn.preprocessing import Normalizer
 
 import canary.utils
 from canary.argument_pipeline.model import Model
@@ -44,7 +40,7 @@ class LinkPredictor(Model):
         return list(train_data.to_dict("index").values()), test_data, train_targets[0].tolist(), test_targets
 
     def stratified_k_fold_train(self, pipeline_model=None, train_data=None, train_targets=None,
-                                save_on_finish=True, *args, **kwargs):
+                                save_on_finish=True, n_splits=2, *args, **kwargs):
 
         train_data, test_data, train_targets, test_targets = self.default_train()
         train_data = train_data + test_data
@@ -56,27 +52,13 @@ class LinkPredictor(Model):
         if pipeline_model is None:
             pipeline_model = make_pipeline(
                 LinkFeatures(),
-                RobustScaler(with_centering=False),
-                LinearSVC(random_state=0, class_weight='balanced')
+                Normalizer(),
+                RandomForestClassifier(n_estimators=300, random_state=0, min_samples_leaf=4,
+                                       max_depth=10)
             )
 
-        skf = StratifiedKFold(n_splits=3)
-        train_data = numpy.array(train_data)
-        train_targets = numpy.array(train_targets)
-
-        for train_index, test_index in skf.split(train_data, train_targets):
-            print("TRAIN:", train_index, "TEST:", test_index)
-
-            X_train, X_test = train_data[train_index], train_data[test_index]
-            y_train, y_test = train_targets[train_index], train_targets[test_index]
-
-            pipeline_model.fit(X_train.tolist(), y_train.tolist())
-            prediction = pipeline_model.predict(X_test.tolist())
-            canary.utils.logger.debug(f"\nModel stats:\n{classification_report(prediction, y_test.tolist())}")
-            self._metrics = classification_report(prediction, y_test.tolist(), output_dict=True)
-
-        self._model = pipeline_model
-        self.save()
+        return super(LinkPredictor, self).stratified_k_fold_train(pipeline_model, train_data, train_targets,
+                                                                  save_on_finish, n_splits)
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
@@ -85,9 +67,8 @@ class LinkPredictor(Model):
             pipeline_model = make_pipeline(
                 LinkFeatures(),
                 Normalizer(),
-                # RandomForestClassifier(random_state=0, n_estimators=150, max_depth=14)
-                RandomForestClassifier(n_estimators=300, random_state=0, class_weight='balanced', min_samples_leaf=4,
-                                       max_depth=8)
+                RandomForestClassifier(n_estimators=300, random_state=0, min_samples_leaf=4,
+                                       max_depth=10)
             )
 
         return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish, *args,
@@ -102,7 +83,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
         DiscourseMatcher('rebuttal'),
-        DiscourseMatcher('backward')
+        DiscourseMatcher('backward'),
     ]
 
     def __init__(self):

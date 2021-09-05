@@ -1,15 +1,18 @@
 import os
 import sys
 from datetime import datetime
+from logging import FileHandler
 from pathlib import Path
 from typing import Union
 
 import joblib
+import numpy
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
+from sklearn.model_selection import StratifiedKFold
 
 import canary
-from canary.utils import CANARY_MODEL_STORAGE_LOCATION
+from canary.utils import CANARY_MODEL_STORAGE_LOCATION, CANARY_LOCAL_STORAGE
 
 
 class Model:
@@ -118,13 +121,61 @@ class Model:
 
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
-        canary.utils.logger.debug(f"\nModel stats:\n{classification_report(prediction, test_targets)}")
+
+        report = f"\nModel stats:\n{classification_report(prediction, test_targets)}"
+
+        if canary.utils.config.get('canary', 'dev') == "True":
+            self._log_training_data(report)
+        else:
+            canary.utils.logger.debug(report)
 
         self._model = pipeline_model
         self._metrics = classification_report(prediction, test_targets, output_dict=True)
 
         if save_on_finish is True:
             self.save()
+
+    def stratified_k_fold_train(self, pipeline_model=None, train_data=None, train_targets=None,
+                                save_on_finish=True, n_splits=2, *args, **kwargs):
+
+        if any(item is None for item in [train_data, train_data]):
+            raise ValueError("...")
+
+        if pipeline_model is None:
+            pipeline_model = LogisticRegression(random_state=0)
+
+        skf = StratifiedKFold(n_splits=n_splits)
+        train_data = numpy.array(train_data)
+        train_targets = numpy.array(train_targets)
+
+        for train_index, test_index in skf.split(train_data, train_targets):
+            X_train, X_test = train_data[train_index], train_data[test_index]
+            y_train, y_test = train_targets[train_index], train_targets[test_index]
+
+            pipeline_model.fit(X_train.tolist(), y_train.tolist())
+            prediction = pipeline_model.predict(X_test.tolist())
+            report = f"\nModel stats:\n{classification_report(prediction, y_test.tolist())}"
+
+            if canary.utils.config.get('canary', 'dev') == "True":
+                self._log_training_data(report)
+            else:
+                canary.utils.logger.debug(report)
+            self._metrics = classification_report(prediction, y_test.tolist(), output_dict=True)
+
+        self._model = pipeline_model
+
+        if save_on_finish is True:
+            self.save()
+
+    def _log_training_data(self, msg):
+        training_log_dir = Path(CANARY_LOCAL_STORAGE) / "logs"
+        os.makedirs(training_log_dir, exist_ok=True)
+
+        training_log_dir = training_log_dir / "training.log"
+        handler = FileHandler(filename=training_log_dir, encoding="utf-8")
+        canary.utils.logger.addHandler(handler, )
+        canary.utils.logger.debug(msg)
+        canary.utils.logger.removeHandler(handler)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
         """
