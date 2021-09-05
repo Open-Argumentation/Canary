@@ -6,6 +6,7 @@ from pathlib import Path as _Path
 import canary
 
 # This logger should be used wherever possible
+_logging.basicConfig(format="%(asctime)s:CANARY:%(levelname)s:%(message)s", datefmt='%d/%m/%Y-%H:%M:%S')
 logger = _logging.getLogger(__name__)
 
 # Set up the configuration parser.
