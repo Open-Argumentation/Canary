@@ -185,7 +185,8 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
         if link_predictor is None:
             raise TypeError("Could not load link predictor")
 
-        all_possible_component_pairs = [j for j in list(itertools.product(components, repeat=2)) if j[0] != j[1]]
+        all_possible_component_pairs = [tuple(reversed(j)) for j in list(itertools.permutations(components, 2)) if
+                                        j[0] != j[1]]
         canary.utils.logger.debug(f"{len(all_possible_component_pairs)} possible combinations.")
 
         sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
@@ -222,12 +223,13 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
                 "arg1_position": arg1['component_position'],
                 "arg2_position": arg2['component_position'],
             }
-            args_linked = link_predictor.predict(all_possible_component_pairs[i]) == "Linked"
+            args_linked = link_predictor.predict([all_possible_component_pairs[i]]) == "Linked"
             all_possible_component_pairs[i].update({"args_linked": args_linked})
 
         canary.utils.logger.debug("Done")
         linked_relations = [pair for pair in all_possible_component_pairs if pair["args_linked"] is True]
-
+        canary.utils.logger.debug(
+            f" {len(linked_relations)} / {len(all_possible_component_pairs)} identified as being linked")
         if out_format == "json":
             import json
             return json.dumps(components)

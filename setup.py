@@ -22,7 +22,8 @@ setup(
         "pybrat",
         "spacy",
         "pandas",
-        "benepar"
+        "benepar",
+        "imbalanced-learn"
     ],
     url='http://openargumentation.org',
     project_urls={

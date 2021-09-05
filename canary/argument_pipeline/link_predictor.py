@@ -1,17 +1,21 @@
 from typing import Union
 
 import nltk
+import numpy
 import pandas
 from scipy.sparse import hstack
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import FeatureUnion
-from sklearn.preprocessing import RobustScaler
+from sklearn.metrics import classification_report
+from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import make_pipeline, make_union
+from sklearn.preprocessing import RobustScaler, Normalizer
+from sklearn.svm import LinearSVC
 
 import canary.utils
 from canary.argument_pipeline.model import Model
-from canary.preprocessing import Lemmatizer, PosLemmatizer, PosDistribution
+from canary.preprocessing import Lemmatizer, PosDistribution
 from canary.preprocessing.transformers import DiscourseMatcher, SharedNouns
 
 canary.preprocessing.nlp.nltk_download('punkt')
@@ -24,85 +28,130 @@ class LinkPredictor(Model):
         if model_id is None:
             model_id = "link_predictor"
 
-        __feats = [
-            ("cv", TfidfVectorizer(tokenizer=PosLemmatizer(), max_features=500)),
-            ('forward', DiscourseMatcher('forward', )),
-            ('thesis', DiscourseMatcher('thesis', )),
-            ('rebuttal', DiscourseMatcher('rebuttal', )),
-            ('backward', DiscourseMatcher('backward', )),
-        ]
-
-        self.__dict_features = DictVectorizer()
-
-        self.__arg1_text_features = FeatureUnion(__feats)
-
-        self.__arg2_text_features = FeatureUnion(__feats)
-
-        self.__scaler = RobustScaler(with_centering=False)
-
         super().__init__(model_id, model_storage_location)
 
     @staticmethod
     def default_train():
         from canary.corpora import load_essay_corpus
-        return load_essay_corpus(purpose='link_prediction', train_split_size=0.8)
 
-    def kfold_train(self):
-        pass
+        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose='link_prediction',
+                                                                               train_split_size=0.8)
+        from imblearn.under_sampling import RandomUnderSampler
+        canary.utils.logger.debug("Resample")
+        ros = RandomUnderSampler(random_state=0)
+        train_data, train_targets = ros.fit_resample(pandas.DataFrame(train_data), pandas.DataFrame(train_targets))
+
+        return list(train_data.to_dict("index").values()), test_data, train_targets[0].tolist(), test_targets
+
+    def stratified_k_fold_train(self, pipeline_model=None, train_data=None, train_targets=None,
+                                save_on_finish=True, *args, **kwargs):
+
+        train_data, test_data, train_targets, test_targets = self.default_train()
+        train_data = train_data + test_data
+        train_targets = train_targets + test_targets
+
+        del test_data
+        del test_targets
+
+        if pipeline_model is None:
+            pipeline_model = make_pipeline(
+                LinkFeatures(),
+                RobustScaler(with_centering=False),
+                LinearSVC(random_state=0, class_weight='balanced')
+            )
+
+        skf = StratifiedKFold(n_splits=3)
+        train_data = numpy.array(train_data)
+        train_targets = numpy.array(train_targets)
+
+        for train_index, test_index in skf.split(train_data, train_targets):
+            print("TRAIN:", train_index, "TEST:", test_index)
+
+            X_train, X_test = train_data[train_index], train_data[test_index]
+            y_train, y_test = train_targets[train_index], train_targets[test_index]
+
+            pipeline_model.fit(X_train.tolist(), y_train.tolist())
+            prediction = pipeline_model.predict(X_test.tolist())
+            canary.utils.logger.debug(f"\nModel stats:\n{classification_report(prediction, y_test.tolist())}")
+            self._metrics = classification_report(prediction, y_test.tolist(), output_dict=True)
+
+        self._model = pipeline_model
+        self.save()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
 
-        if all(item is not None for item in [train_data, test_data, train_targets, test_targets]):
-            train_dict, test_dict = self.prepare_dictionary_features(train_data, test_data)
-
-            train_data = pandas.DataFrame(train_data)
-            test_data = pandas.DataFrame(test_data)
-
-            train_dict = self.__dict_features.fit_transform(train_dict)
-            test_dict = self.__dict_features.transform(test_dict)
-
-            canary.utils.logger.debug("Fitting...")
-            self.__arg1_text_features.fit(train_data.arg1_cover_sen.tolist())
-            arg1_feats_train = self.__arg1_text_features.transform(train_data.arg1_cover_sen.tolist())
-            arg1_feats_test = self.__arg1_text_features.transform(test_data.arg1_cover_sen.tolist())
-
-            self.__arg2_text_features.fit(train_data.arg2_cover_sen.tolist())
-            arg2_feats_train = self.__arg2_text_features.transform(train_data.arg2_cover_sen.tolist())
-            arg2_feats_test = self.__arg2_text_features.transform(test_data.arg2_cover_sen.tolist())
-
-            train_data = hstack([train_dict, arg1_feats_train, arg2_feats_train])
-            test_data = hstack([test_dict, arg1_feats_test, arg2_feats_test])
-
-            canary.utils.logger.debug("Scaling...")
-
-            self.__scaler.fit(train_data)
-            train_data = self.__scaler.transform(train_data)
-            test_data = self.__scaler.transform(test_data)
-
-            canary.utils.logger.debug("Train...")
-
         if pipeline_model is None:
-            pipeline_model = LogisticRegression(random_state=0, class_weight='balanced')
+            pipeline_model = make_pipeline(
+                LinkFeatures(),
+                Normalizer(),
+                # RandomForestClassifier(random_state=0, n_estimators=150, max_depth=14)
+                RandomForestClassifier(n_estimators=300, random_state=0, class_weight='balanced', min_samples_leaf=4,
+                                       max_depth=8)
+            )
 
         return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish, *args,
                              **kwargs)
 
+    def predict(self, data, probability=False) -> Union[list, bool]:
+        return super().predict(data, probability)[0]
+
+
+class LinkFeatures(TransformerMixin, BaseEstimator):
+    feats: list = [
+        DiscourseMatcher('forward'),
+        DiscourseMatcher('thesis'),
+        DiscourseMatcher('rebuttal'),
+        DiscourseMatcher('backward')
+    ]
+
+    def __init__(self):
+
+        self.__nom_dict_features = DictVectorizer()
+
+        self.__numeric_dict_features = DictVectorizer()
+
+        self.__arg1_cover_features = make_union(*LinkFeatures.feats.copy())
+
+        self.__arg2_cover_features = make_union(*LinkFeatures.feats.copy())
+
+    def fit(self, x, y=None):
+        """
+
+        :param x:
+        :param y: ignored.
+        :return:
+        """
+
+        num_dict = self.prepare_numeric_feats(x)
+        self.__numeric_dict_features.fit(num_dict)
+        self.__nom_dict_features.fit(self.prepare_dictionary_features(x))
+
+        x = pandas.DataFrame(x)
+
+        self.__arg1_cover_features.fit(x.arg1_cover_sen.tolist())
+        self.__arg2_cover_features.fit(x.arg2_cover_sen.tolist())
+
+        return self
+
+    def transform(self, x):
+        dict_feats = self.__nom_dict_features.transform(self.prepare_dictionary_features(x))
+        num_dict_feats = self.__numeric_dict_features.transform(self.prepare_numeric_feats(x))
+
+        x = pandas.DataFrame(x)
+
+        arg1_cover_feats = self.__arg1_cover_features.transform(x.arg1_cover_sen)
+        arg2_cover_feats = self.__arg2_cover_features.transform(x.arg2_cover_sen)
+
+        return hstack([dict_feats, num_dict_feats, arg1_cover_feats, arg2_cover_feats, ])
+
     @staticmethod
-    def prepare_dictionary_features(*data):
+    def prepare_dictionary_features(data):
         canary.utils.logger.debug("Getting dictionary features")
-        ret_tuple = ()
-        # neg_word_transformer = WordSentimentCounter("neg")
-        # pos_word_transformer = WordSentimentCounter("pos")
-        pos_dist = PosDistribution()
 
         def get_features(feats):
-
             new_feats = feats.copy()
-            shared_noun_counter = SharedNouns()
-            for i, f in enumerate(new_feats):
-                n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
-
+            for t, f in enumerate(new_feats):
                 features = {
                     "source_before_target": f["source_before_target"],
                     "arg1_first_in_paragraph": f["arg1_first_in_paragraph"],
@@ -114,15 +163,37 @@ class LinkPredictor(Model):
                     "arg2_in_intro": f['arg2_in_intro'],
                     "arg2_in_conclusion": f["arg2_in_conclusion"],
                     "arg1_and_arg2_in_same_sentence": f["arg1_and_arg2_in_same_sentence"],
-                    "shared_nouns": n_shared_nouns,
                     "both_in_conclusion": f["arg1_in_conclusion"] is True and f["arg2_in_conclusion"] is True,
                     "both_in_intro": f["arg1_in_intro"] is True and f["arg2_in_intro"] is True,
+                }
+
+                new_feats[t] = features
+            return new_feats
+
+        return get_features(data)
+
+    @staticmethod
+    def prepare_numeric_feats(data):
+        shared_noun_counter = SharedNouns()
+        canary.utils.logger.debug("Getting numeric features")
+
+        def get_features(feats):
+            pos_dist = PosDistribution()
+
+            new_feats = feats.copy()
+            for t, f in enumerate(new_feats):
+                n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
+
+                features = {
                     "n_para_components": f['n_para_components'],
                     "n_components_between_pair": abs(f["arg2_position"] - f["arg1_position"]),
                     "arg1_component_token_len": len(nltk.word_tokenize(f['arg1_component'])),
                     "arg2_component_token_len": len(nltk.word_tokenize(f['arg2_component'])),
+                    "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_cover_sen'])),
+                    "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_cover_sen'])),
                     "arg1_type": f["arg1_type"],
                     "arg2_type": f["arg2_type"],
+                    "shared_nouns": n_shared_nouns,
                 }
 
                 arg1_posd = {"arg1_" + str(key): val for key, val in pos_dist(f['arg1_cover_sen']).items()}
@@ -131,25 +202,7 @@ class LinkPredictor(Model):
                 features.update(arg1_posd)
                 features.update(arg2_posd)
 
-                new_feats[i] = features
+                new_feats[t] = features
             return new_feats
 
-        for i, d in enumerate(data):
-            canary.utils.logger.debug(f"{i + 1} / {len(data)}")
-            ret_tuple = (*ret_tuple, get_features(d))
-
-        return ret_tuple
-
-    def get_relation_of_components(self, component_pairs, document):
-        pass
-
-    def predict(self, data, probability=False) -> Union[list, bool]:
-        dict_feats = self.__dict_features.transform(self.prepare_dictionary_features([data])[0])
-
-        arg1_feats = self.__arg1_text_features.transform([data['arg1_cover_sen']])
-        arg2_feats = self.__arg2_text_features.transform([data['arg2_cover_sen']])
-
-        combined_feats = hstack([arg1_feats, arg2_feats, dict_feats])
-        combined_feats = self.__scaler.transform(combined_feats)
-
-        return super().predict(combined_feats, probability)
+        return get_features(data)
