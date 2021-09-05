@@ -177,7 +177,7 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
             raise TypeError("Could not load argument component predictor")
 
         for component in components:
-            component['type'] = component_predictor.predict(component)
+            component['type'] = component_predictor.predict([component])
 
         from canary.argument_pipeline.link_predictor import LinkPredictor
         link_predictor: LinkPredictor = canary.load('link_predictor')
