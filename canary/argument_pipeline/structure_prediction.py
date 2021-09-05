@@ -1,12 +1,11 @@
-from typing import Union
-
-import pandas as pd
+import pandas
 from scipy.sparse import hstack
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
-from sklearn.pipeline import FeatureUnion
-from sklearn.preprocessing import LabelBinarizer, RobustScaler
+from sklearn.pipeline import make_union, make_pipeline
+from sklearn.preprocessing import MaxAbsScaler
 
 import canary.utils
 from canary.argument_pipeline.model import Model
@@ -22,32 +21,6 @@ class StructurePredictor(Model):
         if model_id is None:
             model_id = "structure_predictor"
 
-        self.__cover_feats = FeatureUnion([
-            ("support", DiscourseMatcher("support")),
-            ("conflict", DiscourseMatcher("conflict")),
-            ('forward', DiscourseMatcher('forward')),
-            ('thesis', DiscourseMatcher('thesis')),
-            ("average_word_length", AverageWordLengthTransformer()),
-            ('length_of_sentence', LengthOfSentenceTransformer()),
-            ('el', EmbeddingTransformer()),
-            ("wc1", WordSentimentCounter("neu")),
-            ("w2", WordSentimentCounter("pos")),
-            ("wc3", WordSentimentCounter("neg")),
-        ])
-
-        self.__text_feats = FeatureUnion([
-            ("tfidf_unigrams",
-             TfidfVectorizer(ngram_range=(1, 2), lowercase=False, max_features=1000)),
-            ('posv', TfidfPosVectorizer()),
-            ("sentiment_pos", SentimentTransformer("pos")),
-            ("sentiment_neg", SentimentTransformer("neg")),
-            ("sentiment_neu", SentimentTransformer("neu")),
-        ])
-
-        self.__feature_hasher = FeatureHasher()
-        self.__ohe = LabelBinarizer()
-        self.__scaler = RobustScaler(with_centering=False)
-
         super().__init__(model_id=model_id, model_storage_location=model_storage_location)
 
     @staticmethod
@@ -57,58 +30,17 @@ class StructurePredictor(Model):
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, **kwargs):
-        if all(item is not None for item in [train_data, test_data, train_targets, test_targets]):
-            pd_train = pd.DataFrame(train_data)
-            pd_test = pd.DataFrame(test_data)
-
-            canary.utils.logger.debug("Getting dictionary features")
-            _train_data_dict, _test_data_dict = self.prepare_dictionary_features(train_data, test_data)
-
-            canary.utils.logger.debug("Fitting features")
-            self.__cover_feats.fit(pd_train.arg1_covering_sentence.tolist())
-            c1 = self.__cover_feats.transform(pd_train.arg1_covering_sentence.tolist())
-            c2 = self.__cover_feats.transform(pd_test.arg1_covering_sentence.tolist())
-
-            self.__cover_feats.fit(pd_train.arg2_covering_sentence.tolist())
-            c3 = self.__cover_feats.transform(pd_train.arg2_covering_sentence.tolist())
-            c4 = self.__cover_feats.transform(pd_test.arg2_covering_sentence.tolist())
-
-            self.__text_feats.fit(pd_train.arg1_text.tolist())
-            t1 = self.__text_feats.transform(pd_train.arg1_text.tolist())
-            t2 = self.__text_feats.transform(pd_test.arg1_text.tolist())
-
-            self.__text_feats.fit(pd_train.arg2_text.tolist())
-            t3 = self.__text_feats.transform(pd_train.arg2_text.tolist())
-            t4 = self.__text_feats.transform(pd_test.arg2_text.tolist())
-
-            self.__feature_hasher.fit(_train_data_dict)
-            f1 = self.__feature_hasher.transform(_train_data_dict)
-            f2 = self.__feature_hasher.transform(_test_data_dict)
-
-            o1 = self.__ohe.fit_transform(pd_train.arg1_type.tolist())
-            o2 = self.__ohe.transform(pd_test.arg1_type.tolist())
-
-            o3 = self.__ohe.fit_transform(pd_train.arg2_type.tolist())
-            o4 = self.__ohe.transform(pd_test.arg2_type.tolist())
-
-            combined_features_train = hstack([t1, t3, f1, c1, c3])
-            combined_features_test = hstack([t2, t4, f2, c2, c4])
-
-            canary.utils.logger.debug("Scale features")
-            self.__scaler.fit(combined_features_train)
-            combined_features_train = self.__scaler.transform(combined_features_train)
-            combined_features_test = self.__scaler.transform(combined_features_test)
-
-            train_data = hstack([combined_features_train, o1, o3, ])
-            test_data = hstack([combined_features_test, o2, o4, ])
 
         if pipeline_model is None:
-            pipeline_model = SGDClassifier(
-                class_weight='balanced',
-                random_state=0,
-                loss='modified_huber',
-                alpha=0.000001
-            )
+            pipeline_model = make_pipeline(
+                StructureFeatures(),
+                MaxAbsScaler(),
+                SGDClassifier(
+                    class_weight='balanced',
+                    random_state=0,
+                    loss='modified_huber',
+                    alpha=0.000001
+                ))
 
         super(StructurePredictor, self).train(
             pipeline_model=pipeline_model,
@@ -119,17 +51,89 @@ class StructurePredictor(Model):
             save_on_finish=save_on_finish
         )
 
+
+class StructureFeatures(TransformerMixin, BaseEstimator):
+    cover_features: list = [
+        DiscourseMatcher("support"),
+        DiscourseMatcher("conflict"),
+        DiscourseMatcher('forward'),
+        DiscourseMatcher('thesis'),
+        AverageWordLengthTransformer(),
+        LengthOfSentenceTransformer(),
+        EmbeddingTransformer(),
+        WordSentimentCounter("neu"),
+        WordSentimentCounter("pos"),
+        WordSentimentCounter("neg")
+    ]
+
+    text_features: list = [
+        TfidfVectorizer(ngram_range=(1, 2), lowercase=False, max_features=1000),
+        TfidfPosVectorizer(),
+        SentimentTransformer("pos"),
+        SentimentTransformer("neg"),
+        SentimentTransformer("neu"),
+    ]
+
+    def __init__(self):
+        self.__arg1_cover_features = make_union(*StructureFeatures.cover_features)
+        self.__arg2_cover_features = make_union(*StructureFeatures.cover_features)
+
+        self.__arg1_text_features = make_union(*StructureFeatures.text_features)
+        self.__arg2_text_features = make_union(*StructureFeatures.text_features)
+
+        self.__dictionary_features = FeatureHasher()
+
+    def fit(self, x, y=None):
+        canary.utils.logger.debug("fitting...")
+
+        self.__dictionary_features.fit(self.prepare_dictionary_features(x))
+        x = pandas.DataFrame(x)
+
+        self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
+        self.__arg2_cover_features.fit(x.arg2_covering_sentence.tolist())
+
+        self.__arg1_text_features.fit(x.arg1_text.tolist())
+        self.__arg2_text_features.fit(x.arg2_text.tolist())
+        return self
+
+    def transform(self, x):
+        canary.utils.logger.debug("transforming...")
+        dictionary_features = self.__dictionary_features.transform(x)
+
+        x = pandas.DataFrame(x)
+        arg1_cover_features = self.__arg1_cover_features.transform(x.arg1_covering_sentence)
+        arg2_cover_features = self.__arg2_cover_features.transform(x.arg2_covering_sentence)
+
+        arg1_text_features = self.__arg1_text_features.transform(x.arg2_text)
+        arg2_text_features = self.__arg2_text_features.transform(x.arg2_text)
+
+        return hstack(
+            [
+                dictionary_features,
+                arg1_cover_features,
+                arg2_cover_features,
+                arg1_text_features,
+                arg2_text_features
+            ]
+        )
+
     @staticmethod
-    def prepare_dictionary_features(train, test):
+    def binary_neg_present(sen):
+        return WordSentimentCounter("neg").transform([sen])[0][0] > 0
+
+    @staticmethod
+    def prepare_dictionary_features(data):
+        canary.utils.logger.debug("Getting dictionary features.")
         nlp = canary.preprocessing.nlp.spacy_download()
 
-        def get_features(data):
-            features = []
-
-            def get_feats(d):
+        def get_features(f):
+            new_feats = f.copy()
+            for t, d in enumerate(new_feats):
                 sent1 = nlp(d["arg1_covering_sentence"])
                 sent2 = nlp(d["arg2_covering_sentence"])
-                return {
+                new_feats[t] = {
+                    "arg1_type": d["arg1_type"],
+                    "arg2_type": d["arg2_type"],
                     "arg1_start": d["arg1_start"],
                     "arg2_start": d["arg2_start"],
                     "arg1_end": d["arg1_end"],
@@ -145,23 +149,9 @@ class StructurePredictor(Model):
                     "n_support_components": d["n_support_components"],
                     "arg1_cover_ents": len(sent1.ents),
                     "arg2_cover_ents": len(sent2.ents),
-                    "neg_present_arg1": binary_neg_present(sent1.text),
-                    "neg_present_arg2": binary_neg_present(sent2.text),
+                    "neg_present_arg1": StructureFeatures.binary_neg_present(sent1.text),
+                    "neg_present_arg2": StructureFeatures.binary_neg_present(sent2.text),
                 }
+            return new_feats
 
-            for d in data:
-                features.append(get_feats(d))
-
-            return features
-
-        train_data = get_features(train)
-        test_data = get_features(test)
-
-        return train_data, test_data
-
-    def predict(self, data: Union[list, str], probability=False) -> Union[list, bool]:
-        raise NotImplementedError()
-
-
-def binary_neg_present(sen):
-    return WordSentimentCounter("neg").transform([sen])[0][0] > 0
+        return get_features(data)
