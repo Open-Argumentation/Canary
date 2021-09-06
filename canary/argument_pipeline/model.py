@@ -230,7 +230,7 @@ class Model:
                 return probability_predict(data)
         else:
             if probability is False:
-                prediction = self._model.predict(data)[0]
+                prediction = self._model.predict([data])[0]
                 return prediction
             elif probability is True:
                 return probability_predict(data)

@@ -83,9 +83,6 @@ class ArgumentDetector(Model):
                                             save_on_finish=True)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
-        if type(data) is str:
-            data = [data]
-
         if type(data) is list:
             if not all(type(i) is str for i in data):
                 raise TypeError(f"{self.__class__.__name__} requires list elements to be strings.")

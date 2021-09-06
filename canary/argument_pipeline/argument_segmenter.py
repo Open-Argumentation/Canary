@@ -344,6 +344,6 @@ def get_labels(sent):
 
 
 def chunk(sen):
-    canary.preprocessing.nlp.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words'])
+    canary.preprocessing.nlp.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words', 'punkt'])
     from nltk.chunk import tree2conlltags
     return tree2conlltags(nltk.ne_chunk(nltk.pos_tag(sen)))
