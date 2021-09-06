@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import Normalizer, LabelBinarizer, MaxAbsScaler
 
 import canary.utils
 from canary.argument_pipeline.model import Model
@@ -66,7 +66,7 @@ class LinkPredictor(Model):
         if pipeline_model is None:
             pipeline_model = make_pipeline(
                 LinkFeatures(),
-                Normalizer(),
+                MaxAbsScaler(),
                 RandomForestClassifier(n_estimators=300, random_state=0, min_samples_leaf=4,
                                        max_depth=10)
             )
@@ -96,6 +96,10 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
         self.__arg2_cover_features = make_union(*LinkFeatures.feats.copy())
 
+        self.__ohe_arg1 = LabelBinarizer()
+
+        self.__ohe_arg2 = LabelBinarizer()
+
     def fit(self, x, y=None):
         """
 
@@ -113,6 +117,9 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         self.__arg1_cover_features.fit(x.arg1_cover_sen.tolist())
         self.__arg2_cover_features.fit(x.arg2_cover_sen.tolist())
 
+        self.__ohe_arg1.fit(x.arg1_type.tolist())
+        self.__ohe_arg2.fit(x.arg2_type.tolist())
+
         return self
 
     def transform(self, x):
@@ -124,7 +131,10 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         arg1_cover_feats = self.__arg1_cover_features.transform(x.arg1_cover_sen)
         arg2_cover_feats = self.__arg2_cover_features.transform(x.arg2_cover_sen)
 
-        return hstack([dict_feats, num_dict_feats, arg1_cover_feats, arg2_cover_feats, ])
+        arg1_types = self.__ohe_arg1.transform(x.arg1_type)
+        arg2_types = self.__ohe_arg2.transform(x.arg2_type)
+
+        return hstack([dict_feats, num_dict_feats, arg1_cover_feats, arg2_cover_feats, arg1_types, arg2_types])
 
     @staticmethod
     def prepare_dictionary_features(data):
@@ -172,8 +182,8 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
                     "arg2_component_token_len": len(nltk.word_tokenize(f['arg2_component'])),
                     "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_cover_sen'])),
                     "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_cover_sen'])),
-                    "arg1_type": f["arg1_type"],
-                    "arg2_type": f["arg2_type"],
+                    # "arg1_type": f["arg1_type"],
+                    # "arg2_type": f["arg2_type"],
                     "shared_nouns": n_shared_nouns,
                 }
 

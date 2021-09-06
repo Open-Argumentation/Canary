@@ -5,7 +5,7 @@ from sklearn.feature_extraction import FeatureHasher
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_union, make_pipeline
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import RobustScaler, LabelBinarizer
 
 import canary.utils
 from canary.argument_pipeline.model import Model
@@ -34,7 +34,7 @@ class StructurePredictor(Model):
         if pipeline_model is None:
             pipeline_model = make_pipeline(
                 StructureFeatures(),
-                MaxAbsScaler(),
+                RobustScaler(with_centering=False),
                 SGDClassifier(
                     class_weight='balanced',
                     random_state=0,
@@ -83,6 +83,9 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
 
         self.__dictionary_features = FeatureHasher()
 
+        self.__ohe_arg1 = LabelBinarizer()
+        self.__ohe_arg2 = LabelBinarizer()
+
     def fit(self, x, y=None):
         canary.utils.logger.debug("fitting...")
 
@@ -94,6 +97,9 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
 
         self.__arg1_text_features.fit(x.arg1_text.tolist())
         self.__arg2_text_features.fit(x.arg2_text.tolist())
+
+        self.__ohe_arg1.fit(x.arg1_type.tolist())
+        self.__ohe_arg2.fit(x.arg2_type.tolist())
         return self
 
     def transform(self, x):
@@ -107,13 +113,18 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         arg1_text_features = self.__arg1_text_features.transform(x.arg2_text)
         arg2_text_features = self.__arg2_text_features.transform(x.arg2_text)
 
+        arg1_types = self.__ohe_arg1.transform(x.arg1_type)
+        arg2_types = self.__ohe_arg2.transform(x.arg2_type)
+
         return hstack(
             [
                 dictionary_features,
                 arg1_cover_features,
                 arg2_cover_features,
                 arg1_text_features,
-                arg2_text_features
+                arg2_text_features,
+                arg1_types,
+                arg2_types
             ]
         )
 
@@ -132,8 +143,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
                 sent1 = nlp(d["arg1_covering_sentence"])
                 sent2 = nlp(d["arg2_covering_sentence"])
                 new_feats[t] = {
-                    "arg1_type": d["arg1_type"],
-                    "arg2_type": d["arg2_type"],
                     "arg1_start": d["arg1_start"],
                     "arg2_start": d["arg2_start"],
                     "arg1_end": d["arg1_end"],
