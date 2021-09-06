@@ -182,8 +182,6 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
                     "arg2_component_token_len": len(nltk.word_tokenize(f['arg2_component'])),
                     "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_cover_sen'])),
                     "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_cover_sen'])),
-                    # "arg1_type": f["arg1_type"],
-                    # "arg2_type": f["arg2_type"],
                     "shared_nouns": n_shared_nouns,
                 }
 
