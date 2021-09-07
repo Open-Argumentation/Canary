@@ -1,5 +1,6 @@
 import nltk
 import sklearn_crfsuite
+from sklearn.model_selection import train_test_split
 from sklearn_crfsuite import metrics
 
 import canary
@@ -25,10 +26,16 @@ class ArgumentSegmenter(Model):
         # Need to get data into a usable shape
 
         canary.utils.logger.debug("Getting training data")
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(
-            purpose="sequence_labelling",
-            train_split_size=0.8
+        x, y = load_essay_corpus(
+            purpose="sequence_labelling"
         )
+
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
+                             train_size=0.8,
+                             shuffle=True,
+                             random_state=0,
+                             )
 
         canary.utils.logger.debug("Getting training features")
         train_data = [get_sentence_features(s) for s in train_data]

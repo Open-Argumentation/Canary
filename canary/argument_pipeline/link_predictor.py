@@ -1,5 +1,3 @@
-from typing import Union
-
 import nltk
 import pandas
 from scipy.sparse import hstack
@@ -29,10 +27,16 @@ class LinkPredictor(Model):
     @staticmethod
     def default_train():
         from canary.corpora import load_essay_corpus
-
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(purpose='link_prediction',
-                                                                               train_split_size=0.8)
         from imblearn.under_sampling import RandomUnderSampler
+        from sklearn.model_selection import train_test_split
+
+        x, y = load_essay_corpus(purpose='link_prediction')
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
+                             train_size=0.8,
+                             shuffle=True,
+                             random_state=0,
+                             )
         canary.utils.logger.debug("Resample")
         ros = RandomUnderSampler(random_state=0)
         train_data, train_targets = ros.fit_resample(pandas.DataFrame(train_data), pandas.DataFrame(train_targets))
@@ -74,9 +78,6 @@ class LinkPredictor(Model):
         return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish, *args,
                              **kwargs)
 
-    def predict(self, data, probability=False) -> Union[list, bool]:
-        return super().predict(data, probability)[0]
-
 
 class LinkFeatures(TransformerMixin, BaseEstimator):
     feats: list = [
@@ -114,8 +115,8 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
         x = pandas.DataFrame(x)
 
-        self.__arg1_cover_features.fit(x.arg1_cover_sen.tolist())
-        self.__arg2_cover_features.fit(x.arg2_cover_sen.tolist())
+        self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
+        self.__arg2_cover_features.fit(x.arg2_covering_sentence.tolist())
 
         self.__ohe_arg1.fit(x.arg1_type.tolist())
         self.__ohe_arg2.fit(x.arg2_type.tolist())
@@ -128,8 +129,8 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
         x = pandas.DataFrame(x)
 
-        arg1_cover_feats = self.__arg1_cover_features.transform(x.arg1_cover_sen)
-        arg2_cover_feats = self.__arg2_cover_features.transform(x.arg2_cover_sen)
+        arg1_cover_feats = self.__arg1_cover_features.transform(x.arg1_covering_sentence)
+        arg2_cover_feats = self.__arg2_cover_features.transform(x.arg2_covering_sentence)
 
         arg1_types = self.__ohe_arg1.transform(x.arg1_type)
         arg2_types = self.__ohe_arg2.transform(x.arg2_type)
@@ -180,13 +181,13 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
                     "n_components_between_pair": abs(f["arg2_position"] - f["arg1_position"]),
                     "arg1_component_token_len": len(nltk.word_tokenize(f['arg1_component'])),
                     "arg2_component_token_len": len(nltk.word_tokenize(f['arg2_component'])),
-                    "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_cover_sen'])),
-                    "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_cover_sen'])),
+                    "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_covering_sentence'])),
+                    "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_covering_sentence'])),
                     "shared_nouns": n_shared_nouns,
                 }
 
-                arg1_posd = {"arg1_" + str(key): val for key, val in pos_dist(f['arg1_cover_sen']).items()}
-                arg2_posd = {"arg2_" + str(key): val for key, val in pos_dist(f['arg2_cover_sen']).items()}
+                arg1_posd = {"arg1_" + str(key): val for key, val in pos_dist(f['arg1_covering_sentence']).items()}
+                arg2_posd = {"arg2_" + str(key): val for key, val in pos_dist(f['arg2_covering_sentence']).items()}
 
                 features.update(arg1_posd)
                 features.update(arg2_posd)

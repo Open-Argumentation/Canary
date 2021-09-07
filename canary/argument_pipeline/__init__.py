@@ -202,8 +202,8 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
                 "source_before_target": arg1['component_position'] > arg2['component_position'],
                 "arg1_component": arg1["component"],
                 "arg2_component": arg2["component"],
-                "arg1_cover_sen": arg1["cover_sentence"],
-                "arg2_cover_sen": arg2["cover_sentence"],
+                "arg1_covering_sentence": arg1["cover_sentence"],
+                "arg2_covering_sentence": arg2["cover_sentence"],
                 "arg1_n_preceding_components": arg1['n_preceding_components'],
                 "arg1_n_following_components": arg1['n_following_comp_tokens'],
                 "arg2_n_preceding_components": arg2['n_preceding_components'],
@@ -223,18 +223,29 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
                 "arg1_position": arg1['component_position'],
                 "arg2_position": arg2['component_position'],
             }
-            args_linked = link_predictor.predict([all_possible_component_pairs[i]]) == "Linked"
+            args_linked = link_predictor.predict(all_possible_component_pairs[i]) == "Linked"
             all_possible_component_pairs[i].update({"args_linked": args_linked})
 
         canary.utils.logger.debug("Done")
         linked_relations = [pair for pair in all_possible_component_pairs if pair["args_linked"] is True]
         canary.utils.logger.debug(
             f" {len(linked_relations)} / {len(all_possible_component_pairs)} identified as being linked")
+
+        # Find attack / support relations
+        if len(linked_relations) > 0:
+            from canary.argument_pipeline.structure_prediction import StructurePredictor
+            sp: StructurePredictor = canary.load('structure_predictor')
+            for r in linked_relations:
+                r['scheme'] = sp.predict(r)
+
+        support_relations = [pair for pair in linked_relations if pair["scheme"] == 'supports']
+        attacks_relations = [pair for pair in linked_relations if pair["scheme"] == 'attacks']
+
         if out_format == "json":
             import json
             return json.dumps(components)
 
-        return components, linked_relations
+        return components, linked_relations, support_relations, attacks_relations
 
     else:
         canary.utils.logger.warn("Didn't find any evidence of argumentation")
@@ -265,4 +276,7 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
         return joblib.load(absolute_model_path)
     else:
         canary.utils.logger.error(
-            f"Did not manage to load the model specified. Available models on disk are: {models_available_on_disk()}")
+            f"Did not manage to load the model specified. Available models on disk are: {models_available_on_disk()}.")
+        models_not_on_disk = get_models_not_on_disk()
+        if len(models_not_on_disk) > 0:
+            canary.utils.logger.error(f"Models available via download are: {models_not_on_disk}.")

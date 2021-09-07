@@ -40,10 +40,15 @@ class ArgumentComponent(Model):
     @staticmethod
     def default_train():
         # get training and test data
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(
-            purpose="component_prediction",
-            train_split_size=0.6
-        )
+        from sklearn.model_selection import train_test_split
+
+        x, y = load_essay_corpus(purpose="component_prediction")
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
+                             train_size=0.6,
+                             shuffle=True,
+                             random_state=0,
+                             )
 
         return train_data, test_data, train_targets, test_targets
 

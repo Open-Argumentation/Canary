@@ -233,4 +233,4 @@ class Model:
                 prediction = self._model.predict([data])[0]
                 return prediction
             elif probability is True:
-                return probability_predict(data)
+                return probability_predict([data])[0]

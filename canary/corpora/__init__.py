@@ -11,7 +11,6 @@ from typing import Union
 
 import nltk
 from pybrat.parser import BratParser
-from sklearn.model_selection import train_test_split
 
 import canary.preprocessing.nlp
 import canary.utils
@@ -84,7 +83,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=0.5, **kwargs):
+def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
     """
     Loads essay corpus version
 
@@ -106,9 +105,6 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
     canary.preprocessing.nlp.nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
 
-    if train_split_size is not None:
-        if not (0 < train_split_size < 1):
-            raise ValueError("Split value should be between 0 and 1.")
 
     if version not in _allowed_version_values:
         raise ValueError(f"{version} is not a valid value. Valid values are {_allowed_version_values}")
@@ -171,14 +167,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                     else:
                         Y.append(entity.type)
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
-
-        return train_data, test_data, train_targets, test_targets
+        return X, Y
 
     elif purpose == "link_prediction":
 
@@ -295,15 +284,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         from collections import Counter
         counts = Counter(y)
         logger.debug(counts)
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(x, y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             stratify=y
-                             )
-
-        return train_data, test_data, train_targets, test_targets
+        return x, y
 
     elif purpose == "relation_prediction":
         X = []
@@ -314,14 +295,12 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             for index, relation in enumerate(essay.relations):
                 features = {
                     "essay_id": essay.id,
-                    "arg1_text": relation.arg1.mention,
+                    "arg1_component": relation.arg1.mention,
+                    "arg2_component": relation.arg2.mention,
                     "arg1_type": relation.arg1.type,
-                    "arg1_start": relation.arg1.start,
-                    "arg1_end": relation.arg1.end,
-                    "arg2_text": relation.arg2.mention,
                     "arg2_type": relation.arg2.type,
-                    "arg2_start": relation.arg2.start,
-                    "arg2_end": relation.arg2.end,
+                    "arg2_position": find_component_features(essay, relation.arg2)['component_position'],
+                    "arg1_position": find_component_features(essay, relation.arg1)['component_position'],
                     "n_components_in_essay": len(essay.relations),
                 }
 
@@ -332,13 +311,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                 X.append(features)
                 Y.append(relation.type)
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
-        return train_data, test_data, train_targets, test_targets
+        return X, Y
 
     elif purpose == "sequence_labelling":
         X = []
@@ -461,14 +434,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         if errors > 0:
             raise ValueError(f'Data is incorrect shape. Number of errors {errors}')
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
-
-        return train_data, test_data, train_targets, test_targets
+        return X, Y
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:

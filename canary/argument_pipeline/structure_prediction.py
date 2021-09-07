@@ -3,13 +3,12 @@ from scipy.sparse import hstack
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_union, make_pipeline
-from sklearn.preprocessing import RobustScaler, LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, Normalizer
+from sklearn.svm import SVC
 
 import canary.utils
 from canary.argument_pipeline.model import Model
-from canary.corpora import load_essay_corpus
 from canary.preprocessing.transformers import WordSentimentCounter, TfidfPosVectorizer, \
     EmbeddingTransformer, SentimentTransformer, DiscourseMatcher, AverageWordLengthTransformer, \
     LengthOfSentenceTransformer
@@ -25,8 +24,23 @@ class StructurePredictor(Model):
 
     @staticmethod
     def default_train():
-        canary.utils.logger.debug("Getting default data")
-        return load_essay_corpus(purpose="relation_prediction")
+        from canary.corpora import load_essay_corpus
+        from imblearn.under_sampling import RandomUnderSampler
+        from sklearn.model_selection import train_test_split
+
+        x, y = load_essay_corpus(purpose="relation_prediction")
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
+                             train_size=0.8,
+                             random_state=0,
+                             stratify=y
+                             )
+
+        canary.utils.logger.debug("Resample")
+        ros = RandomUnderSampler(random_state=0)
+        train_data, train_targets = ros.fit_resample(pandas.DataFrame(train_data), pandas.DataFrame(train_targets))
+
+        return list(train_data.to_dict("index").values()), test_data, train_targets[0].tolist(), test_targets
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, **kwargs):
@@ -34,13 +48,8 @@ class StructurePredictor(Model):
         if pipeline_model is None:
             pipeline_model = make_pipeline(
                 StructureFeatures(),
-                RobustScaler(with_centering=False),
-                SGDClassifier(
-                    class_weight='balanced',
-                    random_state=0,
-                    loss='modified_huber',
-                    alpha=0.000001
-                ))
+                Normalizer(),
+                SVC(random_state=0, probability=True))
 
         super(StructurePredictor, self).train(
             pipeline_model=pipeline_model,
@@ -95,8 +104,8 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
         self.__arg2_cover_features.fit(x.arg2_covering_sentence.tolist())
 
-        self.__arg1_text_features.fit(x.arg1_text.tolist())
-        self.__arg2_text_features.fit(x.arg2_text.tolist())
+        self.__arg1_text_features.fit(x.arg1_component.tolist())
+        self.__arg2_text_features.fit(x.arg2_component.tolist())
 
         self.__ohe_arg1.fit(x.arg1_type.tolist())
         self.__ohe_arg2.fit(x.arg2_type.tolist())
@@ -110,8 +119,8 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         arg1_cover_features = self.__arg1_cover_features.transform(x.arg1_covering_sentence)
         arg2_cover_features = self.__arg2_cover_features.transform(x.arg2_covering_sentence)
 
-        arg1_text_features = self.__arg1_text_features.transform(x.arg2_text)
-        arg2_text_features = self.__arg2_text_features.transform(x.arg2_text)
+        arg1_text_features = self.__arg1_text_features.transform(x.arg1_component)
+        arg2_text_features = self.__arg2_text_features.transform(x.arg2_component)
 
         arg1_types = self.__ohe_arg1.transform(x.arg1_type)
         arg2_types = self.__ohe_arg2.transform(x.arg2_type)
@@ -143,10 +152,8 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
                 sent1 = nlp(d["arg1_covering_sentence"])
                 sent2 = nlp(d["arg2_covering_sentence"])
                 new_feats[t] = {
-                    "arg1_start": d["arg1_start"],
-                    "arg2_start": d["arg2_start"],
-                    "arg1_end": d["arg1_end"],
-                    "arg2_end": d["arg2_end"],
+                    "arg1_position": d["arg1_position"],
+                    "arg2_position": d["arg2_position"],
                     'arg1_preceding_tokens': d['arg1_preceding_tokens'],
                     "arg1_following_tokens": d["arg1_following_tokens"],
                     'arg2_preceding_tokens': d['arg2_preceding_tokens'],
