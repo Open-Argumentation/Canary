@@ -241,11 +241,31 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
         support_relations = [pair for pair in linked_relations if pair["scheme"] == 'supports']
         attacks_relations = [pair for pair in linked_relations if pair["scheme"] == 'attacks']
 
-        if out_format == "json":
-            import json
-            return json.dumps(components)
+        canary.utils.logger.debug(f"Number of attack relations: {len(attacks_relations)}")
+        canary.utils.logger.debug(f"Number of support relations: {len(support_relations)}")
 
-        return components, linked_relations, support_relations, attacks_relations
+        # Create a sadface document for what we have found
+        from sadface import sadface
+        sadface.initialise()
+        sadface.set_title("doc")
+
+        # Create atoms
+        for c in components:
+            atom = sadface.add_atom(c['component'])
+            sadface.add_atom_metadata(atom['id'], 'canary', 'type', c['type'])
+
+        # Add edges
+        for l in attacks_relations:
+            arg1_id = sadface.get_atom_id(l['arg1_component'])
+            arg2_id = sadface.get_atom_id(l['arg2_component'])
+            sadface.add_conflict(arg_id=arg1_id, conflict_id=arg2_id)
+
+        for l in support_relations:
+            arg1_id = sadface.get_atom_id(l['arg1_component'])
+            arg2_id = sadface.get_atom_id(l['arg2_component'])
+            sadface.add_support(con_id=arg1_id, prem_id=[arg2_id])
+
+        return sadface.get_document()
 
     else:
         canary.utils.logger.warn("Didn't find any evidence of argumentation")

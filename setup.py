@@ -23,7 +23,8 @@ setup(
         "spacy",
         "pandas",
         "benepar",
-        "imbalanced-learn"
+        "imbalanced-learn",
+        "sadface"
     ],
     url='http://openargumentation.org',
     project_urls={
