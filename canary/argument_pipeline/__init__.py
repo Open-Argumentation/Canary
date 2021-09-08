@@ -122,14 +122,11 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, out_format: str = "stdout", steps=None):
+def analyse_file(file, out_format=None, steps=None):
     supported_file_types = ["txt"]
 
     if not os.path.isfile(file):
         raise TypeError("file argument should be a valid file")
-
-    # file_path = Path(file)
-    # if file_path.suffix
 
     with open(file, "r", encoding='utf-8') as document:
         return analyse(document.read(), out_format=out_format, steps=steps)
@@ -139,22 +136,15 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
     """
     """
 
-    allowed_output_formats = [None, "stdout", "json", "csv"]
+    allowed_output_formats = [None, "json", "csv"]
 
     from canary.argument_pipeline.argument_segmenter import ArgumentSegmenter
     from canary.argument_pipeline.component_identification import ArgumentComponent
 
-    if steps is None:
-        canary.utils.logger.debug("Default pipeline being used")
-        steps = [""]
-
     canary.utils.logger.debug(document)
-    allowed_out_format_values = ['stdout', 'json', 'csv']
-    if type(out_format) is not str:
-        raise TypeError("Parameter out_format should be a string")
 
-    if out_format not in allowed_out_format_values:
-        raise ValueError(f"Incorrect out_format value. Allowed values are {allowed_out_format_values}")
+    if out_format not in allowed_output_formats:
+        raise ValueError(f"Incorrect out_format value '{out_format}'. Allowed values are {allowed_output_formats}")
 
     if type(document) is not str:
         raise TypeError("The inputted document should be a string.")
@@ -170,6 +160,7 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
     components = segmenter.get_components_from_document(document)
 
     if len(components) > 0:
+        n_claims, n_major_claims, n_premises = 0, 0, 0
         canary.utils.logger.debug("Loading component predictor.")
         component_predictor: ArgumentComponent = canary.load('argument_component')
 
@@ -178,6 +169,12 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
 
         for component in components:
             component['type'] = component_predictor.predict(component)
+            if component['type'] == 'Claim':
+                n_claims += 1
+            elif component['type'] == "MajorClaim":
+                n_major_claims += 1
+            elif component['type'] == "Premise":
+                n_premises += 1
 
         from canary.argument_pipeline.link_predictor import LinkPredictor
         link_predictor: LinkPredictor = canary.load('link_predictor')
@@ -265,7 +262,22 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
             arg2_id = sadface.get_atom_id(l['arg2_component'])
             sadface.add_support(con_id=arg1_id, prem_id=[arg2_id])
 
-        return sadface.get_document()
+        # add some nice metadata
+        sadface.add_global_metadata('canary', 'number_of_components', len(components))
+        sadface.add_global_metadata('canary', 'number_of_attack_relations', len(attacks_relations))
+        sadface.add_global_metadata('canary', 'number_of_support_relations', len(support_relations))
+        sadface.add_global_metadata('canary', 'number_of_linked_relations', len(linked_relations))
+        sadface.add_global_metadata('canary', 'number_of_premises', n_premises)
+        sadface.add_global_metadata('canary', 'number_of_claims', n_claims)
+        sadface.add_global_metadata('canary', 'number_of_major_claims', n_major_claims)
+        sadface.add_global_metadata('canary', 'version', canary.__version__)
+
+        if out_format == "json":
+            return sadface.export_json()
+        elif out_format == "csv":
+            pass
+        else:
+            return sadface.get_document()
 
     else:
         canary.utils.logger.warn("Didn't find any evidence of argumentation")
