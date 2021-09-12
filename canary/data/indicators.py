@@ -149,16 +149,15 @@ discourse_indicators = {
     ],
     "rebuttal": [
         "Admittedly",
-        "admittedly",
-        "Although",
         "although",
+        "Although",
         "besides these advantages",
+        "but",
+        "But",
         "Even though",
         "even though",
         "However",
-        "Otherwise",
-        "despite",
-        "Despite"
+        "Otherwise"
     ],
     "thesis":
         [

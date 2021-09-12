@@ -16,12 +16,15 @@ setup(
     install_requires=[
         "requests",
         "scikit-learn",
+        "sklearn_crfsuite",
         "nltk",
         "vaderSentiment",
         "pybrat",
         "spacy",
         "pandas",
-        "benepar"
+        "benepar",
+        "imbalanced-learn",
+        "sadface"
     ],
     url='http://openargumentation.org',
     project_urls={

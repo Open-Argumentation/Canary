@@ -1,3 +1,5 @@
+from typing import Union
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
@@ -79,3 +81,10 @@ class ArgumentDetector(Model):
                                             train_targets=train_targets,
                                             test_targets=test_targets,
                                             save_on_finish=True)
+
+    def predict(self, data, probability=False) -> Union[list, bool]:
+        if type(data) is list:
+            if not all(type(i) is str for i in data):
+                raise TypeError(f"{self.__class__.__name__} requires list elements to be strings.")
+
+        return super().predict(data, probability)

@@ -1,20 +1,23 @@
-from typing import Union
-
 import pandas
 from nltk.tree import Tree
 from scipy.sparse import hstack
-from sklearn.feature_extraction import FeatureHasher
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import FeatureUnion
-from sklearn.preprocessing import RobustScaler
+from sklearn.pipeline import make_union, make_pipeline
+from sklearn.preprocessing import MaxAbsScaler
+from sklearn.svm import SVC
 
 import canary
 import canary.utils
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer
-from canary.preprocessing.transformers import DiscourseMatcher, FirstPersonIndicatorMatcher
+from canary.preprocessing import Lemmatizer, PosDistribution
+from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransformer
+
+_nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                                                        'attribute_ruler',
+                                                        'tok2vec', ])
 
 
 class ArgumentComponent(Model):
@@ -31,23 +34,6 @@ class ArgumentComponent(Model):
         if model_id is None:
             model_id = "argument_component"
 
-        self.__feats = FeatureUnion([
-            ('tfidvectorizer',
-             TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False, max_features=1000)),
-            ('forward', DiscourseMatcher('forward', lemmatize=True)),
-            ('thesis', DiscourseMatcher('thesis', lemmatize=True)),
-            ('rebuttal', DiscourseMatcher('rebuttal', lemmatize=True)),
-            ('backward', DiscourseMatcher('backward', lemmatize=True)),
-            ("first_i", FirstPersonIndicatorMatcher("I")),
-            ("first_me", FirstPersonIndicatorMatcher("me")),
-            ("first_mine", FirstPersonIndicatorMatcher("mine")),
-            ("first_myself", FirstPersonIndicatorMatcher("myself")),
-            ("first_my", FirstPersonIndicatorMatcher("my")),
-        ])
-
-        self.__dict_feats = FeatureHasher()
-        self.__scaler = RobustScaler(with_centering=False, unit_variance=False)
-
         super().__init__(
             model_id=model_id,
             model_storage_location=model_storage_location,
@@ -56,81 +42,83 @@ class ArgumentComponent(Model):
     @staticmethod
     def default_train():
         # get training and test data
-        train_data, test_data, train_targets, test_targets = load_essay_corpus(
-            purpose="component_prediction",
-            train_split_size=0.6
-        )
+        from sklearn.model_selection import train_test_split
+        from imblearn.under_sampling import RandomUnderSampler
+        ros = RandomUnderSampler(random_state=0, sampling_strategy='not minority')
 
-        return train_data, test_data, train_targets, test_targets
+        x, y = load_essay_corpus(purpose="component_prediction")
+        x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
+
+        train_data, test_data, train_targets, test_targets = \
+            train_test_split(x, y,
+                             train_size=0.7,
+                             shuffle=True,
+                             random_state=0,
+                             stratify=y
+                             )
+
+        canary.utils.logger.debug("Resample")
+
+        return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
+            0].tolist(), test_targets[0].tolist()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
 
-        train_feats = None
-        test_feats = None
-
-        # The below functionality requires the following is not None.
-        if all(item is not None for item in [train_data, test_data, train_targets, test_targets]):
-            canary.logger.debug("Getting dictionary features")
-            train_dict, test_dict = self.prepare_dictionary_features(train_data, test_data)
-
-            train_data = pandas.DataFrame(train_data)
-            test_data = pandas.DataFrame(test_data)
-
-            # Fit training data
-            canary.logger.debug("fitting features")
-            self.__dict_feats.fit(train_dict)
-            self.__feats.fit(train_data.cover_sentence.tolist())
-
-            train_feats = self.__feats.transform(train_data.cover_sentence.tolist())
-            test_feats = self.__feats.transform(test_data.cover_sentence.tolist())
-
-            train_dict_feats = self.__dict_feats.transform(train_dict)
-            test_dict_feats = self.__dict_feats.transform(test_dict)
-
-            # combine feats into one vector
-            train_feats = hstack([train_feats, train_dict_feats])
-            test_feats = hstack([test_feats, test_dict_feats])
-
-            # scale
-            self.__scaler.fit(train_feats)
-            train_feats = self.__scaler.transform(train_feats)
-            test_feats = self.__scaler.transform(test_feats)
-
         # If the pipeline model is none, use this algorithm
         if pipeline_model is None:
-            pipeline_model = LogisticRegression(
-                class_weight='balanced',
-                warm_start=True,
-                random_state=0,
-                max_iter=2000,
-                solver="newton-cg"
+            pipeline_model = make_pipeline(
+                ArgumentComponentFeatures(),
+                MaxAbsScaler(),
+                SVC(random_state=0, class_weight='balanced', probability=True, cache_size=1000)
             )
 
         super(ArgumentComponent, self).train(
             pipeline_model=pipeline_model,
-            train_data=train_feats,
-            test_data=test_feats,
+            train_data=train_data,
+            test_data=test_data,
             train_targets=train_targets,
             test_targets=test_targets,
             save_on_finish=save_on_finish
         )
 
-    @staticmethod
-    def prepare_dictionary_features(*feats):
-        ret_tuple = ()
-        nlp = canary.utils.spacy_download()
 
-        def get_features(data):
-            canary.logger.debug("getting dictionary features.")
+class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
+    features: list = [
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False),
+        # TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=500),
+        DiscourseMatcher('forward'),
+        DiscourseMatcher('thesis'),
+        DiscourseMatcher('rebuttal'),
+        DiscourseMatcher('backward'),
+        DiscourseMatcher('obligation'),
+        DiscourseMatcher('recommendation'),
+        DiscourseMatcher('possible'),
+        DiscourseMatcher('intention'),
+        DiscourseMatcher('option'),
+        DiscourseMatcher('first_person'),
+        EmbeddingTransformer()
+    ]
+
+    def __init__(self):
+        self.__dict_feats = DictVectorizer()
+        self.__features = make_union(*ArgumentComponentFeatures.features)
+
+    @staticmethod
+    def prepare_dictionary_features(data):
+        pos_dist = PosDistribution()
+        cover_sentences = pandas.DataFrame(data).cover_sentence.tolist()
+        cover_sentences = list(_nlp.pipe(cover_sentences))
+
+        def get_features(feats):
+            canary.utils.logger.debug("getting dictionary features.")
             features = []
 
-            for d in data:
-                sen = nlp(d['cover_sentence'])
-                cover_sen_parse_tree = Tree.fromstring(list(sen.sents)[0]._.parse_string)
+            for i, d in enumerate(feats):
+                cover_sen_parse_tree = Tree.fromstring(list(cover_sentences[i].sents)[0]._.parse_string)
 
                 items = {
-                    "parse_tree_height": cover_sen_parse_tree.height(),
+                    'tree_height': cover_sen_parse_tree.height(),
                     'len_paragraph': d['len_paragraph'],
                     "len_component": d['len_component'],
                     "len_cover_sen": d['len_cover_sen'],
@@ -144,23 +132,20 @@ class ArgumentComponent(Model):
                     'first_in_paragraph': d['first_in_paragraph'],
                     'last_in_paragraph': d['last_in_paragraph']
                 }
-                # items.update(pd(d["cover_sentence"]))
+                items.update(pos_dist(d['cover_sentence']).items())
                 features.append(items)
 
             return features
 
-        for d in feats:
-            ret_tuple = (*ret_tuple, get_features(d))
+        return get_features(data)
 
-        return ret_tuple
+    def fit(self, x, y=None):
+        self.__dict_feats.fit(x)
+        self.__features.fit(pandas.DataFrame(x).cover_sentence.tolist())
+        return self
 
-    def predict(self, data, probability=False) -> Union[list, bool]:
-        if type(data) is str:
-            data = [data]
+    def transform(self, x):
+        features = self.__features.transform(pandas.DataFrame(x).cover_sentence.tolist())
+        dict_features = self.__dict_feats.transform(self.prepare_dictionary_features(x))
 
-        feats = self.__feats.transform(data)
-        dict_feats = self.__dict_feats.transform(data)
-
-        combined_feats = hstack([feats, dict_feats])
-        combined_feats = self.__scaler.transform(combined_feats)
-        return super().predict(combined_feats, probability)
+        return hstack([features, dict_features])

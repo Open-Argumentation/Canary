@@ -1,4 +1,5 @@
 import glob
+import itertools
 import os
 import zipfile
 from pathlib import Path
@@ -7,7 +8,31 @@ import joblib
 import requests
 
 import canary
+import canary.corpora
 from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
+
+
+def get_downloadable_assets_from_github():
+    canary_repo = canary.utils.config.get('canary', 'model_download_location')
+    res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
+                       headers={"Accept": "application/vnd.github.v3+json"})
+    if res.status_code == 200:
+        import json
+        return json.loads(res.text)
+    else:
+        canary.utils.logger.error("Could not get details from github")
+        return None
+
+
+def get_models_not_on_disk():
+    current_models = models_available_on_disk()
+    github_assets = [j['name'].split(".")[0] for j in get_downloadable_assets_from_github()['assets']]
+    return list(set(github_assets) - set(current_models))
+
+
+def models_available_on_disk() -> list:
+    from glob import glob
+    return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
 
 
 def download_pretrained_models(model: str, location=None, download_to=None, overwrite=False):
@@ -35,7 +60,7 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
     def unzip_model(model_zip: str):
         with zipfile.ZipFile(model_zip, "r") as zf:
             zf.extractall(download_to)
-            canary.logger.info("models extracted.")
+            canary.utils.logger.info("models extracted.")
         os.remove(model_zip)
 
     def download_asset(asset):
@@ -48,15 +73,15 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
                 file = download_to / asset['name']
                 with open(file, "wb") as f:
                     f.write(asset_res.raw.read())
-                    canary.logger.info("downloaded model")
+                    canary.utils.logger.info("downloaded model")
 
                 if file.suffix == ".zip":
                     unzip_model(download_to / asset['name'])
 
                 if file.suffix == ".joblib":
-                    canary.logger.info(f"{file.name} downloaded to {file.parent}")
+                    canary.utils.logger.info(f"{file.name} downloaded to {file.parent}")
             else:
-                canary.logger.error("There was an error downloading the asset.")
+                canary.utils.logger.error("There was an error downloading the asset.")
                 return
 
     # check if we have already have the model downloaded
@@ -65,20 +90,16 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
         if len(models) > 0:
             for model in models:
                 if os.path.isfile(model) is True:
-                    canary.logger.info("This model already exists")
+                    canary.utils.logger.info("This model already exists")
                     print("This model already exists")
                     return
 
-    # Use GitHub's REST API to find releases.
-    import json
-    res = requests.get(f"https://api.github.com/repos/{location}/releases/tags/latest",
-                       headers={"Accept": "application/vnd.github.v3+json"})
-    if res.status_code == 200:
+    github_releases = get_downloadable_assets_from_github()
+    if github_releases is not None:
         # parse JSON response
-        payload = json.loads(res.text)
-        if 'assets' in payload:
-            if len(payload['assets']) > 0:
-                for asset in payload['assets']:
+        if 'assets' in github_releases:
+            if len(github_releases['assets']) > 0:
+                for asset in github_releases['assets']:
                     name = asset['name'].split(".")[0]
                     if type(model) is str:
                         if model != "all":
@@ -93,58 +114,190 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
                         else:
                             raise ValueError("All items in the list should be strings.")
             else:
-                canary.logger.info("No assets to download.")
+                canary.utils.logger.info("No assets to download.")
                 return
-        if 'prerelease' in payload:
-            canary.logger.info("This has been marked as a pre-release.")
+        if 'prerelease' in github_releases:
+            canary.utils.logger.info("This has been marked as a pre-release.")
     else:
-        canary.logger.error(f"There was an issue getting the models. Http response code: {res.status_code}")
+        canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse(doc: str = None, docs: list = None, out_format: str = "stdout", **kwargs):
+def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
+    supported_file_types = ["txt"]
+
+    if not os.path.isfile(file):
+        raise TypeError("file argument should be a valid file")
+
+    with open(file, "r", encoding='utf-8') as document:
+        return analyse(document.read(), out_format=out_format, min_link_confidence=min_link_confidence,
+                       min_support_confidence=min_support_confidence, steps=steps)
+
+
+def analyse(document: str, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
+    """
     """
 
-    :param out_format:
-    :param docs:
-    :param doc:
-    :param kwargs:
-    :return:
-    """
-
-    if type(out_format) is not str:
-        pass
-
-    if out_format not in ['stdout', 'json', 'csv']:
-        pass
-
-    if doc is not None and docs is not None:
-        raise ValueError("come one man")
-
-    if doc is not None and type(doc) is not str:
-        raise ValueError("")
-
-    if docs is not None and type(docs) is not list:
-        raise ValueError("")
+    allowed_output_formats = [None, "json", "csv"]
 
     from canary.argument_pipeline.argument_segmenter import ArgumentSegmenter
-    import nltk
+    from canary.argument_pipeline.component_identification import ArgumentComponent
 
-    if doc is not None:
-        argumentative_sentences = []
-        non_argumentative_sentences = []
+    canary.utils.logger.debug(document)
 
-        sentences = nltk.sent_tokenize(doc)
-        for s in sentences:
-            if ArgumentSegmenter().predict(s, binary=True) is False:
-                non_argumentative_sentences.append(s)
-            else:
-                argumentative_sentences.append(s)
+    if out_format not in allowed_output_formats:
+        raise ValueError(f"Incorrect out_format value '{out_format}'. Allowed values are {allowed_output_formats}")
+
+    if type(document) is not str:
+        raise TypeError("The inputted document should be a string.")
+
+    # load segmenter
+    canary.utils.logger.debug("Loading Argument Segmenter")
+    segmenter: ArgumentSegmenter = load('arg_segmenter')
+
+    if segmenter is None:
+        canary.utils.logger.error("Failed to load segmenter")
+        raise ValueError("Could not load segmenter.")
+
+    components = segmenter.get_components_from_document(document)
+
+    if len(components) > 0:
+        n_claims, n_major_claims, n_premises = 0, 0, 0
+        canary.utils.logger.debug("Loading component predictor.")
+        component_predictor: ArgumentComponent = canary.load('argument_component')
+
+        if component_predictor is None:
+            raise TypeError("Could not load argument component predictor")
+
+        for component in components:
+            component['type'] = component_predictor.predict(component)
+            if component['type'] == 'Claim':
+                n_claims += 1
+            elif component['type'] == "MajorClaim":
+                n_major_claims += 1
+            elif component['type'] == "Premise":
+                n_premises += 1
+
+        from canary.argument_pipeline.link_predictor import LinkPredictor
+        link_predictor: LinkPredictor = canary.load('link_predictor')
+
+        if link_predictor is None:
+            raise TypeError("Could not load link predictor")
+
+        all_possible_component_pairs = [tuple(reversed(j)) for j in list(itertools.permutations(components, 2)) if
+                                        j[0] != j[1]]
+        canary.utils.logger.debug(f"{len(all_possible_component_pairs)} possible combinations.")
+
+        sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
+        for i, pair in enumerate(all_possible_component_pairs):
+            arg1, arg2 = pair
+            same_sentence = False
+
+            for s in sentences:
+                if arg1['component'] in s and arg2['component'] in s:
+                    same_sentence = True
+
+            all_possible_component_pairs[i] = {
+                "source_before_target": arg1['component_position'] > arg2['component_position'],
+                "arg1_component": arg1["component"],
+                "arg2_component": arg2["component"],
+                "arg1_covering_sentence": arg1["cover_sentence"],
+                "arg2_covering_sentence": arg2["cover_sentence"],
+                "arg1_n_preceding_components": arg1['n_preceding_components'],
+                "arg1_n_following_components": arg1['n_following_comp_tokens'],
+                "arg2_n_preceding_components": arg2['n_preceding_components'],
+                "arg2_n_following_components": arg2['n_following_comp_tokens'],
+                "arg1_first_in_paragraph": arg1["first_in_paragraph"],
+                "arg2_first_in_paragraph": arg2["first_in_paragraph"],
+                "arg2_last_in_paragraph": arg2['last_in_paragraph'],
+                "arg1_last_in_paragraph": arg1['last_in_paragraph'],
+                "arg1_in_intro": arg1["is_in_intro"],
+                "arg2_in_intro": arg2["is_in_intro"],
+                "arg1_in_conclusion": arg1["is_in_conclusion"],
+                "arg2_in_conclusion": arg2["is_in_conclusion"],
+                "arg1_type": arg1["type"],
+                "arg2_type": arg2["type"],
+                "arg1_and_arg2_in_same_sentence": same_sentence,
+                "n_para_components": arg1['n_following_components'] + arg2['n_preceding_components'],
+                "arg1_position": arg1['component_position'],
+                "arg2_position": arg2['component_position'],
+                'arg1_indicator_type_follows_component': arg1['indicator_type_follows_component'],
+                'arg2_indicator_type_follows_component': arg2['indicator_type_follows_component'],
+                'arg1_indicator_type_precedes_component': arg1['indicator_type_precedes_component'],
+                'arg2_indicator_type_precedes_component': arg2['indicator_type_precedes_component']
+
+            }
+            args_linked = link_predictor.predict(all_possible_component_pairs[i]) == "Linked"
+            all_possible_component_pairs[i].update({"args_linked": args_linked})
+
+        canary.utils.logger.debug("Done")
+        linked_relations = [pair for pair in all_possible_component_pairs if
+                            pair["args_linked"] is True and link_predictor.predict(pair, probability=True)[
+                                "Linked"] >= min_link_confidence]
+
+        canary.utils.logger.debug(
+            f" {len(linked_relations)} / {len(all_possible_component_pairs)} identified as being linked")
+
+        # Find attack / support relations
+        if len(linked_relations) > 0:
+            from canary.argument_pipeline.structure_prediction import StructurePredictor
+            sp: StructurePredictor = canary.load('structure_predictor')
+            for r in linked_relations:
+                r['scheme'] = sp.predict(r)
+
+        support_relations = [pair for pair in linked_relations if pair["scheme"] == 'supports']
+        attacks_relations = [pair for pair in linked_relations if pair["scheme"] == 'attacks']
+
+        canary.utils.logger.debug(f"Number of attack relations: {len(attacks_relations)}")
+        canary.utils.logger.debug(f"Number of support relations: {len(support_relations)}")
+
+        # Create a sadface document for what we have found
+        from sadface import sadface
+        sadface.initialise()
+        sadface.set_title("doc")
+
+        # Create atoms
+        for c in components:
+            atom = sadface.add_atom(c['component'])
+            sadface.add_atom_metadata(atom['id'], 'canary', 'type', c['type'])
+
+        # Add edges
+        for l in attacks_relations:
+            arg1_id = sadface.get_atom_id(l['arg1_component'])
+            arg2_id = sadface.get_atom_id(l['arg2_component'])
+            sadface.add_conflict(arg_id=arg1_id, conflict_id=arg2_id)
+
+        for l in support_relations:
+            arg1_id = sadface.get_atom_id(l['arg1_component'])
+            arg2_id = sadface.get_atom_id(l['arg2_component'])
+            sadface.add_support(con_id=arg1_id, prem_id=[arg2_id])
+
+        # add some nice metadata
+        sadface.add_global_metadata('canary', 'number_of_components', len(components))
+        sadface.add_global_metadata('canary', 'number_of_attack_relations', len(attacks_relations))
+        sadface.add_global_metadata('canary', 'number_of_support_relations', len(support_relations))
+        sadface.add_global_metadata('canary', 'number_of_linked_relations', len(linked_relations))
+        sadface.add_global_metadata('canary', 'number_of_premises', n_premises)
+        sadface.add_global_metadata('canary', 'number_of_claims', n_claims)
+        sadface.add_global_metadata('canary', 'number_of_major_claims', n_major_claims)
+        sadface.add_global_metadata('canary', 'version', canary.__version__)
+
+        if out_format == "json":
+            return sadface.export_json()
+        elif out_format == "csv":
+            pass
+        else:
+            return sadface.get_document()
+
+    else:
+        canary.utils.logger.warn("Didn't find any evidence of argumentation")
 
 
-def load(model_id: str, **kwargs):
+def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     """
     load a model
 
+    :param download_if_missing:
+    :param model_dir:
     :param model_id:
     :return:
     """
@@ -155,11 +308,16 @@ def load(model_id: str, **kwargs):
     if 'model_dir' in kwargs:
         absolute_model_path = Path(kwargs["model_dir"]) / model_id
         if os.path.isfile(absolute_model_path) is False:
-            canary.logger.warn("There does not appear to be a model here. This may fail.")
+            canary.utils.logger.warn("There does not appear to be a model here. This may fail.")
     else:
         absolute_model_path = Path(CANARY_MODEL_STORAGE_LOCATION) / model_id
 
     if os.path.isfile(absolute_model_path):
+        canary.utils.logger.debug(f"Loading {model_id} from {absolute_model_path}")
         return joblib.load(absolute_model_path)
     else:
-        canary.logger.error("Did not manage to load the model specified.")
+        canary.utils.logger.error(
+            f"Did not manage to load the model specified. Available models on disk are: {models_available_on_disk()}.")
+        models_not_on_disk = get_models_not_on_disk()
+        if len(models_not_on_disk) > 0:
+            canary.utils.logger.error(f"Models available via download are: {models_not_on_disk}.")
