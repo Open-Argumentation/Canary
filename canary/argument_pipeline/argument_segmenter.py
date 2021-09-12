@@ -1,3 +1,5 @@
+import string
+
 import nltk
 import sklearn_crfsuite
 from sklearn.model_selection import train_test_split
@@ -7,7 +9,10 @@ import canary
 import canary.utils
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
+from canary.preprocessing import Lemmatizer
 from canary.preprocessing.nlp import nltk_download
+
+lemmatizer = Lemmatizer()
 
 
 class ArgumentSegmenter(Model):
@@ -62,19 +67,15 @@ class ArgumentSegmenter(Model):
 
         if pipeline_model is None:
             pipeline_model = sklearn_crfsuite.CRF(
-                algorithm='pa',
+                algorithm='l2sgd',
                 all_possible_transitions=True,
-                all_possible_states=True
+                all_possible_states=True,
             )
 
         pipeline_model.fit(train_data, train_targets)
 
         labels = list(pipeline_model.classes_)
         y_pred = pipeline_model.predict(test_data)
-        metrics.flat_f1_score(test_targets,
-                              y_pred,
-                              average='weighted',
-                              labels=labels)
 
         sorted_labels = sorted(
             labels,
@@ -236,6 +237,50 @@ class ArgumentSegmenter(Model):
                 component['first_in_paragraph'] = True if component["n_preceding_components"] == 0 else False
                 component['last_in_paragraph'] = True if component["n_following_components"] == 0 else False
 
+        # find if indicator type is...
+        from canary.preprocessing.transformers import DiscourseMatcher
+        forward_matcher = DiscourseMatcher('forward')
+        thesis_matcher = DiscourseMatcher('thesis')
+        rebuttal_matcher = DiscourseMatcher('rebuttal')
+        backward_matcher = DiscourseMatcher('backward')
+
+        for i, component in enumerate(components):
+            para_components = [c for c in components if c['para_ref'] == component['para_ref']]
+
+            prev_components = para_components[:i]
+            following_components = para_components[i + 1:]
+
+            component['indicator_type_precedes_component'] = False
+            component['indicator_type_follows_component'] = False
+
+            for c in prev_components:
+                if forward_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_precedes_component'] = True
+                    break
+                elif thesis_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_precedes_component'] = True
+                    break
+                elif rebuttal_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_precedes_component'] = True
+                    break
+                elif backward_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_precedes_component'] = True
+                    break
+
+            for c in following_components:
+                if forward_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_follows_component'] = True
+                    break
+                elif thesis_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_follows_component'] = True
+                    break
+                elif rebuttal_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_follows_component'] = True
+                    break
+                elif backward_matcher.transform(c['cover_sentence'])[0][0] is True:
+                    component['indicator_type_follows_component'] = True
+                    break
+
         for c in components:
             del c['tokens']
         return components
@@ -247,13 +292,15 @@ def get_word_features(sent, i):
     features = {
         'bias': 1.0,
         'word.lower()': str(word).lower(),
-        'word[-3:]': str(word)[-3:],
-        'word[-2:]': str(word)[-2:],
         'word.is_lower': word.isupper(),
         'word.istitle()': word.istitle(),
         'word.isdigit()': word.isdigit(),
         'postag': sent[i][1],
-        'ent': sent[i][2]
+        'ent': sent[i][2],
+        'lemma': lemmatizer(word)[0],
+        "period": word == '.',
+        'is_punct': word in string.punctuation,
+        'len': len(word)
     }
 
     if i > 0:
@@ -265,8 +312,9 @@ def get_word_features(sent, i):
             '-1:word.istitle()': word1.istitle(),
             '-1:word.isupper()': word1.isupper(),
             '-1:postag': postag1,
-            '-1:postag[:2]': str(postag1)[:2],
-            '-1:ent': ent1
+            '-1:lemma': lemmatizer(word1)[0],
+            '-1:ent': ent1,
+            '-1:punct': word1 in string.punctuation
         })
     else:
         features['BOS'] = True
@@ -280,7 +328,7 @@ def get_word_features(sent, i):
             '-2:word.istitle()': word2.istitle(),
             '-2:word.isupper()': word2.isupper(),
             '-2:postag': postag2,
-            '-2:postag[:2]': str(postag2)[:2],
+            '-2:lemma': lemmatizer(word2)[0],
             '-2:ent': ent2,
         })
 
@@ -293,8 +341,60 @@ def get_word_features(sent, i):
             '-3:word.istitle()': word3.istitle(),
             '-3:word.isupper()': word3.isupper(),
             '-3:postag': postag3,
-            '-3:postag[:2]': str(postag3)[:2],
+            '-3:lemma': lemmatizer(word3)[0],
             '-3:ent': ent3,
+        })
+
+    if i > 3:
+        word4 = sent[i - 4][0]
+        postag4 = sent[i - 4][1]
+        ent4 = sent[i - 4][2]
+        features.update({
+            '-4:word.lower()': str(word4).lower(),
+            '-4:word.istitle()': word4.istitle(),
+            '-4:word.isupper()': word4.isupper(),
+            '-4:postag': postag4,
+            '-4:lemma': lemmatizer(word4)[0],
+            '-4:ent': ent4,
+        })
+
+    if i > 4:
+        word5 = sent[i - 5][0]
+        postag5 = sent[i - 5][1]
+        ent5 = sent[i - 5][2]
+        features.update({
+            '-5:word.lower()': str(word5).lower(),
+            '-5:word.istitle()': word5.istitle(),
+            '-5:word.isupper()': word5.isupper(),
+            '-5:postag': postag5,
+            '-5:lemma': lemmatizer(word5)[0],
+            '-5:ent': ent5,
+        })
+
+    if i < len(sent) - 5:
+        word5 = sent[i + 5][0]
+        postag5 = sent[i + 5][1]
+        ent5 = sent[i + 5][2]
+        features.update({
+            '+5:word.lower()': str(word5).lower(),
+            '+5:word.istitle()': word5.istitle(),
+            '+5:word.isupper()': word5.isupper(),
+            '+5:postag': postag5,
+            '+5:lemma': lemmatizer(word5)[0],
+            '+5:ent': ent5,
+        })
+
+    if i < len(sent) - 4:
+        word4 = sent[i + 4][0]
+        postag4 = sent[i + 4][1]
+        ent4 = sent[i + 4][2]
+        features.update({
+            '+4:word.lower()': str(word4).lower(),
+            '+4:word.istitle()': word4.istitle(),
+            '+4:word.isupper()': word4.isupper(),
+            '+4:postag': postag4,
+            '+4:lemma': lemmatizer(word4)[0],
+            '+4:ent': ent4,
         })
 
     if i < len(sent) - 3:
@@ -306,7 +406,7 @@ def get_word_features(sent, i):
             '+3:word.istitle()': word3.istitle(),
             '+3:word.isupper()': word3.isupper(),
             '+3:postag': postag3,
-            '+3:postag[:2]': str(postag3)[:2],
+            '+3:lemma': lemmatizer(word3)[0],
             '+3:ent': ent3,
         })
 
@@ -319,7 +419,7 @@ def get_word_features(sent, i):
             '+2:word.istitle()': word2.istitle(),
             '+2:word.isupper()': word2.isupper(),
             '+2:postag': postag2,
-            '+2:postag[:2]': str(postag2)[:2],
+            '+2:lemma': lemmatizer(word2)[0],
             '+2:ent': ent2,
         })
 
@@ -332,8 +432,9 @@ def get_word_features(sent, i):
             '+1:word.istitle()': word1.istitle(),
             '+1:word.isupper()': word1.isupper(),
             '+1:postag': postag1,
-            '+1:postag[:2]': str(postag1)[:2],
             '+1:ent': ent1,
+            '+1:lemma': lemmatizer(word1)[0],
+            '+1:punt': word1 in string.punctuation,
         })
     else:
         features['EOS'] = True

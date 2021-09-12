@@ -81,6 +81,22 @@ class Model:
             canary.utils.logger.info(f"Saving {self.model_id} to {save_to}.")
             joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib", compress=2)
 
+    def cross_val_train(self, pipeline_model=None, x=None, y=None, cv=2):
+
+        from sklearn.model_selection import cross_val_predict
+        prediction = cross_val_predict(pipeline_model, x, y, cv=cv)
+
+        report = f"\nModel stats:\n{classification_report(y, prediction.tolist())}"
+
+        if canary.utils.config.get('canary', 'dev') == "True":
+            self._log_training_data(report)
+        else:
+            canary.utils.logger.debug(report)
+        self._metrics = classification_report(y, prediction, output_dict=True)
+
+        self._model = pipeline_model
+        self.save()
+
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
         """
@@ -122,7 +138,7 @@ class Model:
         pipeline_model.fit(train_data, train_targets)
         prediction = pipeline_model.predict(test_data)
 
-        report = f"\nModel stats:\n{classification_report(prediction, test_targets)}"
+        report = f"\nModel stats:\n{classification_report(test_targets, prediction)}"
 
         if canary.utils.config.get('canary', 'dev') == "True":
             self._log_training_data(report)
@@ -130,7 +146,7 @@ class Model:
             canary.utils.logger.debug(report)
 
         self._model = pipeline_model
-        self._metrics = classification_report(prediction, test_targets, output_dict=True)
+        self._metrics = classification_report(test_targets, prediction, output_dict=True)
 
         if save_on_finish is True:
             self.save()
@@ -154,7 +170,7 @@ class Model:
 
             pipeline_model.fit(X_train.tolist(), y_train.tolist())
             prediction = pipeline_model.predict(X_test.tolist())
-            report = f"\nModel stats:\n{classification_report(prediction, y_test.tolist())}"
+            report = f"\nModel stats:\n{classification_report(y_test.tolist(), prediction)}"
 
             if canary.utils.config.get('canary', 'dev') == "True":
                 self._log_training_data(report)

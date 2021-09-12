@@ -105,7 +105,6 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
     canary.preprocessing.nlp.nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
 
-
     if version not in _allowed_version_values:
         raise ValueError(f"{version} is not a valid value. Valid values are {_allowed_version_values}")
 
@@ -196,8 +195,8 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                         for r in relations:
                             if (arg1.id == r.arg1.id and arg2.id == r.arg2.id) or (
                                     arg2.id == r.arg1.id and arg1.id == r.arg2.id):
-                                arg1_feats = find_component_features(essay, arg1)
-                                arg2_feats = find_component_features(essay, arg2)
+                                arg1_feats = find_component_features(essay, arg1, include_link_feats=True)
+                                arg2_feats = find_component_features(essay, arg2, include_link_feats=True)
 
                                 feats = {
                                     "source_before_target": arg1_feats['component_position'] > arg2_feats[
@@ -212,11 +211,11 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                                     "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
                                     "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
                                     "arg1_component": arg1.mention,
-                                    "arg1_cover_sen": find_cover_sentence(essay, arg1),
+                                    "arg1_covering_sentence": find_cover_sentence(essay, arg1),
                                     "arg1_type": arg1.type,
                                     "arg1_n_following_components": arg1_feats['n_following_components'],
                                     "arg2_component": arg2.mention,
-                                    "arg2_cover_sen": find_cover_sentence(essay, arg2),
+                                    "arg2_covering_sentence": find_cover_sentence(essay, arg2),
                                     "arg2_type": arg2.type,
                                     "arg2_position": arg2_feats['component_position'],
                                     "arg2_in_intro": arg2_feats['is_in_intro'],
@@ -226,6 +225,14 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                                     "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
                                     "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
                                     "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
+                                    'arg1_indicator_type_follows_component': arg1_feats[
+                                        'indicator_type_follows_component'],
+                                    'arg2_indicator_type_follows_component': arg2_feats[
+                                        'indicator_type_follows_component'],
+                                    'arg1_indicator_type_precedes_component': arg1_feats[
+                                        'indicator_type_precedes_component'],
+                                    'arg2_indicator_type_precedes_component': arg2_feats[
+                                        'indicator_type_precedes_component'],
                                     "n_para_components": len(components),
                                 }
                                 if feats not in _x:
@@ -240,8 +247,8 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
 
                 for p in component_pairs:
                     arg1, arg2 = p
-                    arg1_feats = find_component_features(essay, arg1)
-                    arg2_feats = find_component_features(essay, arg2)
+                    arg1_feats = find_component_features(essay, arg1, include_link_feats=True)
+                    arg2_feats = find_component_features(essay, arg2, include_link_feats=True)
 
                     feats = {
                         "source_before_target": arg1.start > arg2.end,
@@ -255,11 +262,11 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                         "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
                         "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
                         "arg1_component": arg1.mention,
-                        "arg1_cover_sen": find_cover_sentence(essay, arg1),
+                        "arg1_covering_sentence": find_cover_sentence(essay, arg1),
                         "arg1_type": arg1.type,
                         "arg1_n_following_components": arg1_feats['n_following_components'],
                         "arg2_component": arg2.mention,
-                        "arg2_cover_sen": find_cover_sentence(essay, arg2),
+                        "arg2_covering_sentence": find_cover_sentence(essay, arg2),
                         "arg2_type": arg2.type,
                         "arg2_position": arg2_feats['component_position'],
                         "arg2_in_intro": arg2_feats['is_in_intro'],
@@ -269,7 +276,15 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                         "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
                         "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
                         "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
-                        "n_para_components": len(components)
+                        'arg1_indicator_type_follows_component': arg1_feats[
+                            'indicator_type_follows_component'],
+                        'arg2_indicator_type_follows_component': arg2_feats[
+                            'indicator_type_follows_component'],
+                        'arg1_indicator_type_precedes_component': arg1_feats[
+                            'indicator_type_precedes_component'],
+                        'arg2_indicator_type_precedes_component': arg2_feats[
+                            'indicator_type_precedes_component'],
+                        "n_para_components": len(components),
                     }
 
                     if feats not in _x:

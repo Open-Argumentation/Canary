@@ -122,17 +122,18 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, out_format=None, steps=None):
+def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
     supported_file_types = ["txt"]
 
     if not os.path.isfile(file):
         raise TypeError("file argument should be a valid file")
 
     with open(file, "r", encoding='utf-8') as document:
-        return analyse(document.read(), out_format=out_format, steps=steps)
+        return analyse(document.read(), out_format=out_format, min_link_confidene=min_link_confidence,
+                       min_support_confidence=min_support_confidence, steps=steps)
 
 
-def analyse(document: str, out_format=None, steps=None, **kwargs):
+def analyse(document: str, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
     """
     """
 
@@ -219,12 +220,20 @@ def analyse(document: str, out_format=None, steps=None, **kwargs):
                 "n_para_components": arg1['n_following_components'] + arg2['n_preceding_components'],
                 "arg1_position": arg1['component_position'],
                 "arg2_position": arg2['component_position'],
+                'arg1_indicator_type_follows_component': arg1['indicator_type_follows_component'],
+                'arg2_indicator_type_follows_component': arg2['indicator_type_follows_component'],
+                'arg1_indicator_type_precedes_component': arg1['indicator_type_precedes_component'],
+                'arg2_indicator_type_precedes_component': arg2['indicator_type_precedes_component']
+
             }
             args_linked = link_predictor.predict(all_possible_component_pairs[i]) == "Linked"
             all_possible_component_pairs[i].update({"args_linked": args_linked})
 
         canary.utils.logger.debug("Done")
-        linked_relations = [pair for pair in all_possible_component_pairs if pair["args_linked"] is True]
+        linked_relations = [pair for pair in all_possible_component_pairs if
+                            pair["args_linked"] is True and link_predictor.predict(pair, probability=True)[
+                                "Linked"] >= min_link_confidence]
+
         canary.utils.logger.debug(
             f" {len(linked_relations)} / {len(all_possible_component_pairs)} identified as being linked")
 

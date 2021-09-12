@@ -37,7 +37,7 @@ def nltk_download(packages):
                 nltk.download(package, quiet=True, download_dir=nltk_data_dir)
 
 
-def spacy_download(package: str = None):
+def spacy_download(package: str = None, disable=None):
     """
     Wrapper around spacy.load which will download the necessary package if it is not present
     :return:spacy model
@@ -59,8 +59,16 @@ def spacy_download(package: str = None):
     try:
         nltk_data_dir = _Path(f"{_Path.home()}") / _config.get("nltk", "storage_directory")
         benepar.download('benepar_en3', download_dir=nltk_data_dir, quiet=True)
-        nlp = load(package)
-        nlp.add_pipe("benepar", config={"model": "benepar_en3"})
+        if disable is None:
+            nlp = load(package)
+        else:
+            nlp = load(package, disable=disable)
+
+        if disable is not None:
+            if 'benepar' not in disable:
+                nlp.add_pipe("benepar", config={"model": "benepar_en3"})
+        else:
+            nlp.add_pipe("benepar", config={"model": "benepar_en3"})
 
         return nlp
     except OSError:

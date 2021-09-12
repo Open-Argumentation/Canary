@@ -2,20 +2,22 @@ import pandas
 from nltk.tree import Tree
 from scipy.sparse import hstack
 from sklearn.base import TransformerMixin, BaseEstimator
-from sklearn.feature_extraction import FeatureHasher
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_union, make_pipeline
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MaxAbsScaler
+from sklearn.svm import SVC
 
 import canary
 import canary.utils
 from canary.argument_pipeline.model import Model
 from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer
-from canary.preprocessing.transformers import DiscourseMatcher, FirstPersonIndicatorMatcher
+from canary.preprocessing import Lemmatizer, PosDistribution
+from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransformer
 
-_nlp = canary.preprocessing.nlp.spacy_download()
+_nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                                                        'attribute_ruler',
+                                                        'tok2vec', ])
 
 
 class ArgumentComponent(Model):
@@ -41,16 +43,24 @@ class ArgumentComponent(Model):
     def default_train():
         # get training and test data
         from sklearn.model_selection import train_test_split
+        from imblearn.under_sampling import RandomUnderSampler
+        ros = RandomUnderSampler(random_state=0, sampling_strategy='not minority')
 
         x, y = load_essay_corpus(purpose="component_prediction")
+        x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
+
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
-                             train_size=0.6,
+                             train_size=0.7,
                              shuffle=True,
                              random_state=0,
+                             stratify=y
                              )
 
-        return train_data, test_data, train_targets, test_targets
+        canary.utils.logger.debug("Resample")
+
+        return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
+            0].tolist(), test_targets[0].tolist()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
@@ -59,14 +69,9 @@ class ArgumentComponent(Model):
         if pipeline_model is None:
             pipeline_model = make_pipeline(
                 ArgumentComponentFeatures(),
-                RobustScaler(with_centering=False, unit_variance=False),
-                LogisticRegression(
-                    class_weight='balanced',
-                    warm_start=True,
-                    random_state=0,
-                    max_iter=2000,
-                    solver="newton-cg"
-                ))
+                MaxAbsScaler(),
+                SVC(random_state=0, class_weight='balanced', probability=True, cache_size=1000)
+            )
 
         super(ArgumentComponent, self).train(
             pipeline_model=pipeline_model,
@@ -80,34 +85,40 @@ class ArgumentComponent(Model):
 
 class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
     features: list = [
-        TfidfVectorizer(ngram_range=(1, 3), tokenizer=Lemmatizer(), lowercase=False, max_features=1000),
-        DiscourseMatcher('forward', lemmatize=True),
-        DiscourseMatcher('thesis', lemmatize=True),
-        DiscourseMatcher('rebuttal', lemmatize=True),
-        DiscourseMatcher('backward', lemmatize=True),
-        FirstPersonIndicatorMatcher("I"),
-        FirstPersonIndicatorMatcher("me"),
-        FirstPersonIndicatorMatcher("mine"),
-        FirstPersonIndicatorMatcher("myself"),
-        FirstPersonIndicatorMatcher("my"),
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False),
+        # TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=500),
+        DiscourseMatcher('forward'),
+        DiscourseMatcher('thesis'),
+        DiscourseMatcher('rebuttal'),
+        DiscourseMatcher('backward'),
+        DiscourseMatcher('obligation'),
+        DiscourseMatcher('recommendation'),
+        DiscourseMatcher('possible'),
+        DiscourseMatcher('intention'),
+        DiscourseMatcher('option'),
+        DiscourseMatcher('first_person'),
+        EmbeddingTransformer()
     ]
 
     def __init__(self):
-        self.__dict_feats = FeatureHasher()
+        self.__dict_feats = DictVectorizer()
         self.__features = make_union(*ArgumentComponentFeatures.features)
 
     @staticmethod
     def prepare_dictionary_features(data):
+        pos_dist = PosDistribution()
+        cover_sentences = pandas.DataFrame(data).cover_sentence.tolist()
+        cover_sentences = list(_nlp.pipe(cover_sentences))
+
         def get_features(feats):
             canary.utils.logger.debug("getting dictionary features.")
             features = []
 
-            for d in feats:
-                sen = _nlp(d['cover_sentence'])
-                cover_sen_parse_tree = Tree.fromstring(list(sen.sents)[0]._.parse_string)
+            for i, d in enumerate(feats):
+                cover_sen_parse_tree = Tree.fromstring(list(cover_sentences[i].sents)[0]._.parse_string)
 
                 items = {
-                    "parse_tree_height": cover_sen_parse_tree.height(),
+                    'tree_height': cover_sen_parse_tree.height(),
                     'len_paragraph': d['len_paragraph'],
                     "len_component": d['len_component'],
                     "len_cover_sen": d['len_cover_sen'],
@@ -121,6 +132,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
                     'first_in_paragraph': d['first_in_paragraph'],
                     'last_in_paragraph': d['last_in_paragraph']
                 }
+                items.update(pos_dist(d['cover_sentence']).items())
                 features.append(items)
 
             return features

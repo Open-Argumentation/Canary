@@ -1,17 +1,16 @@
 import pandas
 from scipy.sparse import hstack
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_extraction import FeatureHasher
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_union, make_pipeline
 from sklearn.preprocessing import LabelBinarizer, Normalizer
-from sklearn.svm import SVC
 
 import canary.utils
 from canary.argument_pipeline.model import Model
-from canary.preprocessing.transformers import WordSentimentCounter, TfidfPosVectorizer, \
-    EmbeddingTransformer, SentimentTransformer, DiscourseMatcher, AverageWordLengthTransformer, \
-    LengthOfSentenceTransformer
+from canary.preprocessing.transformers import WordSentimentCounter, DiscourseMatcher
+
+nlp = canary.preprocessing.nlp.spacy_download()
 
 
 class StructurePredictor(Model):
@@ -24,23 +23,26 @@ class StructurePredictor(Model):
 
     @staticmethod
     def default_train():
+
         from canary.corpora import load_essay_corpus
-        from imblearn.under_sampling import RandomUnderSampler
+        from imblearn.over_sampling import RandomOverSampler
         from sklearn.model_selection import train_test_split
 
+        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
         x, y = load_essay_corpus(purpose="relation_prediction")
+        x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
+
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
-                             train_size=0.8,
+                             train_size=0.6,
+                             shuffle=True,
                              random_state=0,
-                             stratify=y
                              )
 
         canary.utils.logger.debug("Resample")
-        ros = RandomUnderSampler(random_state=0)
-        train_data, train_targets = ros.fit_resample(pandas.DataFrame(train_data), pandas.DataFrame(train_targets))
 
-        return list(train_data.to_dict("index").values()), test_data, train_targets[0].tolist(), test_targets
+        return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
+            0].tolist(), test_targets[0].tolist()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, **kwargs):
@@ -49,7 +51,7 @@ class StructurePredictor(Model):
             pipeline_model = make_pipeline(
                 StructureFeatures(),
                 Normalizer(),
-                SVC(random_state=0, probability=True))
+                SGDClassifier(random_state=0, loss="log", ))
 
         super(StructurePredictor, self).train(
             pipeline_model=pipeline_model,
@@ -67,30 +69,16 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         DiscourseMatcher("conflict"),
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
-        AverageWordLengthTransformer(),
-        LengthOfSentenceTransformer(),
-        EmbeddingTransformer(),
         WordSentimentCounter("neu"),
         WordSentimentCounter("pos"),
         WordSentimentCounter("neg")
-    ]
-
-    text_features: list = [
-        TfidfVectorizer(ngram_range=(1, 2), lowercase=False, max_features=1000),
-        TfidfPosVectorizer(),
-        SentimentTransformer("pos"),
-        SentimentTransformer("neg"),
-        SentimentTransformer("neu"),
     ]
 
     def __init__(self):
         self.__arg1_cover_features = make_union(*StructureFeatures.cover_features)
         self.__arg2_cover_features = make_union(*StructureFeatures.cover_features)
 
-        self.__arg1_text_features = make_union(*StructureFeatures.text_features)
-        self.__arg2_text_features = make_union(*StructureFeatures.text_features)
-
-        self.__dictionary_features = FeatureHasher()
+        self.__dictionary_features = DictVectorizer()
 
         self.__ohe_arg1 = LabelBinarizer()
         self.__ohe_arg2 = LabelBinarizer()
@@ -104,9 +92,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
         self.__arg2_cover_features.fit(x.arg2_covering_sentence.tolist())
 
-        self.__arg1_text_features.fit(x.arg1_component.tolist())
-        self.__arg2_text_features.fit(x.arg2_component.tolist())
-
         self.__ohe_arg1.fit(x.arg1_type.tolist())
         self.__ohe_arg2.fit(x.arg2_type.tolist())
         return self
@@ -119,9 +104,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         arg1_cover_features = self.__arg1_cover_features.transform(x.arg1_covering_sentence)
         arg2_cover_features = self.__arg2_cover_features.transform(x.arg2_covering_sentence)
 
-        arg1_text_features = self.__arg1_text_features.transform(x.arg1_component)
-        arg2_text_features = self.__arg2_text_features.transform(x.arg2_component)
-
         arg1_types = self.__ohe_arg1.transform(x.arg1_type)
         arg2_types = self.__ohe_arg2.transform(x.arg2_type)
 
@@ -130,8 +112,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
                 dictionary_features,
                 arg1_cover_features,
                 arg2_cover_features,
-                arg1_text_features,
-                arg2_text_features,
                 arg1_types,
                 arg2_types
             ]
@@ -144,7 +124,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
     @staticmethod
     def prepare_dictionary_features(data):
         canary.utils.logger.debug("Getting dictionary features.")
-        nlp = canary.preprocessing.nlp.spacy_download()
 
         def get_features(f):
             new_feats = f.copy()
@@ -163,8 +142,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
                     "n_following_components": d["n_following_components"],
                     "n_attack_components": d["n_attack_components"],
                     "n_support_components": d["n_support_components"],
-                    "arg1_cover_ents": len(sent1.ents),
-                    "arg2_cover_ents": len(sent2.ents),
                     "neg_present_arg1": StructureFeatures.binary_neg_present(sent1.text),
                     "neg_present_arg2": StructureFeatures.binary_neg_present(sent2.text),
                 }

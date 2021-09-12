@@ -1,4 +1,5 @@
 from collections import Counter
+from functools import lru_cache
 
 import nltk
 from nltk.corpus import wordnet
@@ -35,6 +36,7 @@ class Lemmatizer:
         else:
             return wordnet.NOUN
 
+    @lru_cache(maxsize=None)
     def __process(self, t):
         tag = nltk.pos_tag([t])[0][1]
         return _word_net.lemmatize(t, self.get_wordnet_pos(tag))

@@ -2,10 +2,10 @@ import nltk
 import pandas
 from scipy.sparse import hstack
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import Normalizer, LabelBinarizer, MaxAbsScaler
+from sklearn.preprocessing import LabelBinarizer, MaxAbsScaler
+from sklearn.svm import SVC
 
 import canary.utils
 from canary.argument_pipeline.model import Model
@@ -13,7 +13,9 @@ from canary.preprocessing import Lemmatizer, PosDistribution
 from canary.preprocessing.transformers import DiscourseMatcher, SharedNouns
 
 canary.preprocessing.nlp.nltk_download('punkt')
-_nlp = canary.preprocessing.nlp.spacy_download()
+_nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                                                        'attribute_ruler',
+                                                        'benepar'])
 
 
 class LinkPredictor(Model):
@@ -27,42 +29,24 @@ class LinkPredictor(Model):
     @staticmethod
     def default_train():
         from canary.corpora import load_essay_corpus
-        from imblearn.under_sampling import RandomUnderSampler
+        from imblearn.over_sampling import RandomOverSampler
         from sklearn.model_selection import train_test_split
 
+        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
         x, y = load_essay_corpus(purpose='link_prediction')
+        x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
+
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
-                             train_size=0.8,
+                             train_size=0.5,
                              shuffle=True,
                              random_state=0,
                              )
+
         canary.utils.logger.debug("Resample")
-        ros = RandomUnderSampler(random_state=0)
-        train_data, train_targets = ros.fit_resample(pandas.DataFrame(train_data), pandas.DataFrame(train_targets))
 
-        return list(train_data.to_dict("index").values()), test_data, train_targets[0].tolist(), test_targets
-
-    def stratified_k_fold_train(self, pipeline_model=None, train_data=None, train_targets=None,
-                                save_on_finish=True, n_splits=2, *args, **kwargs):
-
-        train_data, test_data, train_targets, test_targets = self.default_train()
-        train_data = train_data + test_data
-        train_targets = train_targets + test_targets
-
-        del test_data
-        del test_targets
-
-        if pipeline_model is None:
-            pipeline_model = make_pipeline(
-                LinkFeatures(),
-                Normalizer(),
-                RandomForestClassifier(n_estimators=300, random_state=0, min_samples_leaf=4,
-                                       max_depth=10)
-            )
-
-        return super(LinkPredictor, self).stratified_k_fold_train(pipeline_model, train_data, train_targets,
-                                                                  save_on_finish, n_splits)
+        return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
+            0].tolist(), test_targets[0].tolist()
 
     def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
@@ -71,8 +55,7 @@ class LinkPredictor(Model):
             pipeline_model = make_pipeline(
                 LinkFeatures(),
                 MaxAbsScaler(),
-                RandomForestClassifier(n_estimators=300, random_state=0, min_samples_leaf=4,
-                                       max_depth=10)
+                SVC(random_state=0, probability=True, C=10),
             )
 
         return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish, *args,
@@ -93,9 +76,9 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
         self.__numeric_dict_features = DictVectorizer()
 
-        self.__arg1_cover_features = make_union(*LinkFeatures.feats.copy())
+        self.__arg1_cover_features = make_union(*LinkFeatures.feats)
 
-        self.__arg2_cover_features = make_union(*LinkFeatures.feats.copy())
+        self.__arg2_cover_features = make_union(*LinkFeatures.feats)
 
         self.__ohe_arg1 = LabelBinarizer()
 
@@ -108,18 +91,16 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         :param y: ignored.
         :return:
         """
+        px = pandas.DataFrame(x)
 
-        num_dict = self.prepare_numeric_feats(x)
-        self.__numeric_dict_features.fit(num_dict)
+        self.__arg1_cover_features.fit(px.arg1_covering_sentence.tolist())
+        self.__arg2_cover_features.fit(px.arg2_covering_sentence.tolist())
+
+        self.__numeric_dict_features.fit(self.prepare_numeric_feats(x))
         self.__nom_dict_features.fit(self.prepare_dictionary_features(x))
 
-        x = pandas.DataFrame(x)
-
-        self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
-        self.__arg2_cover_features.fit(x.arg2_covering_sentence.tolist())
-
-        self.__ohe_arg1.fit(x.arg1_type.tolist())
-        self.__ohe_arg2.fit(x.arg2_type.tolist())
+        self.__ohe_arg1.fit(["Premise", "Claim", "MajorClaim"])
+        self.__ohe_arg2.fit(["Premise", "Claim", "MajorClaim"])
 
         return self
 
@@ -140,23 +121,31 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
     @staticmethod
     def prepare_dictionary_features(data):
         canary.utils.logger.debug("Getting dictionary features")
+        shared_noun_counter = SharedNouns()
 
         def get_features(feats):
             new_feats = feats.copy()
+
             for t, f in enumerate(new_feats):
+                n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
+
                 features = {
                     "source_before_target": f["source_before_target"],
                     "arg1_first_in_paragraph": f["arg1_first_in_paragraph"],
                     "arg1_last_in_paragraph": f["arg1_last_in_paragraph"],
                     "arg2_first_in_paragraph": f["arg2_first_in_paragraph"],
                     "arg2_last_in_paragraph": f["arg2_last_in_paragraph"],
+                    "arg1_is_premise": f["arg1_type"] == "Premise",
                     "arg1_in_intro": f["arg1_in_intro"],
                     "arg1_in_conclusion": f["arg1_in_conclusion"],
                     "arg2_in_intro": f['arg2_in_intro'],
                     "arg2_in_conclusion": f["arg2_in_conclusion"],
                     "arg1_and_arg2_in_same_sentence": f["arg1_and_arg2_in_same_sentence"],
-                    "both_in_conclusion": f["arg1_in_conclusion"] is True and f["arg2_in_conclusion"] is True,
-                    "both_in_intro": f["arg1_in_intro"] is True and f["arg2_in_intro"] is True,
+                    "arg1_indicator_type_follows_component": f["arg1_indicator_type_follows_component"],
+                    "arg2_indicator_type_follows_component": f["arg2_indicator_type_follows_component"],
+                    "arg1_indicator_type_precedes_component": f["arg1_indicator_type_precedes_component"],
+                    "arg2_indicator_type_precedes_component": f["arg2_indicator_type_precedes_component"],
+                    "share_nouns": n_shared_nouns > 0,
                 }
 
                 new_feats[t] = features
@@ -171,6 +160,11 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
         def get_features(feats):
             pos_dist = PosDistribution()
+            arg1_covering_sentence = pandas.DataFrame(feats).arg1_covering_sentence.tolist()
+            arg1_covering_sentence = list(_nlp.pipe(arg1_covering_sentence))
+
+            arg2_covering_sentence = pandas.DataFrame(feats).arg2_covering_sentence.tolist()
+            arg2_covering_sentence = list(_nlp.pipe(arg2_covering_sentence))
 
             new_feats = feats.copy()
             for t, f in enumerate(new_feats):
@@ -184,6 +178,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
                     "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_covering_sentence'])),
                     "arg2_cover_sen_token_len": len(nltk.word_tokenize(f['arg2_covering_sentence'])),
                     "shared_nouns": n_shared_nouns,
+                    "similarity": arg1_covering_sentence[t].similarity(arg2_covering_sentence[t])
                 }
 
                 arg1_posd = {"arg1_" + str(key): val for key, val in pos_dist(f['arg1_covering_sentence']).items()}

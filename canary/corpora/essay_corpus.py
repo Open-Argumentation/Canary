@@ -1,8 +1,14 @@
 import nltk
 
 from canary.preprocessing.nlp import spacy_download
+from canary.preprocessing.transformers import DiscourseMatcher
 
 _nlp = spacy_download()
+
+forward_matcher = DiscourseMatcher('forward')
+thesis_matcher = DiscourseMatcher('thesis')
+rebuttal_matcher = DiscourseMatcher('rebuttal')
+backward_matcher = DiscourseMatcher('backward')
 
 
 def find_paragraph_features(feats, component, _essay):
@@ -110,7 +116,7 @@ def find_cover_sentence(_essay, rel):
     raise ValueError("Didn't find cover sentence when there should be one.")
 
 
-def find_component_features(_essay, component):
+def find_component_features(_essay, component, include_link_feats=False):
     feats = {
         "is_in_intro": False,
         "is_in_conclusion": False,
@@ -141,6 +147,46 @@ def find_component_features(_essay, component):
             feats["n_preceding_components"] = len(components[:i])
             feats['first_in_paragraph'] = True if feats["n_preceding_components"] == 0 else False
             feats['last_in_paragraph'] = True if feats["n_following_components"] == 0 else False
+
+            if include_link_feats is True:
+                feats['indicator_type_precedes_component'] = False
+                feats['indicator_type_follows_component'] = False
+
+                prev_components = components[:i]
+                for c in prev_components:
+                    c.cover_sen = find_cover_sentence(_essay, c)
+
+                following_components = components[i + 1:]
+                for c in following_components:
+                    c.cover_sen = find_cover_sentence(_essay, c)
+
+                for c in prev_components:
+                    if forward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif thesis_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif rebuttal_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif backward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+
+                for c in following_components:
+                    if forward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif thesis_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif rebuttal_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif backward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
 
     return feats
 
