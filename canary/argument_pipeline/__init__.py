@@ -129,7 +129,7 @@ def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_con
         raise TypeError("file argument should be a valid file")
 
     with open(file, "r", encoding='utf-8') as document:
-        return analyse(document.read(), out_format=out_format, min_link_confidene=min_link_confidence,
+        return analyse(document.read(), out_format=out_format, min_link_confidence=min_link_confidence,
                        min_support_confidence=min_support_confidence, steps=steps)
 
 
