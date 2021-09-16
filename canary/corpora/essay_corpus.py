@@ -1,9 +1,6 @@
 import nltk
 
-from canary.preprocessing.nlp import spacy_download
 from canary.preprocessing.transformers import DiscourseMatcher
-
-_nlp = spacy_download()
 
 forward_matcher = DiscourseMatcher('forward')
 thesis_matcher = DiscourseMatcher('thesis')
@@ -200,7 +197,3 @@ def relations_in_same_sentence(arg1, arg2, essay):
             return True
 
     return False
-
-
-def _find_stances(essay):
-    pass

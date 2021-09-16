@@ -14,7 +14,6 @@ from pybrat.parser import BratParser
 
 import canary.preprocessing.nlp
 import canary.utils
-from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
     tokenize_essay_sentences, find_component_features, relations_in_same_sentence
 from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
@@ -539,7 +538,7 @@ def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list
         return datasets
 
 
-def load_araucaria_corpus(purpose: str = None):
+def load_araucaria_corpus():
     """
     Loads the araucaria corpus
 
@@ -547,27 +546,19 @@ def load_araucaria_corpus(purpose: str = None):
     """
 
     corpus_download = download_corpus("araucaria")
-    corpus = {}
     if "location" in corpus_download:
 
         corpus_location = corpus_download["location"]
         files = glob.glob(str(Path(corpus_location) / "nodeset*.json"))
 
-        for file in files:
+        for i, file in enumerate(files):
             file = Path(file)
-            node = Nodeset()
+            files[i] = {'json': None, 'text': None}
+
             with open(file, "r", encoding="utf8") as json_file:
-                node.id = file.stem
-                j = json.load(json_file)
-                node.load(j)
-            json_file.close()
+                files[i]['json'] = json.load(json_file)
 
             with open(str(Path(corpus_location / f"{file.stem}.txt")), "r", encoding="utf8") as text_file:
-                node.text = text_file.read()
-            text_file.close()
-            corpus[node.id] = node
+                files[i]['text'] = text_file.read()
 
-        if purpose is None:
-            return corpus
-
-    return corpus
+        return files

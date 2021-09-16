@@ -7,12 +7,10 @@ from pathlib import Path
 import joblib
 import requests
 
-import canary
-import canary.corpora
-from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
-
 
 def get_downloadable_assets_from_github():
+    from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION
+    import canary
     canary_repo = canary.utils.config.get('canary', 'model_download_location')
     res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
                        headers={"Accept": "application/vnd.github.v3+json"})
@@ -31,6 +29,8 @@ def get_models_not_on_disk():
 
 
 def models_available_on_disk() -> list:
+    from canary.utils import CANARY_MODEL_STORAGE_LOCATION
+
     from glob import glob
     return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
 
@@ -44,6 +44,8 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
     :param download_to: an alternative place to download the models. Defaults to None
     :param overwrite: overwrite existing models. Defaults to False.
     """
+    import canary
+    from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
     # Make sure the canary local directory(s) exist beforehand
     os.makedirs(CANARY_MODEL_STORAGE_LOCATION, exist_ok=True)
@@ -122,7 +124,8 @@ def download_pretrained_models(model: str, location=None, download_to=None, over
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
+def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
+                 steps=None, **kwargs):
     supported_file_types = ["txt"]
 
     if not os.path.isfile(file):
@@ -130,12 +133,15 @@ def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_con
 
     with open(file, "r", encoding='utf-8') as document:
         return analyse(document.read(), out_format=out_format, min_link_confidence=min_link_confidence,
-                       min_support_confidence=min_support_confidence, steps=steps)
+                       min_support_confidence=min_support_confidence, min_attack_confidence=min_attack_confidence,
+                       steps=steps)
 
 
-def analyse(document: str, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, steps=None, **kwargs):
+def analyse(document: str, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8,
+            min_attack_confidence=0.8, steps=None, **kwargs):
     """
     """
+    import canary.corpora
 
     allowed_output_formats = [None, "json", "csv"]
 
@@ -289,6 +295,7 @@ def analyse(document: str, out_format=None, min_link_confidence=0.8, min_support
             return sadface.get_document()
 
     else:
+        import canary.utils
         canary.utils.logger.warn("Didn't find any evidence of argumentation")
 
 
@@ -301,6 +308,8 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     :param model_id:
     :return:
     """
+    import canary
+    from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
     if ".joblib" not in model_id:
         model_id = model_id + ".joblib"
