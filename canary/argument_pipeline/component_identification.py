@@ -62,7 +62,8 @@ class ArgumentComponent(Model):
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
 
         # If the pipeline model is none, use this algorithm
@@ -73,7 +74,7 @@ class ArgumentComponent(Model):
                 SVC(random_state=0, class_weight='balanced', probability=True, cache_size=1000)
             )
 
-        super(ArgumentComponent, self).train(
+        return super().train(
             pipeline_model=pipeline_model,
             train_data=train_data,
             test_data=test_data,

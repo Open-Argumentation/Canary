@@ -1,22 +1,22 @@
 import os
 import sys
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from logging import FileHandler
 from pathlib import Path
 from typing import Union
 
 import joblib
-import numpy
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
-from sklearn.model_selection import StratifiedKFold
 
 import canary
 from canary.utils import CANARY_MODEL_STORAGE_LOCATION, CANARY_LOCAL_STORAGE
 
 
-class Model:
+class Model(metaclass=ABCMeta):
 
+    @abstractmethod
     def __init__(self, model_id=None, model_storage_location=None):
         """
         :param model_id: the model of the ID. Cannot be none
@@ -27,19 +27,12 @@ class Model:
         self._model = None
         self._metrics = {}
         self._metadata = {}
+        self.__model_dir = CANARY_MODEL_STORAGE_LOCATION
 
         # Model ID used as part of filename so
         # Should not be empty
         if model_id is None:
             raise ValueError("Model ID cannot be none")
-
-        # Allow override
-        if model_storage_location is None:
-            model_storage_location = CANARY_MODEL_STORAGE_LOCATION
-
-        # Allow override
-        if model_storage_location is not None:
-            self.__model_dir = model_storage_location
 
         # Try and make relevant directories
         os.makedirs(self.__model_dir, exist_ok=True)
@@ -49,17 +42,36 @@ class Model:
 
     @property
     def model_id(self):
+        """
+        Returns the model id
+
+        :return: the model id
+        """
+
         return self.__model_id
 
     @property
     def supports_probability(self):
+        """
+        Returns a boolean if the model supports probability prediction.
+
+        :return: the boolean value indicating if probability predictions are possible.
+        """
+
         if hasattr(self._model, 'predict_proba'):
             return True
         return False
 
+    def fit(self, x, y):
+        self._model.fit(x, y)
+        return self
+
     @property
     def metrics(self):
         return self._metrics
+
+    def set_model(self, model):
+        self._model = model
 
     def save(self, save_to: Path = None):
         """
@@ -81,23 +93,8 @@ class Model:
             canary.utils.logger.info(f"Saving {self.model_id} to {save_to}.")
             joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib", compress=2)
 
-    def cross_val_train(self, pipeline_model=None, x=None, y=None, cv=2):
-
-        from sklearn.model_selection import cross_val_predict
-        prediction = cross_val_predict(pipeline_model, x, y, cv=cv)
-
-        report = f"\nModel stats:\n{classification_report(y, prediction.tolist())}"
-
-        if canary.utils.config.get('canary', 'dev') == "True":
-            self._log_training_data(report)
-        else:
-            canary.utils.logger.debug(report)
-        self._metrics = classification_report(y, prediction, output_dict=True)
-
-        self._model = pipeline_model
-        self.save()
-
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
         """
         :param pipeline_model:
@@ -111,77 +108,51 @@ class Model:
         :return:
         """
 
+        model = cls()
+
         # We need all of the below items to continue
         if any(item is None for item in [train_data, test_data, train_targets, test_targets]):
 
             # Check if we have a default training method
-            if hasattr(self, "default_train"):
+            if hasattr(model, "default_train"):
                 canary.utils.logger.debug("Using default training method")
-                train_data, test_data, train_targets, test_targets = self.default_train()
+                train_data, test_data, train_targets, test_targets = model.default_train()
 
-                return self.train(pipeline_model=pipeline_model, train_data=train_data, test_data=test_data,
-                                  train_targets=train_targets, test_targets=test_targets, save_on_finish=save_on_finish,
-                                  *args,
-                                  **kwargs)
+                return model.train(pipeline_model=pipeline_model, train_data=train_data, test_data=test_data,
+                                   train_targets=train_targets, test_targets=test_targets,
+                                   save_on_finish=save_on_finish,
+                                   *args,
+                                   **kwargs)
             else:
                 raise ValueError(
                     "Missing required training / test data in method call. "
                     "There is no default training method for this model."
                     " Please supply these and try again.")
 
-        canary.utils.logger.debug(f"Training of {self.__class__.__name__} has begun")
+        canary.utils.logger.debug(f"Training of {model.__class__.__name__} has begun")
 
         if pipeline_model is None:
             pipeline_model = LogisticRegression(random_state=0)
             canary.utils.logger.warn("No model selected. Defaulting to Logistic Regression.")
 
-        pipeline_model.fit(train_data, train_targets)
-        prediction = pipeline_model.predict(test_data)
+        model.set_model(pipeline_model)
+        model.fit(train_data, train_targets)
+
+        prediction = model.predict(test_data)
 
         report = f"\nModel stats:\n{classification_report(test_targets, prediction)}"
 
         if canary.utils.config.get('canary', 'dev') == "True":
-            self._log_training_data(report)
+            model._log_training_data(report)
         else:
             canary.utils.logger.debug(report)
 
-        self._model = pipeline_model
-        self._metrics = classification_report(test_targets, prediction, output_dict=True)
+        model._metrics = classification_report(test_targets, prediction, output_dict=True)
 
         if save_on_finish is True:
-            self.save()
+            model.save()
 
-    def stratified_k_fold_train(self, pipeline_model=None, train_data=None, train_targets=None,
-                                save_on_finish=True, n_splits=2, *args, **kwargs):
-
-        if any(item is None for item in [train_data, train_data]):
-            raise ValueError("...")
-
-        if pipeline_model is None:
-            pipeline_model = LogisticRegression(random_state=0)
-
-        skf = StratifiedKFold(n_splits=n_splits)
-        train_data = numpy.array(train_data)
-        train_targets = numpy.array(train_targets)
-
-        for train_index, test_index in skf.split(train_data, train_targets):
-            X_train, X_test = train_data[train_index], train_data[test_index]
-            y_train, y_test = train_targets[train_index], train_targets[test_index]
-
-            pipeline_model.fit(X_train.tolist(), y_train.tolist())
-            prediction = pipeline_model.predict(X_test.tolist())
-            report = f"\nModel stats:\n{classification_report(y_test.tolist(), prediction)}"
-
-            if canary.utils.config.get('canary', 'dev') == "True":
-                self._log_training_data(report)
-            else:
-                canary.utils.logger.debug(report)
-            self._metrics = classification_report(prediction, y_test.tolist(), output_dict=True)
-
-        self._model = pipeline_model
-
-        if save_on_finish is True:
-            self.save()
+        return model
 
     def _log_training_data(self, msg):
         training_log_dir = Path(CANARY_LOCAL_STORAGE) / "logs"
@@ -195,10 +166,12 @@ class Model:
 
     def predict(self, data, probability=False) -> Union[list, bool]:
         """
-        Make a prediction
+        Make a prediction on some data
+
+        Wrapper around scikit-learn's predict.
 
         :param data:
-        :param probability:
+        :param probability: boolean indicating if the method should return a probability prediction.
         :return: a boolean or list of indi the prediction
         """
 
@@ -216,7 +189,10 @@ class Model:
 
         def probability_predict(inp) -> Union[list[dict], dict]:
             """
-            internal helper function to provide a nicer way of returning probability predictions
+            Internal helper function to provide a nicer way of returning probability predictions.
+
+            The default 'predict_proba' returns positional floats which requires that you know
+            the ordering of the classes. This returns the labels along with the float value.
             """
 
             if type(inp) is list:

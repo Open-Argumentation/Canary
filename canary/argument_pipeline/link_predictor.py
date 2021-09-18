@@ -19,6 +19,9 @@ _nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagge
 
 
 class LinkPredictor(Model):
+    """
+    Prediction model which can predict if two argument components are "linked".
+    """
 
     def __init__(self, model_id=None, model_storage_location=None):
         if model_id is None:
@@ -28,6 +31,10 @@ class LinkPredictor(Model):
 
     @staticmethod
     def default_train():
+        """
+        Default training method
+        :return: training data, test data, training targets, test targets
+        """
         from canary.corpora import load_essay_corpus
         from imblearn.over_sampling import RandomOverSampler
         from sklearn.model_selection import train_test_split
@@ -48,7 +55,8 @@ class LinkPredictor(Model):
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
 
         if pipeline_model is None:
@@ -58,11 +66,16 @@ class LinkPredictor(Model):
                 SVC(random_state=0, probability=True, C=10),
             )
 
-        return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish, *args,
+        return super().train(pipeline_model, train_data, test_data, train_targets, test_targets, save_on_finish,
+                             *args,
                              **kwargs)
 
 
 class LinkFeatures(TransformerMixin, BaseEstimator):
+    """
+    Transformer which handles LinkPredictor features
+    """
+
     feats: list = [
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
@@ -86,6 +99,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
     def fit(self, x, y=None):
         """
+        fits self to data
 
         :param x:
         :param y: ignored.
@@ -130,8 +144,8 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
                 n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
 
                 features = {
-                    "source_before_target": f["source_before_target"],
-                    "arg1_first_in_paragraph": f["arg1_first_in_paragraph"],
+                    "source_before_target": f.get("source_before_target"),
+                    "arg1_first_in_paragraph": f.get("arg1_first_in_paragraph"),
                     "arg1_last_in_paragraph": f["arg1_last_in_paragraph"],
                     "arg2_first_in_paragraph": f["arg2_first_in_paragraph"],
                     "arg2_last_in_paragraph": f["arg2_last_in_paragraph"],

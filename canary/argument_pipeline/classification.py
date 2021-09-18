@@ -44,7 +44,8 @@ class ArgumentDetector(Model):
                 train_targets.append(target)
         return train_data, test_data, train_targets, test_targets
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, *args, **kwargs):
 
         if pipeline_model is None:
@@ -75,12 +76,12 @@ class ArgumentDetector(Model):
                  )
             ])
 
-        super(ArgumentDetector, self).train(pipeline_model=pipeline_model,
-                                            train_data=train_data,
-                                            test_data=test_data,
-                                            train_targets=train_targets,
-                                            test_targets=test_targets,
-                                            save_on_finish=True)
+        return super().train(pipeline_model=pipeline_model,
+                             train_data=train_data,
+                             test_data=test_data,
+                             train_targets=train_targets,
+                             test_targets=test_targets,
+                             save_on_finish=True)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
         if type(data) is list:

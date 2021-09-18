@@ -44,7 +44,8 @@ class StructurePredictor(Model):
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, **kwargs):
 
         if pipeline_model is None:
@@ -53,7 +54,7 @@ class StructurePredictor(Model):
                 Normalizer(),
                 SGDClassifier(random_state=0, loss="log", ))
 
-        super(StructurePredictor, self).train(
+        return super().train(
             pipeline_model=pipeline_model,
             train_data=train_data,
             test_data=test_data,

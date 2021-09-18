@@ -56,12 +56,15 @@ class ArgumentSegmenter(Model):
 
         return train_data, test_data, train_targets, test_targets
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
+
+        model = cls()
 
         if any(item is None for item in [train_data, test_data, train_targets, test_targets]):
             # get default data if the above is not present
-            train_data, test_data, train_targets, test_targets = self.default_train()
+            train_data, test_data, train_targets, test_targets = model.default_train()
 
         canary.utils.logger.debug("Training algorithm")
 
@@ -72,7 +75,8 @@ class ArgumentSegmenter(Model):
                 all_possible_states=True,
             )
 
-        pipeline_model.fit(train_data, train_targets)
+        model.set_model(pipeline_model)
+        model.fit(train_data, train_targets)
 
         labels = list(pipeline_model.classes_)
         y_pred = pipeline_model.predict(test_data)
@@ -86,13 +90,14 @@ class ArgumentSegmenter(Model):
             test_targets, y_pred, labels=sorted_labels, digits=4
         ))
 
-        self._metrics = metrics.flat_classification_report(
+        model._metrics = metrics.flat_classification_report(
             test_targets, y_pred, labels=sorted_labels, digits=4, output_dict=True
         )
 
-        self._model = pipeline_model
         if save_on_finish is True:
-            self.save()
+            model.save()
+
+        return model
 
     def predict(self, data, probability=False, binary=False):
         """
