@@ -29,6 +29,15 @@ class ArgumentPipeline(TestCase):
         self.arg_segmenter = canary.load("arg_segmenter")
         super().setUp()
 
+    def test_base_classifier_instantiation_fails(self):
+        """
+        The base model should not be able to be instantiated. It's a base class.
+        """
+
+        from canary.argument_pipeline.model import Model
+        with self.assertRaises(TypeError):
+            _ = Model(model_id='model')
+
     def test_download_models(self) -> None:
         """
         Assert that the models has indeed downloaded.
