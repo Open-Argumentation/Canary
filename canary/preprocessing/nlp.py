@@ -38,9 +38,11 @@ def nltk_download(packages):
 
 
 def spacy_download(package: str = None, disable=None):
-    """
-    Wrapper around spacy.load which will download the necessary package if it is not present
-    :return:spacy model
+    """Wrapper around spacy.load which will download the necessary package if it is not present
+
+    Returns
+    -------
+    spacy model
     """
 
     from spacy import load
