@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 
 import canary
 import canary.utils
-from canary.argument_pipeline.model import Model
+from canary.argument_pipeline.base import Model
 from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer, PosDistribution
 from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransformer
@@ -18,6 +18,11 @@ from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransfo
 _nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
                                                         'attribute_ruler',
                                                         'tok2vec', ])
+
+__all__ = [
+    "ArgumentComponent",
+    "ArgumentComponentFeatures"
+]
 
 
 class ArgumentComponent(Model):
@@ -86,8 +91,8 @@ class ArgumentComponent(Model):
 
 class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
     features: list = [
-        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False),
-        # TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=500),
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False, binary=True),
+        TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=2000),
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
         DiscourseMatcher('rebuttal'),
@@ -112,7 +117,6 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         cover_sentences = list(_nlp.pipe(cover_sentences))
 
         def get_features(feats):
-            canary.utils.logger.debug("getting dictionary features.")
             features = []
 
             for i, d in enumerate(feats):
@@ -141,6 +145,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         return get_features(data)
 
     def fit(self, x, y=None):
+        canary.utils.logger.debug("Fitting")
         self.__dict_feats.fit(x)
         self.__features.fit(pandas.DataFrame(x).cover_sentence.tolist())
         return self

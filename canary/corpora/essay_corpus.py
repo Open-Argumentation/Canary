@@ -1,3 +1,6 @@
+"""
+Essay corpus specific code
+"""
 import nltk
 
 from canary.preprocessing.transformers import DiscourseMatcher

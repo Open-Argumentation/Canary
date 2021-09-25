@@ -4,11 +4,15 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 
-from canary.argument_pipeline.model import Model
+from canary.argument_pipeline.base import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
+
+__all__ = [
+    "ArgumentDetector"
+]
 
 
 class ArgumentDetector(Model):

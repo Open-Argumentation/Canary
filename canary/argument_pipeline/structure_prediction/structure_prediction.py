@@ -6,11 +6,17 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_union, make_pipeline
 from sklearn.preprocessing import LabelBinarizer, Normalizer
 
-import canary.utils
-from canary.argument_pipeline.model import Model
+from canary.argument_pipeline.base import Model
+from canary.preprocessing.nlp import spacy_download
 from canary.preprocessing.transformers import WordSentimentCounter, DiscourseMatcher
+from canary.utils import logger
 
-nlp = canary.preprocessing.nlp.spacy_download()
+nlp = spacy_download()
+
+__all__ = [
+    "StructurePredictor",
+    "StructureFeatures"
+]
 
 
 class StructurePredictor(Model):
@@ -39,7 +45,7 @@ class StructurePredictor(Model):
                              random_state=0,
                              )
 
-        canary.utils.logger.debug("Resample")
+        logger.debug("Resample")
 
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
@@ -85,7 +91,7 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         self.__ohe_arg2 = LabelBinarizer()
 
     def fit(self, x, y=None):
-        canary.utils.logger.debug("fitting...")
+        logger.debug("fitting...")
 
         self.__dictionary_features.fit(self.prepare_dictionary_features(x))
         x = pandas.DataFrame(x)
@@ -98,7 +104,7 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
-        canary.utils.logger.debug("transforming...")
+        logger.debug("transforming...")
         dictionary_features = self.__dictionary_features.transform(x)
 
         x = pandas.DataFrame(x)
@@ -124,7 +130,7 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
 
     @staticmethod
     def prepare_dictionary_features(data):
-        canary.utils.logger.debug("Getting dictionary features.")
+        logger.debug("Getting dictionary features.")
 
         def get_features(f):
             new_feats = f.copy()

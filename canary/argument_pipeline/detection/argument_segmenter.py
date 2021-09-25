@@ -7,14 +7,16 @@ from sklearn_crfsuite import metrics
 
 import canary
 import canary.utils
-from canary.argument_pipeline.model import Model
+from canary.argument_pipeline.base import Model
 from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.nlp import nltk_download
 
 lemmatizer = Lemmatizer()
 
-
+__all__ = [
+    "ArgumentSegmenter"
+]
 class ArgumentSegmenter(Model):
 
     def __init__(self, model_id=None, model_storage_location=None):

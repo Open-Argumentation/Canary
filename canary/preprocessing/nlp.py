@@ -1,16 +1,16 @@
-import os
 from pathlib import Path as _Path
-
-import canary as _canary
-import canary.utils
-from canary.utils import config as _config
 
 
 def nltk_download(packages):
     """Wrapper around nltk.download """
     import nltk
+    import os
+    from ..utils import config as _config
+    from ..utils import CANARY_LOCAL_STORAGE
+    from ..utils import logger as _logger
+
     nltk_data_dir = _Path(f"{_Path.home()}") / _config.get("nltk", "storage_directory")
-    os.makedirs(canary.utils.CANARY_LOCAL_STORAGE, exist_ok=True)
+    os.makedirs(CANARY_LOCAL_STORAGE, exist_ok=True)
     if nltk_data_dir not in nltk.data.path:
         nltk.data.path.append(nltk_data_dir)
 
@@ -30,10 +30,10 @@ def nltk_download(packages):
                     nltk.data.find("chunkers/maxent_ne_chunker")
                 elif package == "words":
                     nltk.data.find("corpora/words")
-                elif package == "tagsets":
-                    nltk.data.find("tagsets")
+                # elif package == "tagsets":
+                #     nltk.data.find("tagsets/tagsets")
             except LookupError:
-                _canary.utils.logger.debug(f"Didn't find {package}. Attempting download.")
+                _logger.debug(f"Didn't find {package}. Attempting download.")
                 nltk.download(package, quiet=True, download_dir=nltk_data_dir)
 
 
@@ -43,9 +43,11 @@ def spacy_download(package: str = None, disable=None):
     :return:spacy model
     """
 
-    _canary.utils.logger.debug("spacy loading")
     from spacy import load
     from spacy.cli import download
+    from ..utils import logger as _logger
+    from ..utils import config as _config
+
     import benepar
     import nltk
 
@@ -73,8 +75,8 @@ def spacy_download(package: str = None, disable=None):
         return nlp
     except OSError:
         try:
-            _canary.utils.logger.debug(f"Did not find spacy model {package}. Downloading now.")
+            _logger.debug(f"Did not find spacy model {package}. Downloading now.")
             download(package)
             return load(package)
         except OSError:
-            _canary.utils.logger.error(f"could not download {package}")
+            _logger.error(f"could not download {package}")
