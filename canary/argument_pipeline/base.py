@@ -21,10 +21,13 @@ __all__ = [
 class Model(metaclass=ABCMeta):
 
     @abstractmethod
-    def __init__(self, model_id=None, model_storage_location=None):
+    def __init__(self, model_id=None):
         """
-        :param model_id: the model of the ID. Cannot be none
-        :param model_storage_location: the location of the models on the filesystem
+
+        Parameters
+        ----------
+        model_id: str
+            The model ID. The model ID must never be None.
         """
 
         self.__model_id = model_id
@@ -49,7 +52,10 @@ class Model(metaclass=ABCMeta):
         """
         Returns the model id
 
-        :return: the model id
+        Returns
+        -------
+        str
+            The model id
         """
 
         return self.__model_id
@@ -59,7 +65,10 @@ class Model(metaclass=ABCMeta):
         """
         Returns a boolean if the model supports probability prediction.
 
-        :return: the boolean value indicating if probability predictions are possible.
+        Returns
+        -------
+        str
+            The boolean value indicating if probability predictions are possible.
         """
 
         if hasattr(self._model, 'predict_proba'):
@@ -78,10 +87,12 @@ class Model(metaclass=ABCMeta):
         self._model = model
 
     def save(self, save_to: Path = None):
-        """
-        Save the model to disk after training
+        """Saves the model to disk after training
 
-        :param save_to:
+        Parameters
+        ----------
+        save_to: str
+            Where to save the model
         """
 
         self._metadata = {
@@ -100,16 +111,26 @@ class Model(metaclass=ABCMeta):
     @classmethod
     def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
-        """
-        :param pipeline_model:
-        :param train_data:
-        :param test_data:
-        :param train_targets:
-        :param test_targets:
-        :param save_on_finish:
-        :param args:
-        :param kwargs:
-        :return:
+        """Classmethod which initialises a model and trains it on the provided training data.
+
+        Parameters
+        ----------
+        pipeline_model
+            The model ...
+        train_data
+        test_data
+        train_targets
+        test_targets
+        save_on_finish: bool
+        *args: tuple
+            Additional positional arguments
+        **kwargs: dict
+            Additional keyed-arguments
+
+        Returns
+        -------
+        Model
+            The model instance
         """
 
         model = cls()
