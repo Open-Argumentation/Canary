@@ -1,6 +1,11 @@
 canary.argument\_pipeline.detection package
 ===========================================
 
+.. automodule:: canary.argument_pipeline.detection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -16,14 +21,6 @@ canary.argument\_pipeline.detection.classification module
 ---------------------------------------------------------
 
 .. automodule:: canary.argument_pipeline.detection.classification
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: canary.argument_pipeline.detection
    :members:
    :undoc-members:
    :show-inheritance:

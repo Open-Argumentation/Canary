@@ -1,6 +1,11 @@
 canary.preprocessing package
 ============================
 
+.. automodule:: canary.preprocessing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -16,14 +21,6 @@ canary.preprocessing.transformers module
 ----------------------------------------
 
 .. automodule:: canary.preprocessing.transformers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: canary.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:

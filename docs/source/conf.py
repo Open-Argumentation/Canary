@@ -16,7 +16,6 @@
 project = 'Canary'
 copyright = '2021, Christopher Wales'
 author = 'Christopher Wales'
-# Configuration file for the Sphinx documentation builder.
 
 release = '0.0.1'
 version = '0.0.1'
@@ -29,27 +28,16 @@ todo_include_todos = True
 extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     "sphinx.ext.viewcode",
     "sphinx_autobuild",
     "sphinx_copybutton",
     "myst_parser",
-    # "sphinx_rtd_theme"
 ]
-extlinks = {
-    "pypi": ("https://pypi.org/project/%s/", ""),
-}
-
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
-}
 
 templates_path = ['_templates']
 
 # -- Options for HTML output
-autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 html_theme = 'furo'
 

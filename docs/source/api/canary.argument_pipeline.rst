@@ -1,6 +1,11 @@
 canary.argument\_pipeline package
 =================================
 
+.. automodule:: canary.argument_pipeline
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -18,14 +23,6 @@ canary.argument\_pipeline.base module
 -------------------------------------
 
 .. automodule:: canary.argument_pipeline.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: canary.argument_pipeline
    :members:
    :undoc-members:
    :show-inheritance:

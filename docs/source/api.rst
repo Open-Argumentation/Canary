@@ -4,4 +4,4 @@ API Reference
 .. toctree::
    :glob:
 
-   api/*
+   api/canary

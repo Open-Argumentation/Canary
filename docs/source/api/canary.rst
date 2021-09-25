@@ -1,6 +1,11 @@
 canary package
 ==============
 
+.. automodule:: canary
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -20,14 +25,6 @@ canary.version module
 ---------------------
 
 .. automodule:: canary.version
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: canary
    :members:
    :undoc-members:
    :show-inheritance:

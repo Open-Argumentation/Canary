@@ -1,6 +1,11 @@
 canary.argument\_pipeline.structure\_prediction package
 =======================================================
 
+.. automodule:: canary.argument_pipeline.structure_prediction
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -16,14 +21,6 @@ canary.argument\_pipeline.structure\_prediction.structure\_prediction module
 ----------------------------------------------------------------------------
 
 .. automodule:: canary.argument_pipeline.structure_prediction.structure_prediction
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: canary.argument_pipeline.structure_prediction
    :members:
    :undoc-members:
    :show-inheritance:
