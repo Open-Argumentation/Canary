@@ -10,17 +10,26 @@ import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 
-import canary
-from canary.utils import CANARY_MODEL_STORAGE_LOCATION, CANARY_LOCAL_STORAGE
+from .. import __version__
+from ..utils import CANARY_MODEL_STORAGE_LOCATION, CANARY_LOCAL_STORAGE, logger, config
+
+__all__ = [
+    "Model"
+]
 
 
 class Model(metaclass=ABCMeta):
+    """Abstract class that \dots
+    """
 
     @abstractmethod
-    def __init__(self, model_id=None, model_storage_location=None):
-        """
-        :param model_id: the model of the ID. Cannot be none
-        :param model_storage_location: the location of the models on the filesystem
+    def __init__(self, model_id=None):
+        """Constructor method
+
+        Parameters
+        ----------
+        model_id: str
+            The model ID. The model ID must never be None.
         """
 
         self.__model_id = model_id
@@ -45,7 +54,10 @@ class Model(metaclass=ABCMeta):
         """
         Returns the model id
 
-        :return: the model id
+        Returns
+        -------
+        str
+            The model id
         """
 
         return self.__model_id
@@ -55,7 +67,10 @@ class Model(metaclass=ABCMeta):
         """
         Returns a boolean if the model supports probability prediction.
 
-        :return: the boolean value indicating if probability predictions are possible.
+        Returns
+        -------
+        str
+            The boolean value indicating if probability predictions are possible.
         """
 
         if hasattr(self._model, 'predict_proba'):
@@ -68,44 +83,80 @@ class Model(metaclass=ABCMeta):
 
     @property
     def metrics(self):
+        """
+
+        Returns
+        -------
+        dict
+            Returns the metrics of the model as a dict
+
+        Examples
+        --------
+        >>> self.metrics
+        {"f1score" 54.6, ...}
+        """
         return self._metrics
 
     def set_model(self, model):
+        """Set the scikit-learn model that sits under self._model
+
+        Parameters
+        ----------
+        model
+            a model that conforms to the standard scikit-learn API
+        """
         self._model = model
 
     def save(self, save_to: Path = None):
-        """
-        Save the model to disk after training
+        """Saves the model to disk after training
 
-        :param save_to:
+        Parameters
+        ----------
+        save_to: str
+            Where to save the model
         """
 
         self._metadata = {
-            "canary_version_trained_with": canary.__version__,
+            "canary_version_trained_with": __version__,
             "python_version_trained_with": tuple(sys.version_info),
             "trained_on": datetime.now()
         }
 
         if save_to is None:
-            canary.utils.logger.info(f"Saving {self.model_id}")
+            logger.info(f"Saving {self.model_id}")
             joblib.dump(self, Path(self.__model_dir) / f"{self.model_id}.joblib", compress=2)
         else:
-            canary.utils.logger.info(f"Saving {self.model_id} to {save_to}.")
+            logger.info(f"Saving {self.model_id} to {save_to}.")
             joblib.dump(self, Path(save_to) / f"{self.model_id}.joblib", compress=2)
 
     @classmethod
     def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=True, *args, **kwargs):
-        """
-        :param pipeline_model:
-        :param train_data:
-        :param test_data:
-        :param train_targets:
-        :param test_targets:
-        :param save_on_finish:
-        :param args:
-        :param kwargs:
-        :return:
+        """Classmethod which initialises a model and trains it on the provided training data.
+
+        Parameters
+        ----------
+        pipeline_model
+            The model ...
+        train_data: list
+            Training data
+        test_data: list
+            Test data
+        train_targets: list
+            The training labels
+        test_targets: list
+            The test labels
+        save_on_finish: bool
+            Should the model be saved when training has finished?
+        *args: tuple
+            Additional positional arguments
+        **kwargs: dictl
+            Additional keyed-arguments
+
+        Returns
+        -------
+        Model
+            The model instance
         """
 
         model = cls()
@@ -115,7 +166,7 @@ class Model(metaclass=ABCMeta):
 
             # Check if we have a default training method
             if hasattr(model, "default_train"):
-                canary.utils.logger.debug("Using default training method")
+                logger.debug("Using default training method")
                 train_data, test_data, train_targets, test_targets = model.default_train()
 
                 return model.train(pipeline_model=pipeline_model, train_data=train_data, test_data=test_data,
@@ -129,11 +180,11 @@ class Model(metaclass=ABCMeta):
                     "There is no default training method for this model."
                     " Please supply these and try again.")
 
-        canary.utils.logger.debug(f"Training of {model.__class__.__name__} has begun")
+        logger.debug(f"Training of {model.__class__.__name__} has begun")
 
         if pipeline_model is None:
             pipeline_model = LogisticRegression(random_state=0)
-            canary.utils.logger.warn("No model selected. Defaulting to Logistic Regression.")
+            logger.warn("No model selected. Defaulting to Logistic Regression.")
 
         model.set_model(pipeline_model)
         model.fit(train_data, train_targets)
@@ -142,10 +193,10 @@ class Model(metaclass=ABCMeta):
 
         report = f"\nModel stats:\n{classification_report(test_targets, prediction)}"
 
-        if canary.utils.config.get('canary', 'dev') == "True":
+        if config.get('canary', 'dev') == "True":
             model._log_training_data(report)
         else:
-            canary.utils.logger.debug(report)
+            logger.debug(report)
 
         model._metrics = classification_report(test_targets, prediction, output_dict=True)
 
@@ -160,19 +211,24 @@ class Model(metaclass=ABCMeta):
 
         training_log_dir = training_log_dir / "training.log"
         handler = FileHandler(filename=training_log_dir, encoding="utf-8")
-        canary.utils.logger.addHandler(handler, )
-        canary.utils.logger.debug(msg)
-        canary.utils.logger.removeHandler(handler)
+        logger.addHandler(handler, )
+        logger.debug(msg)
+        logger.removeHandler(handler)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
-        """
-        Make a prediction on some data
+        """Make a prediction on some data. A wrapper around scikit-learn's predict method.
 
-        Wrapper around scikit-learn's predict.
+        Parameters
+        ----------
+        data:
+            The data the predictor will be ran on.
+        probability: bool
+            boolean indicating if the method should return a probability prediction.
 
-        :param data:
-        :param probability: boolean indicating if the method should return a probability prediction.
-        :return: a boolean or list of indi the prediction
+        Returns
+        -------
+        Union[list, bool]
+            a boolean or list of indi the prediction
         """
 
         if self._model is None:
@@ -182,14 +238,13 @@ class Model(metaclass=ABCMeta):
 
         if self.supports_probability is False and probability is True:
             probability = False
-            canary.utils.logger.warn(
+            logger.warn(
                 f"This model doesn't support probability. Probability has been set to {probability}.")
 
         data_type = type(data)
 
         def probability_predict(inp) -> Union[list[dict], dict]:
-            """
-            Internal helper function to provide a nicer way of returning probability predictions.
+            """Internal helper function to provide a nicer way of returning probability predictions.
 
             The default 'predict_proba' returns positional floats which requires that you know
             the ordering of the classes. This returns the labels along with the float value.

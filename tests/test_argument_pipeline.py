@@ -34,7 +34,7 @@ class ArgumentPipeline(TestCase):
         The base model should not be able to be instantiated. It's a base class.
         """
 
-        from canary.argument_pipeline.model import Model
+        from canary.argument_pipeline.base import Model
         with self.assertRaises(TypeError):
             _ = Model(model_id='model')
 
@@ -48,17 +48,17 @@ class ArgumentPipeline(TestCase):
         self.assertTrue(len(models) > 0)
 
     def test_arg_detection_model_type(self):
-        from canary.argument_pipeline.classification import ArgumentDetector
+        from canary.argument_pipeline.detection import ArgumentDetector
 
         self.assertTrue(type(self.argument_detector) is ArgumentDetector)
 
     def test_arg_segmenter_model_type(self):
-        from canary.argument_pipeline.argument_segmenter import ArgumentSegmenter
+        from canary.argument_pipeline.detection import ArgumentSegmenter
 
         self.assertTrue(type(self.arg_segmenter) is ArgumentSegmenter)
 
     def test_arg_component_model_type(self):
-        from canary.argument_pipeline.component_identification import ArgumentComponent
+        from canary.argument_pipeline.component_prediction import ArgumentComponent
 
         self.assertTrue(type(self.argument_component) is ArgumentComponent)
 

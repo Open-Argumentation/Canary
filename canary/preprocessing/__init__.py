@@ -12,14 +12,24 @@ _word_net = nltk.WordNetLemmatizer()
 _stemmer = nltk.PorterStemmer()
 nltk_download(['punkt', 'wordnet', 'tagsets'])
 
+__all__ = [
+    "Lemmatizer",
+    "PosLemmatizer",
+    "Stemmer",
+    "PunctuationTokenizer",
+    "PosDistribution",
+    "Tokenizer"
+]
+
 
 class Lemmatizer:
-    """
-    Transforms text into its lemma form
+    """Transforms text into its lemma form
 
-    e.g.
-    - cats -> cat
-    - corpora -> corpus
+    Notes
+    -----
+        e.g.
+        - cats -> cat
+        - corpora -> corpus
     """
 
     @staticmethod
@@ -46,6 +56,7 @@ class Lemmatizer:
 
 
 class PosLemmatizer:
+    """"""
 
     def t(self, x):
         tag = nltk.pos_tag([x])[0][1]
@@ -57,21 +68,20 @@ class PosLemmatizer:
 
 
 class Stemmer:
-    """
-    Transforms text into its stemmed form
-    """
+    """Transforms text into its stemmed form"""
 
     def __call__(self, text):
         return [_stemmer.stem(token) for token in nltk.word_tokenize(text)]
 
 
 class PunctuationTokenizer:
-    """
-    Extracts only punctuation from a piece of text
+    """Extracts only punctuation from a piece of text
 
-    e.g.
-    - Hi, what's up? Did you like the movie last night?
-    -> [[','], ["'", 's'], ['?'], ['?']]
+    Notes
+    -----
+        e.g.
+        - Hi, what's up? Did you like the movie last night?
+        -> [[','], ["'", 's'], ['?'], ['?']]
     """
 
     def __init__(self):
@@ -85,6 +95,9 @@ keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
 
 
 class PosDistribution:
+    """
+
+    """
 
     def __init__(self):
         self.keys = {}

@@ -7,15 +7,21 @@ from sklearn.pipeline import make_pipeline, make_union
 from sklearn.preprocessing import LabelBinarizer, MaxAbsScaler
 from sklearn.svm import SVC
 
-import canary.utils
-from canary.argument_pipeline.model import Model
-from canary.preprocessing import Lemmatizer, PosDistribution
+from canary.argument_pipeline.base import Model
+from canary.preprocessing import PosDistribution
+from canary.preprocessing.nlp import spacy_download, nltk_download
 from canary.preprocessing.transformers import DiscourseMatcher, SharedNouns
+from canary.utils import logger
 
-canary.preprocessing.nlp.nltk_download('punkt')
-_nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
-                                                        'attribute_ruler',
-                                                        'benepar'])
+nltk_download('punkt')
+_nlp = spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                               'attribute_ruler',
+                               'benepar'])
+
+__all__ = [
+    "LinkPredictor",
+    "LinkFeatures"
+]
 
 
 class LinkPredictor(Model):
@@ -27,7 +33,7 @@ class LinkPredictor(Model):
         if model_id is None:
             model_id = "link_predictor"
 
-        super().__init__(model_id, model_storage_location)
+        super().__init__(model_id)
 
     @staticmethod
     def default_train():
@@ -50,7 +56,7 @@ class LinkPredictor(Model):
                              random_state=0,
                              )
 
-        canary.utils.logger.debug("Resample")
+        logger.debug("Resample")
 
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
@@ -134,7 +140,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
     @staticmethod
     def prepare_dictionary_features(data):
-        canary.utils.logger.debug("Getting dictionary features")
+        logger.debug("Getting dictionary features")
         shared_noun_counter = SharedNouns()
 
         def get_features(feats):
@@ -170,7 +176,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
     @staticmethod
     def prepare_numeric_feats(data):
         shared_noun_counter = SharedNouns()
-        canary.utils.logger.debug("Getting numeric features")
+        logger.debug("Getting numeric features")
 
         def get_features(feats):
             pos_dist = PosDistribution()

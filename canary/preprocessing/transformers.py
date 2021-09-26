@@ -1,4 +1,3 @@
-import os
 import string
 from abc import ABCMeta
 from collections import Counter
@@ -10,19 +9,38 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-import canary.utils
-from canary.data.indicators import discourse_indicators
-from canary.preprocessing import PunctuationTokenizer
+from ..data.indicators import discourse_indicators
+from ..preprocessing import Lemmatizer
+from ..preprocessing import PunctuationTokenizer
+from ..preprocessing.nlp import spacy_download
+from ..utils import logger
 
+__all__ = [
+    "SentimentTransformer",
+    "WordSentimentCounter",
+    "TfidfPosVectorizer",
+    "CountPosVectorizer",
+    "LengthOfSentenceTransformer",
+    "UniqueWordsTransformer",
+    "LengthTransformer",
+    "AverageWordLengthTransformer",
+    "DiscourseMatcher",
+    "FirstPersonIndicatorMatcher",
+    "CountPunctuationVectorizer",
+    "TfidfPunctuationVectorizer",
+    "EmbeddingTransformer",
+    "BiasTransformer",
+    "SharedNouns",
+    "ProductionRules"
+]
 
-# @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
     """
     Base class for POS tagging vectorisation
     """
 
-    nlp = canary.preprocessing.nlp.spacy_download()
+    nlp = spacy_download()
 
     def __init__(self, ngrams=1) -> None:
 
@@ -55,7 +73,7 @@ class SentimentTransformer(TransformerMixin, BaseEstimator):
 
     def __init__(self, target="compound") -> None:
         if target not in self._allowed_targets:
-            canary.utils.logger.warn(
+            logger.warn(
                 f"{target} is not in the allowed value list: {self._allowed_targets}. Defaulting to 'compound'")
         else:
             self.target = target
@@ -79,7 +97,7 @@ class WordSentimentCounter(TransformerMixin, BaseEstimator):
 
     def __init__(self, target: str = "pos"):
         if target not in self._allowed_targets:
-            canary.utils.logger.warn("")
+            logger.warn("")
         else:
             self.target = target
 
@@ -325,7 +343,7 @@ class TfidfPunctuationVectorizer(TfidfVectorizer):
 
 
 class EmbeddingTransformer(TransformerMixin, BaseEstimator):
-    _nlp = canary.preprocessing.nlp.spacy_download(
+    _nlp = spacy_download(
         disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
                  'attribute_ruler',
                  'benepar'])
@@ -347,7 +365,7 @@ class BiasTransformer(TransformerMixin, BaseEstimator):
 
 
 class SharedNouns(TransformerMixin, BaseEstimator):
-    lemmatizer = canary.preprocessing.Lemmatizer()
+    lemmatizer = Lemmatizer()
 
     def fit(self, x, y=None):
         return self
@@ -366,7 +384,7 @@ class ProductionRules(TransformerMixin, BaseEstimator):
     def __init__(self, max_rules=500):
         self._production_rules = []
         self._n_rules = max_rules
-        self.__nlp = canary.preprocessing.nlp.spacy_download(
+        self.__nlp = spacy_download(
             disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
                      'attribute_ruler',
                      'tok2vec'])
@@ -376,7 +394,7 @@ class ProductionRules(TransformerMixin, BaseEstimator):
         return self._production_rules
 
     def fit(self, x, y=None):
-        canary.utils.logger.debug(f"Fitting {self.__class__.__name__}")
+        logger.debug(f"Fitting {self.__class__.__name__}")
         self._production_rules = []
 
         x = list(self.__nlp.pipe(x))

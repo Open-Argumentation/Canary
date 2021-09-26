@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 
 import canary
 import canary.utils
-from canary.argument_pipeline.model import Model
+from canary.argument_pipeline.base import Model
 from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer, PosDistribution
 from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransformer
@@ -19,24 +19,24 @@ _nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagge
                                                         'attribute_ruler',
                                                         'tok2vec', ])
 
+__all__ = [
+    "ArgumentComponent",
+    "ArgumentComponentFeatures"
+]
+
 
 class ArgumentComponent(Model):
     """
     Detects argumentative components from natural language
     """
 
-    def __init__(self, model_id: str = None, model_storage_location=None):
-        """
-        :param model_id: the ID of the model
-        :param model_storage_location: where the model should be stored
-        """
+    def __init__(self, model_id: str = None):
 
         if model_id is None:
             model_id = "argument_component"
 
         super().__init__(
             model_id=model_id,
-            model_storage_location=model_storage_location,
         )
 
     @staticmethod
@@ -86,8 +86,8 @@ class ArgumentComponent(Model):
 
 class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
     features: list = [
-        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False),
-        # TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=500),
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False, binary=True),
+        TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=2000),
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
         DiscourseMatcher('rebuttal'),
@@ -112,7 +112,6 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         cover_sentences = list(_nlp.pipe(cover_sentences))
 
         def get_features(feats):
-            canary.utils.logger.debug("getting dictionary features.")
             features = []
 
             for i, d in enumerate(feats):
@@ -141,6 +140,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         return get_features(data)
 
     def fit(self, x, y=None):
+        canary.utils.logger.debug("Fitting")
         self.__dict_feats.fit(x)
         self.__features.fit(pandas.DataFrame(x).cover_sentence.tolist())
         return self

@@ -1,3 +1,7 @@
+"""
+Corpora Package
+"""
+
 import csv
 import glob
 import itertools
