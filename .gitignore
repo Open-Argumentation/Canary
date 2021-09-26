@@ -4,6 +4,8 @@
 /.idea
 /.vscode
 canary/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/**
+docs/Pipfile
+docs/Pipfile.lock
 
 ## https://github.com/github/gitignore/blob/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
