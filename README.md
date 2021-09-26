@@ -1,6 +1,9 @@
 # Canary
+[![Documentation Status](https://readthedocs.org/projects/canary-am/badge/?version=latest)](https://canary-am.readthedocs.io/en/latest/?badge=latest)
+[![Canary package tests](https://github.com/chriswales95/Canary/actions/workflows/python-unit-tests.yml/badge.svg?branch=development)](https://github.com/chriswales95/Canary/actions/workflows/python-unit-tests.yml)
 
-Canary is an argument mining Python library. Argument Mining is the automated identifcation and extraction of argumentative data from natural language.
+Canary is an argument mining Python library. Argument Mining is the automated identifcation and extraction of
+argumentative data from natural language.
 
 It should be noted that this software is currently under **active development** and is not fully functional or feature complete.
 ## Installation
