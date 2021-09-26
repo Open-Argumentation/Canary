@@ -55,4 +55,4 @@ html_css_files = [
 ]
 
 autodoc_mock_imports = ["pkg_resources", "numpy", "nltk", "sklearn", "pybrat", "vaderSentiment", "spacy", "benepar",
-                        "pandas", "sklearn_crfsuite", "scipy", ""]
+                        "pandas", "sklearn_crfsuite", "scipy", "joblib"]
