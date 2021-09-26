@@ -16,10 +16,10 @@
 project = 'Canary'
 copyright = '2021, Christopher Wales'
 author = 'Christopher Wales'
-
+html_title = "Canary"
 release = '0.0.1'
 version = '0.0.1'
-
+pygments_style = 'sphinx'
 add_module_names = False
 
 # -- General configuration

@@ -17,6 +17,8 @@ lemmatizer = Lemmatizer()
 __all__ = [
     "ArgumentSegmenter"
 ]
+
+
 class ArgumentSegmenter(Model):
 
     def __init__(self, model_id=None, model_storage_location=None):
@@ -25,7 +27,6 @@ class ArgumentSegmenter(Model):
 
         super().__init__(
             model_id=model_id,
-            model_storage_location=model_storage_location,
         )
 
     @staticmethod

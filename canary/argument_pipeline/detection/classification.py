@@ -27,7 +27,6 @@ class ArgumentDetector(Model):
             model_id = "argument_detector"
 
         super().__init__(model_id=model_id,
-                         model_storage_location=model_storage_location,
                          )
 
     @staticmethod

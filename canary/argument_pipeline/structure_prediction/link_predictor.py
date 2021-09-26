@@ -33,7 +33,7 @@ class LinkPredictor(Model):
         if model_id is None:
             model_id = "link_predictor"
 
-        super().__init__(model_id, model_storage_location)
+        super().__init__(model_id)
 
     @staticmethod
     def default_train():

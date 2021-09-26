@@ -25,7 +25,7 @@ class StructurePredictor(Model):
         if model_id is None:
             model_id = "structure_predictor"
 
-        super().__init__(model_id=model_id, model_storage_location=model_storage_location)
+        super().__init__(model_id=model_id)
 
     @staticmethod
     def default_train():

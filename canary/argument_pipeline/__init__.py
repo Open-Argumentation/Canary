@@ -1,5 +1,5 @@
-"""
-Test doc
+""" The argument_pipeline package contains the functionality required to analyse a unstructured document
+of natural language.
 """
 import glob
 import itertools
@@ -10,13 +10,21 @@ from pathlib import Path
 import joblib
 import requests
 
+__all__ = [
+    "load",
+    "analyse",
+    "analyse_file",
+    "download_pretrained_models"
+]
+
 
 def get_downloadable_assets_from_github():
     """Finds downloadable argument models which are available from Canary's GitHub repository
 
     Returns
     -------
-    The JSON string from the GitHub REST API
+    str
+        The JSON string from the GitHub REST API
     """
     from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION
     import canary
@@ -197,9 +205,6 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
     dict
         the SADFace document.
 
-    Notes
-    ------
-
     """
     from ..argument_pipeline.detection import ArgumentSegmenter
     from ..argument_pipeline.component_prediction import ArgumentComponent
@@ -369,15 +374,12 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     Model
         The Canary model.
 
-    Notes
-    -----
-
-    See Also
+    Examples
     --------
-    numpy.array : Relationship (optional).
-    numpy.ndarray : Relationship (optional), which could be fairly long, in which case the line wraps here.
-    numpy.dot, numpy.linalg.norm, numpy.eye
-
+    >>> import canary
+    >>> component_detector = canary.load("argument_component")c
+    >>> print(component_detector.__class__.__name__)
+    ArgumentComponent
     """
     import canary
     from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION

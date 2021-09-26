@@ -9,14 +9,31 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-from canary.data.indicators import discourse_indicators
-from canary.preprocessing import PunctuationTokenizer
+from ..data.indicators import discourse_indicators
 from ..preprocessing import Lemmatizer
+from ..preprocessing import PunctuationTokenizer
 from ..preprocessing.nlp import spacy_download
 from ..utils import logger
 
+__all__ = [
+    "SentimentTransformer",
+    "WordSentimentCounter",
+    "TfidfPosVectorizer",
+    "CountPosVectorizer",
+    "LengthOfSentenceTransformer",
+    "UniqueWordsTransformer",
+    "LengthTransformer",
+    "AverageWordLengthTransformer",
+    "DiscourseMatcher",
+    "FirstPersonIndicatorMatcher",
+    "CountPunctuationVectorizer",
+    "TfidfPunctuationVectorizer",
+    "EmbeddingTransformer",
+    "BiasTransformer",
+    "SharedNouns",
+    "ProductionRules"
+]
 
-# @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
     """

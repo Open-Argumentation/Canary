@@ -6,12 +6,18 @@ Canary is an argument mining Python library. Argument Mining is the automated id
 It should be noted that this software is currently under active development and is not fully functional or feature complete.
 
 .. toctree::
-   :caption: Canary Documentation
-   :maxdepth: 2
+   :maxdepth: 10
    :hidden:
 
-   api
    about
+   tutorial
+   api
+   related
+
+.. toctree::
+   :caption: External
+   :hidden:
+
    GitHub <https://github.com/chriswales95/Canary>
    Open Argumentation PLatform <http://openargumentation.org>
 

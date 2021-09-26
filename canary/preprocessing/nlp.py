@@ -1,5 +1,7 @@
 from pathlib import Path as _Path
 
+__all__ = ["nltk_download", "spacy_download"]
+
 
 def nltk_download(packages):
     """Wrapper around nltk.download """

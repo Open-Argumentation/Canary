@@ -30,18 +30,13 @@ class ArgumentComponent(Model):
     Detects argumentative components from natural language
     """
 
-    def __init__(self, model_id: str = None, model_storage_location=None):
-        """
-        :param model_id: the ID of the model
-        :param model_storage_location: where the model should be stored
-        """
+    def __init__(self, model_id: str = None):
 
         if model_id is None:
             model_id = "argument_component"
 
         super().__init__(
             model_id=model_id,
-            model_storage_location=model_storage_location,
         )
 
     @staticmethod

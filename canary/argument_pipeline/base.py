@@ -19,10 +19,12 @@ __all__ = [
 
 
 class Model(metaclass=ABCMeta):
+    """Abstract class that \dots
+    """
 
     @abstractmethod
     def __init__(self, model_id=None):
-        """
+        """Constructor method
 
         Parameters
         ----------
@@ -81,9 +83,28 @@ class Model(metaclass=ABCMeta):
 
     @property
     def metrics(self):
+        """
+
+        Returns
+        -------
+        dict
+            Returns the metrics of the model as a dict
+
+        Examples
+        --------
+        >>> self.metrics
+        {"f1score" 54.6, ...}
+        """
         return self._metrics
 
     def set_model(self, model):
+        """Set the scikit-learn model that sits under self._model
+
+        Parameters
+        ----------
+        model
+            a model that conforms to the standard scikit-learn API
+        """
         self._model = model
 
     def save(self, save_to: Path = None):
@@ -117,14 +138,19 @@ class Model(metaclass=ABCMeta):
         ----------
         pipeline_model
             The model ...
-        train_data
-        test_data
-        train_targets
-        test_targets
+        train_data: list
+            Training data
+        test_data: list
+            Test data
+        train_targets: list
+            The training labels
+        test_targets: list
+            The test labels
         save_on_finish: bool
+            Should the model be saved when training has finished?
         *args: tuple
             Additional positional arguments
-        **kwargs: dict
+        **kwargs: dictl
             Additional keyed-arguments
 
         Returns
@@ -190,14 +216,19 @@ class Model(metaclass=ABCMeta):
         logger.removeHandler(handler)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
-        """
-        Make a prediction on some data
+        """Make a prediction on some data. A wrapper around scikit-learn's predict method.
 
-        Wrapper around scikit-learn's predict.
+        Parameters
+        ----------
+        data:
+            The data the predictor will be ran on.
+        probability: bool
+            boolean indicating if the method should return a probability prediction.
 
-        :param data:
-        :param probability: boolean indicating if the method should return a probability prediction.
-        :return: a boolean or list of indi the prediction
+        Returns
+        -------
+        Union[list, bool]
+            a boolean or list of indi the prediction
         """
 
         if self._model is None:
@@ -213,8 +244,7 @@ class Model(metaclass=ABCMeta):
         data_type = type(data)
 
         def probability_predict(inp) -> Union[list[dict], dict]:
-            """
-            Internal helper function to provide a nicer way of returning probability predictions.
+            """Internal helper function to provide a nicer way of returning probability predictions.
 
             The default 'predict_proba' returns positional floats which requires that you know
             the ordering of the classes. This returns the labels along with the float value.
