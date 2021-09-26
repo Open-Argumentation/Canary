@@ -10,6 +10,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import os
+import sys
+
+current_dir = os.path.dirname(__file__)
+target_dir = os.path.abspath(os.path.join(current_dir, "../.."))
+sys.path.insert(0, target_dir)
 
 # -- Project information -----------------------------------------------------
 
@@ -47,3 +53,6 @@ epub_show_urls = 'footnote'
 html_css_files = [
     'css/custom.css',
 ]
+
+autodoc_mock_imports = ["pkg_resources", "numpy", "nltk", "sklearn", "pybrat", "vaderSentiment", "spacy", "benepar",
+                        "pandas", "sklearn_crfsuite", "scipy", ""]
