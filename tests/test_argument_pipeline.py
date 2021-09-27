@@ -20,9 +20,9 @@ class ArgumentPipeline(TestCase):
         """
         Setup for the tests.
         """
-        from canary.argument_pipeline import download_pretrained_models
+        from canary.argument_pipeline import download
 
-        download_pretrained_models("all")
+        download("all")
         self.argument_detector = canary.load("argument_detector")
         self.structure_predictor = canary.load("structure_predictor")
         self.argument_component = canary.load("argument_component")

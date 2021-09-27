@@ -14,7 +14,7 @@ __all__ = [
     "load",
     "analyse",
     "analyse_file",
-    "download_pretrained_models"
+    "download"
 ]
 
 
@@ -52,7 +52,7 @@ def _models_available_on_disk() -> list:
     return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
 
 
-def download_pretrained_models(model: str, download_to: str = None, overwrite=False):
+def download(model: str, download_to: str = None, overwrite=False):
     """Downloads the pretrained Canary models from a GitHub.
 
     Parameters

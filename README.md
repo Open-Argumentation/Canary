@@ -23,54 +23,56 @@ pip install git+ssh://git@github.com/chriswales95/Canary.git@development
 ## Example Usage
 
 ### Detecting an argument (true / false)
+
 ```python
 import logging
-from canary.argument_pipeline.component_identification import ArgumentDetector
-from canary.argument_pipeline import download_pretrained_models
+from canary.argument_pipeline.detection import ArgumentDetector
+from canary.argument_pipeline import download
 
 if __name__ == "__main__":
-    
     # setting up the logger is not mandatory but is useful to see output 
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('canary').setLevel(logging.DEBUG)
-    
+
     # Download pretrained models from the web (unless you fancy creating them yourself)
     # Training the models takes a while so I'd advise against it.
-    download_pretrained_models()
-    
+    download("all")
+
     # Instantiate the detector
     ag = ArgumentDetector()
-    
+
     # outputs false
     print(ag.predict("cats are pretty lazy animals"))
-    
+
     # outputs true
     print(ag.predict("If a criminal knows that a person has a gun , they are much less likely to attempt a crime ."))
 ```
 
 ### Detecting argument components
+
 ```python
 import logging
 
-from canary.argument_pipeline.component_identification import ArgumentComponent
-from canary.argument_pipeline import download_pretrained_models
+from canary.argument_pipeline.component_prediction import ArgumentComponent
+from canary.argument_pipeline import download
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('canary').setLevel(logging.DEBUG)
-    
+
     # Download the models if you don't have them already.
-    download_pretrained_models()
+    download("all")
 
     # Instantiate the component extractor
     ag = ArgumentComponent()
-    
+
     # Major claim
     print(ag.predict("one who studies overseas will gain many skills throughout this experience"))
-    
+
     # Claim
-    print(ag.predict("living and studying overseas is an irreplaceable experience when it comes to learn standing on your own feet"))
-    
+    print(ag.predict(
+        "living and studying overseas is an irreplaceable experience when it comes to learn standing on your own feet"))
+
     # Premise
     print(ag.predict("employers are mostly looking for people who have international and language skills"))
 ```
