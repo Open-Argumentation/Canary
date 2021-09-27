@@ -82,20 +82,20 @@ def download(model: str, download_to: str = None, overwrite=False):
             canary.utils.logger.info("models extracted.")
         os.remove(model_zip)
 
-    def download_asset(asset):
-        if 'url' in asset:
-            asset_res = requests.get(asset['url'], headers={
+    def download_asset(asset_dict):
+        if 'url' in asset_dict:
+            asset_res = requests.get(asset_dict['url'], headers={
                 "Accept": "application/octet-stream"
             }, stream=True)
 
             if asset_res.status_code == 200:
-                file = download_to / asset['name']
+                file = download_to / asset_dict['name']
                 with open(file, "wb") as f:
                     f.write(asset_res.raw.read())
                     canary.utils.logger.info("downloaded model")
 
                 if file.suffix == ".zip":
-                    unzip_model(download_to / asset['name'])
+                    unzip_model(download_to / asset_dict['name'])
 
                 if file.suffix == ".joblib":
                     canary.utils.logger.info(f"{file.name} downloaded to {file.parent}")
@@ -104,22 +104,25 @@ def download(model: str, download_to: str = None, overwrite=False):
                 return
 
     # check if we have already have the model downloaded
-    if overwrite is False:
+    if overwrite is False and model != "all":
         models = glob.glob(str(download_to / "*.joblib"))
         if len(models) > 0:
             for model in models:
                 if os.path.isfile(model) is True:
-                    canary.utils.logger.info("This model already exists")
-                    print("This model already exists")
+                    canary.utils.logger.warn(f"{Path(model).stem} already present: {model}")
                     return
 
     github_releases = get_downloadable_assets_from_github()
+    models_on_disk = _models_available_on_disk()
     if github_releases is not None:
         # parse JSON response
         if 'assets' in github_releases:
             if len(github_releases['assets']) > 0:
                 for asset in github_releases['assets']:
                     name = asset['name'].split(".")[0]
+                    if name in models_on_disk and overwrite is False:
+                        canary.utils.logger.warn(f"{name} already present.")
+                        continue
                     if type(model) is str:
                         if model != "all":
                             if name == model:
