@@ -141,8 +141,8 @@ def download_pretrained_models(model: str, download_to: str = None, overwrite=Fa
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
-                 steps=None, **kwargs):
+def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
+                 **kwargs):
     """Wrapper around the `analyse` function which takes in a file location as a string.
 
     Parameters
@@ -168,8 +168,6 @@ def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_con
 
     Refer to https://github.com/ARG-ENU/SADFace
     """
-
-    supported_file_types = ["txt"]
 
     if not os.path.isfile(file):
         raise TypeError("file argument should be a valid file")
