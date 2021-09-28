@@ -5,6 +5,7 @@ that does things...
 """
 
 import logging as _logging
+import os
 import os as _os
 from configparser import ConfigParser as _ConfigParser
 from pathlib import Path as _Path
@@ -22,17 +23,9 @@ __all__ = [
     "CANARY_CORPORA_LOCATION"
 ]
 
-# This logger should be used wherever possible
-_logging.basicConfig(format="%(asctime)s:CANARY:%(levelname)s:%(message)s", datefmt='%d/%m/%Y-%H:%M:%S')
-logger = _logging.getLogger(__name__)
-"""
-
-"""
 # Set up the configuration parser.
 # Should be used wherever possible
 config = _ConfigParser()
-"""
-"""
 
 config.read(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '../etc/canary.cfg'))
 
@@ -50,5 +43,23 @@ CANARY_MODEL_STORAGE_LOCATION = _Path(f"{CANARY_LOCAL_STORAGE}/models")
 """The default location where Canary models are saved to after training and downloading
 """
 CANARY_MODEL_DOWNLOAD_LOCATION = config.get('canary', 'model_download_location')
-CANARY_CORPORA_LOCATION = _os.path.join(_Path.home(), config.get('canary',
-                                                                 'corpora_home_storage_directory'))
+
+CANARY_CORPORA_LOCATION = _os.path.join(_Path.home(), config.get('canary', 'corpora_home_storage_directory'))
+"""Where corpora is stored"""
+
+
+def set_dev_mode(mode: bool):
+    if type(mode) is not bool:
+        raise TypeError("Was expecting a boolean value")
+
+    os.environ["CANARY_DEV"] = "1" if mode is True else "0"
+
+
+def get_is_dev() -> bool:
+    if "CANARY_DEV" not in os.environ:
+        return False
+    return True if os.environ["CANARY_DEV"] == "1" else False
+
+
+_logging.basicConfig(format="%(asctime)s:CANARY:%(levelname)s:%(message)s", datefmt='%d/%m/%Y-%H:%M:%S')
+logger = _logging.getLogger(__name__)

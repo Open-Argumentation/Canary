@@ -2,7 +2,6 @@ import os
 import sys
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from logging import FileHandler
 from pathlib import Path
 from typing import Union
 
@@ -11,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 
 from .. import __version__
-from ..utils import CANARY_MODEL_STORAGE_LOCATION, CANARY_LOCAL_STORAGE, logger, config
+from ..utils import CANARY_MODEL_STORAGE_LOCATION, logger, get_is_dev
 
 __all__ = [
     "Model"
@@ -19,7 +18,7 @@ __all__ = [
 
 
 class Model(metaclass=ABCMeta):
-    """Abstract class that \dots
+    """Abstract class that other Canary models descend from
     """
 
     @abstractmethod
@@ -191,12 +190,12 @@ class Model(metaclass=ABCMeta):
 
         prediction = model.predict(test_data)
 
-        report = f"\nModel stats:\n{classification_report(test_targets, prediction)}"
+        if get_is_dev() is True:
+            from ._utils import log_training_data
+            log_training_data({"result": classification_report(test_targets, prediction, output_dict=True),
+                               "datetime": str(datetime.now()), "model": model.__class__.__name__})
 
-        if config.get('canary', 'dev') == "True":
-            model._log_training_data(report)
-        else:
-            logger.debug(report)
+        logger.debug(f"\nModel stats:\n{classification_report(test_targets, prediction)}")
 
         model._metrics = classification_report(test_targets, prediction, output_dict=True)
 
@@ -204,16 +203,6 @@ class Model(metaclass=ABCMeta):
             model.save()
 
         return model
-
-    def _log_training_data(self, msg):
-        training_log_dir = Path(CANARY_LOCAL_STORAGE) / "logs"
-        os.makedirs(training_log_dir, exist_ok=True)
-
-        training_log_dir = training_log_dir / "training.log"
-        handler = FileHandler(filename=training_log_dir, encoding="utf-8")
-        logger.addHandler(handler, )
-        logger.debug(msg)
-        logger.removeHandler(handler)
 
     def predict(self, data, probability=False) -> Union[list, bool]:
         """Make a prediction on some data. A wrapper around scikit-learn's predict method.

@@ -130,8 +130,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
 
     @staticmethod
     def prepare_dictionary_features(data):
-        logger.debug("Getting dictionary features.")
-
         def get_features(f):
             new_feats = f.copy()
             for t, d in enumerate(new_feats):

@@ -111,6 +111,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         :param y: ignored.
         :return:
         """
+        logger.debug("fitting...")
         px = pandas.DataFrame(x)
 
         self.__arg1_cover_features.fit(px.arg1_covering_sentence.tolist())
@@ -125,6 +126,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
+        logger.debug("transforming...")
         dict_feats = self.__nom_dict_features.transform(self.prepare_dictionary_features(x))
         num_dict_feats = self.__numeric_dict_features.transform(self.prepare_numeric_feats(x))
 
@@ -140,7 +142,6 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
     @staticmethod
     def prepare_dictionary_features(data):
-        logger.debug("Getting dictionary features")
         shared_noun_counter = SharedNouns()
 
         def get_features(feats):
@@ -176,7 +177,6 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
     @staticmethod
     def prepare_numeric_feats(data):
         shared_noun_counter = SharedNouns()
-        logger.debug("Getting numeric features")
 
         def get_features(feats):
             pos_dist = PosDistribution()
