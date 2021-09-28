@@ -22,13 +22,13 @@ setup(
         "spacy",
         "pandas",
         "benepar",
-        "sadface"
+        "sadface",
+        "pybrat"
     ],
     extras_require={
         "dev":
             [
                 "imbalanced-learn",
-                "pybrat",
             ]
     },
     url='http://openargumentation.org',
