@@ -19,13 +19,18 @@ setup(
         "sklearn_crfsuite",
         "nltk",
         "vaderSentiment",
-        "pybrat",
         "spacy",
         "pandas",
         "benepar",
-        "imbalanced-learn",
-        "sadface"
+        "sadface",
+        "pybrat"
     ],
+    extras_require={
+        "dev":
+            [
+                "imbalanced-learn",
+            ]
+    },
     url='http://openargumentation.org',
     project_urls={
         'Source': 'https://github.com/chriswales95/Canary',

@@ -14,7 +14,7 @@ __all__ = [
     "load",
     "analyse",
     "analyse_file",
-    "download_pretrained_models"
+    "download"
 ]
 
 
@@ -52,7 +52,7 @@ def _models_available_on_disk() -> list:
     return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
 
 
-def download_pretrained_models(model: str, download_to: str = None, overwrite=False):
+def download(model: str, download_to: str = None, overwrite=False):
     """Downloads the pretrained Canary models from a GitHub.
 
     Parameters
@@ -82,20 +82,20 @@ def download_pretrained_models(model: str, download_to: str = None, overwrite=Fa
             canary.utils.logger.info("models extracted.")
         os.remove(model_zip)
 
-    def download_asset(asset):
-        if 'url' in asset:
-            asset_res = requests.get(asset['url'], headers={
+    def download_asset(asset_dict):
+        if 'url' in asset_dict:
+            asset_res = requests.get(asset_dict['url'], headers={
                 "Accept": "application/octet-stream"
             }, stream=True)
 
             if asset_res.status_code == 200:
-                file = download_to / asset['name']
+                file = download_to / asset_dict['name']
                 with open(file, "wb") as f:
                     f.write(asset_res.raw.read())
                     canary.utils.logger.info("downloaded model")
 
                 if file.suffix == ".zip":
-                    unzip_model(download_to / asset['name'])
+                    unzip_model(download_to / asset_dict['name'])
 
                 if file.suffix == ".joblib":
                     canary.utils.logger.info(f"{file.name} downloaded to {file.parent}")
@@ -104,22 +104,25 @@ def download_pretrained_models(model: str, download_to: str = None, overwrite=Fa
                 return
 
     # check if we have already have the model downloaded
-    if overwrite is False:
+    if overwrite is False and model != "all":
         models = glob.glob(str(download_to / "*.joblib"))
         if len(models) > 0:
             for model in models:
                 if os.path.isfile(model) is True:
-                    canary.utils.logger.info("This model already exists")
-                    print("This model already exists")
+                    canary.utils.logger.warn(f"{Path(model).stem} already present: {model}")
                     return
 
     github_releases = get_downloadable_assets_from_github()
+    models_on_disk = _models_available_on_disk()
     if github_releases is not None:
         # parse JSON response
         if 'assets' in github_releases:
             if len(github_releases['assets']) > 0:
                 for asset in github_releases['assets']:
                     name = asset['name'].split(".")[0]
+                    if name in models_on_disk and overwrite is False:
+                        canary.utils.logger.warn(f"{name} already present.")
+                        continue
                     if type(model) is str:
                         if model != "all":
                             if name == model:
@@ -141,8 +144,8 @@ def download_pretrained_models(model: str, download_to: str = None, overwrite=Fa
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
-                 steps=None, **kwargs):
+def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
+                 **kwargs):
     """Wrapper around the `analyse` function which takes in a file location as a string.
 
     Parameters
@@ -168,8 +171,6 @@ def analyse_file(file, out_format=None, min_link_confidence=0.8, min_support_con
 
     Refer to https://github.com/ARG-ENU/SADFace
     """
-
-    supported_file_types = ["txt"]
 
     if not os.path.isfile(file):
         raise TypeError("file argument should be a valid file")
