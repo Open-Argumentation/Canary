@@ -2,10 +2,11 @@ from typing import Union
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 from canary.argument_pipeline.base import Model
-from canary.corpora import load_ukp_sentential_argument_detection_corpus
+from canary.corpora import load_essay_corpus
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
@@ -30,22 +31,19 @@ class ArgumentDetector(Model):
                          )
 
     @staticmethod
-    def default_train():
-        train_data = []
-        test_data = []
-        train_targets = []
-        test_targets = []
+    def essay_corpus_load():
+        x, y = load_essay_corpus(purpose="argument_detection",
+                                 train_split_size=0.7)
+        return train_test_split(x, y,
+                                train_size=0.7,
+                                shuffle=True,
+                                random_state=0,
+                                stratify=y
+                                )
 
-        for dataset in load_ukp_sentential_argument_detection_corpus(multiclass=False).values():
-            for x in dataset['train']:
-                test, target = x[0], x[1]
-                test_data.append(test)
-                test_targets.append(target)
-            for y in dataset['test']:
-                train, target = y[0], y[1]
-                train_data.append(train)
-                train_targets.append(target)
-        return train_data, test_data, train_targets, test_targets
+    @staticmethod
+    def default_train():
+        return ArgumentDetector.essay_corpus_load()
 
     @classmethod
     def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
