@@ -11,7 +11,6 @@ import os
 import tarfile
 import zipfile
 from pathlib import Path
-from typing import Union
 
 import nltk
 from pybrat.parser import BratParser
@@ -500,65 +499,6 @@ def load_imdb_debater_evidence_sentences() -> tuple:
             test_targets.append(int(row[4]))
 
     return train_data, train_targets, test_data, test_targets
-
-
-def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list, dict]:
-    """
-    Load the ukp sentential argument corpus
-
-    :param multiclass: whether to return a multiclass problem
-    :return: the dataset
-    """
-
-    dataset_format = {'train': [], "test": [], "val": []}
-    datasets = {
-        "nuclear_energy": dataset_format,
-        "death_penalty": dataset_format,
-        "minimum_wage": dataset_format,
-        "marijuana_legalization": dataset_format,
-        "school_uniforms": dataset_format,
-        "gun_control": dataset_format,
-        "abortion": dataset_format,
-        "cloning": dataset_format,
-    }
-
-    def multiclass_transformer(val):
-        if multiclass is False:
-            if val == 'NoArgument':
-                return False
-            else:
-                return True
-        else:
-            return val
-
-    try:
-        for d in datasets:
-            file = Path(
-                f"{CANARY_ROOT_DIR}/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/{d}.tsv",
-                encoding="utf8")
-
-            if os.path.isfile(file) is False:
-                raise FileNotFoundError(f"{d}.tsv from the UKP dataset does not exist. Has it been downloaded?")
-
-            with open(file, encoding="utf8") as data:
-                csv_reader = csv.reader(data, delimiter="\t", quotechar='"')
-                next(csv_reader)  # skip heading
-
-                for row in csv_reader:
-                    if 0 <= 6 < len(row):
-                        if row[6] == 'train':
-                            datasets[d]['train'].append([row[4], multiclass_transformer(row[5])])
-                        elif row[6] == 'test':
-                            datasets[d]['test'].append([row[4], multiclass_transformer(row[5])])
-                        else:
-                            datasets[d]['val'].append([row[4], multiclass_transformer(row[5])])
-
-    except FileNotFoundError:
-        logger.error("Could not find a file from the UKP sentential dataset. Please ensure it has been downloaded.")
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return datasets
 
 
 def load_araucaria_corpus():
