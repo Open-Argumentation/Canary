@@ -99,6 +99,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
 
     _allowed_purpose_values = [
         None,
+        'argument_detection',
         'component_prediction',
         "link_prediction",
         'relation_prediction',
@@ -137,6 +138,24 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
 
     if purpose is None:
         return essays
+
+    elif purpose == "argument_detection":
+        X, Y = [], []
+        for essay in essays:
+            sentences, labels = [], []
+            essay.sentences = tokenize_essay_sentences(essay)
+            for sentence in essay.sentences:
+                sentences.append(sentence)
+                is_argumentative = False
+                for component in essay.entities:
+                    if component.mention in sentence:
+                        is_argumentative = True
+                        break
+                labels.append(is_argumentative)
+            X += sentences
+            Y += labels
+
+        return X, Y
 
     elif purpose == "component_prediction":
         X, Y = [], []
