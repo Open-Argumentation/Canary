@@ -1,12 +1,19 @@
+from typing import Union
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import FeatureUnion, Pipeline
 
-from canary.argument_pipeline.model import Model
 from canary.corpora import load_ukp_sentential_argument_detection_corpus, load_essay_corpus
+from canary.argument_pipeline.base import Model
 from canary.preprocessing import Lemmatizer
 from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
+
+__all__ = [
+    "ArgumentDetector"
+]
 
 
 class ArgumentDetector(Model):
@@ -21,13 +28,19 @@ class ArgumentDetector(Model):
             model_id = "argument_detector"
 
         super().__init__(model_id=model_id,
-                         model_storage_location=model_storage_location,
                          )
 
     @staticmethod
     def essay_corpus_load():
-        return load_essay_corpus(purpose="argument_detection",
+        x, y = load_essay_corpus(purpose="argument_detection",
                                  train_split_size=0.7)
+        return train_test_split(x, y,
+                             train_size=0.7,
+                             shuffle=True,
+                             random_state=0,
+                             stratify=y
+                             )
+
 
     @staticmethod
     def ukp_corpus():
@@ -51,7 +64,8 @@ class ArgumentDetector(Model):
     def default_train():
         return ArgumentDetector.essay_corpus_load()
 
-    def train(self, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
+    @classmethod
+    def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, *args, **kwargs):
 
         if pipeline_model is None:
@@ -82,9 +96,16 @@ class ArgumentDetector(Model):
                  )
             ])
 
-        super(ArgumentDetector, self).train(pipeline_model=pipeline_model,
-                                            train_data=train_data,
-                                            test_data=test_data,
-                                            train_targets=train_targets,
-                                            test_targets=test_targets,
-                                            save_on_finish=True)
+        return super().train(pipeline_model=pipeline_model,
+                             train_data=train_data,
+                             test_data=test_data,
+                             train_targets=train_targets,
+                             test_targets=test_targets,
+                             save_on_finish=True)
+
+    def predict(self, data, probability=False) -> Union[list, bool]:
+        if type(data) is list:
+            if not all(type(i) is str for i in data):
+                raise TypeError(f"{self.__class__.__name__} requires list elements to be strings.")
+
+        return super().predict(data, probability)

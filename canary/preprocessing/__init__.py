@@ -1,28 +1,39 @@
 from collections import Counter
-from functools import cache
+from functools import lru_cache
 
 import nltk
-import spacy
 from nltk.corpus import wordnet
 
-from canary.utils import nltk_download
+import canary.preprocessing.nlp
+from canary.preprocessing.nlp import nltk_download
 
-_nlp = spacy.load("en_core_web_lg")
+_nlp = None
 _word_net = nltk.WordNetLemmatizer()
 _stemmer = nltk.PorterStemmer()
 nltk_download(['punkt', 'wordnet', 'tagsets'])
 
+__all__ = [
+    "Lemmatizer",
+    "PosLemmatizer",
+    "Stemmer",
+    "PunctuationTokenizer",
+    "PosDistribution",
+    "Tokenizer"
+]
+
 
 class Lemmatizer:
-    """
-    Transforms text into its lemma form
+    """Transforms text into its lemma form
 
-    e.g.
-    - cats -> cat
-    - corpora -> corpus
+    Notes
+    -----
+        e.g.
+        - cats -> cat
+        - corpora -> corpus
     """
 
-    def get_wordnet_pos(self, treebank_tag):
+    @staticmethod
+    def get_wordnet_pos(treebank_tag):
 
         if treebank_tag.startswith('J'):
             return wordnet.ADJ
@@ -35,7 +46,7 @@ class Lemmatizer:
         else:
             return wordnet.NOUN
 
-    @cache
+    @lru_cache(maxsize=None)
     def __process(self, t):
         tag = nltk.pos_tag([t])[0][1]
         return _word_net.lemmatize(t, self.get_wordnet_pos(tag))
@@ -45,32 +56,32 @@ class Lemmatizer:
 
 
 class PosLemmatizer:
+    """"""
 
     def t(self, x):
-        return f"{x.lemma_}/{x.tag_}"
+        tag = nltk.pos_tag([x])[0][1]
 
-    @cache
+        return f"{_word_net.lemmatize(x, Lemmatizer.get_wordnet_pos(tag))}/{tag}"
+
     def __call__(self, text):
-        text = _nlp(text)
-        return [self.t(d) for d in text]
+        return [self.t(d) for d in nltk.word_tokenize(text)]
 
 
 class Stemmer:
-    """
-    Transforms text into its stemmed form
-    """
+    """Transforms text into its stemmed form"""
 
     def __call__(self, text):
         return [_stemmer.stem(token) for token in nltk.word_tokenize(text)]
 
 
 class PunctuationTokenizer:
-    """
-    Extracts only punctuation from a piece of text
+    """Extracts only punctuation from a piece of text
 
-    e.g.
-    - Hi, what's up? Did you like the movie last night?
-    -> [[','], ["'", 's'], ['?'], ['?']]
+    Notes
+    -----
+        e.g.
+        - Hi, what's up? Did you like the movie last night?
+        -> [[','], ["'", 's'], ['?'], ['?']]
     """
 
     def __init__(self):
@@ -80,12 +91,17 @@ class PunctuationTokenizer:
         return [self.__tokenizer.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]
 
 
+keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
+
+
 class PosDistribution:
+    """
+
+    """
 
     def __init__(self):
         self.keys = {}
 
-        keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
         for key in keys:
             self.keys[key] = 0
 
@@ -97,3 +113,9 @@ class PosDistribution:
             count_dict[tag] = count
 
         return count_dict
+
+
+class Tokenizer:
+
+    def __init__(self):
+        pass

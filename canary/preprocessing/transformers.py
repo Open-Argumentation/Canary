@@ -1,5 +1,7 @@
 import string
 from abc import ABCMeta
+from collections import Counter
+from functools import lru_cache
 
 import nltk
 import numpy as np
@@ -7,19 +9,38 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-import canary.utils
-from canary import logger
-from canary.data.indicators import discourse_indicators
-from canary.preprocessing import PunctuationTokenizer
+from ..data.indicators import discourse_indicators
+from ..preprocessing import Lemmatizer
+from ..preprocessing import PunctuationTokenizer
+from ..preprocessing.nlp import spacy_download
+from ..utils import logger
 
-nlp = canary.utils.spacy_download('en_core_web_lg')
+__all__ = [
+    "SentimentTransformer",
+    "WordSentimentCounter",
+    "TfidfPosVectorizer",
+    "CountPosVectorizer",
+    "LengthOfSentenceTransformer",
+    "UniqueWordsTransformer",
+    "LengthTransformer",
+    "AverageWordLengthTransformer",
+    "DiscourseMatcher",
+    "FirstPersonIndicatorMatcher",
+    "CountPunctuationVectorizer",
+    "TfidfPunctuationVectorizer",
+    "EmbeddingTransformer",
+    "BiasTransformer",
+    "SharedNouns",
+    "ProductionRules"
+]
 
-# @TODO this file needs cleaning up
 
 class PosVectorizer(metaclass=ABCMeta):
     """
     Base class for POS tagging vectorisation
     """
+
+    nlp = spacy_download()
 
     def __init__(self, ngrams=1) -> None:
 
@@ -30,7 +51,7 @@ class PosVectorizer(metaclass=ABCMeta):
 
     def prepare_doc(self, doc):
 
-        _doc = nlp(doc)
+        _doc = self.nlp(doc)
         new_text = []
 
         for word in _doc:
@@ -193,19 +214,15 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
     indicators can be seen in data/indicators.py
     """
 
-    component = None
-    lemmatize = False
+    def __init__(self, component=None, lemmatise=False):
+        self.component = None
+        self.lemmatise = lemmatise
+        self._test = 1
 
-    def __init__(self, component=None, lemmatize=False):
         if component is not None and component not in discourse_indicators.keys():
             raise ValueError(
                 f"Incorrect discourse component passed to constructor. "
                 f"Acceptable values are {[k for k in discourse_indicators.keys()]}")
-        else:
-            self.component = component
-
-        if lemmatize is not False and type(lemmatize) is bool:
-            self.lemmatize = lemmatize
 
     @property
     def indicators(self) -> list:
@@ -222,16 +239,19 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
     def fit(self, x, y):
         return self
 
+    @lru_cache(maxsize=None)
     def __contains_indicator__(self, sen) -> bool:
         for x in self.indicators:
             if type(sen) is str:
                 sen = sen.split()
             if x in sen:
                 return True
-            sen = [k.lower() for k in sen]
-            lemma = nltk.WordPunctTokenizer().tokenize(x)[0].lower()
-            if lemma.lower() in sen:
-                return True
+            if hasattr(self, 'lemmatise'):
+                if self.lemmatise is True:
+                    sen = [k.lower() for k in sen]
+                    lemma = nltk.WordPunctTokenizer().tokenize(x)[0].lower()
+                    if lemma.lower() in sen:
+                        return True
         return False
 
     def transform(self, doc):
@@ -243,8 +263,9 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
     Matches if any first-person indicators are present in text
     """
 
-    def __init__(self, indicator=None):
+    def __init__(self, indicator=None, lemmatise=False):
         self.indicator = indicator
+        self.lemmatise = False
 
     @property
     def indicators(self):
@@ -259,11 +280,11 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
         for x in self.indicators:
             if x.lower() in sen:
                 return True
-
-            sen = [k.lower() for k in sen]
-            lemma = nltk.WordPunctTokenizer().tokenize(x)[0].lower()
-            if lemma.lower() in sen:
-                return True
+            if self.lemmatise is True:
+                sen = [k.lower() for k in sen]
+                lemma = nltk.WordPunctTokenizer().tokenize(x)[0].lower()
+                if lemma.lower() in sen:
+                    return True
 
         return False
 
@@ -322,12 +343,17 @@ class TfidfPunctuationVectorizer(TfidfVectorizer):
 
 
 class EmbeddingTransformer(TransformerMixin, BaseEstimator):
+    _nlp = spacy_download(
+        disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                 'attribute_ruler',
+                 'benepar'])
 
     def fit(self, x, y):
         return self
 
     def transform(self, x):
-        return [[nlp(y).vector_norm] for y in x]
+        x = self._nlp.pipe(x)
+        return [[y.vector_norm] for y in x]
 
 
 class BiasTransformer(TransformerMixin, BaseEstimator):
@@ -336,3 +362,72 @@ class BiasTransformer(TransformerMixin, BaseEstimator):
 
     def transform(self, x):
         return [[True] for _ in x]
+
+
+class SharedNouns(TransformerMixin, BaseEstimator):
+    lemmatizer = Lemmatizer()
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, arg1, arg2):
+        nouns_in_arg1 = [self.lemmatizer(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg1)) if
+                         (pos[:2] == 'NN')]
+        nouns_in_arg2 = [self.lemmatizer(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg2)) if
+                         (pos[:2] == 'NN')]
+
+        return len(set(nouns_in_arg1).intersection(nouns_in_arg2))
+
+
+class ProductionRules(TransformerMixin, BaseEstimator):
+
+    def __init__(self, max_rules=500):
+        self._production_rules = []
+        self._n_rules = max_rules
+        self.__nlp = spacy_download(
+            disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                     'attribute_ruler',
+                     'tok2vec'])
+
+    @property
+    def production_rules(self):
+        return self._production_rules
+
+    def fit(self, x, y=None):
+        logger.debug(f"Fitting {self.__class__.__name__}")
+        self._production_rules = []
+
+        x = list(self.__nlp.pipe(x))
+
+        for item in x:
+
+            productions = self.get_productions(item)
+            for p in productions:
+                self._production_rules.append(p)
+
+        self._production_rules = Counter(self.production_rules).most_common(self._n_rules)
+        self._production_rules = [str(p[0]) for p in self.production_rules]
+
+        return self
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def get_productions(item):
+        parse_string = list(item.sents)[0]._.parse_string
+        tree = nltk.Tree.fromstring(parse_string)
+        return tree.productions()
+
+    @lru_cache(maxsize=None)
+    def process_item(self, x):
+        productions = self.get_productions(x)
+        productions = [str(p) for p in productions]
+
+        out = [0 for _ in self.production_rules]
+        for i, rule in enumerate(self.production_rules):
+            if rule in productions:
+                out[i] = 1
+        return out
+
+    def transform(self, x):
+        x = self.__nlp.pipe(x)
+        return [self.process_item(_x) for _x in x]

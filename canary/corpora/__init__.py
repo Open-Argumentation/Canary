@@ -1,5 +1,10 @@
+"""
+Corpora Package
+"""
+
 import csv
 import glob
+import itertools
 import json
 import logging
 import os
@@ -10,14 +15,13 @@ from typing import Union
 
 import nltk
 from pybrat.parser import BratParser
-from sklearn.model_selection import train_test_split
 
+import canary.preprocessing.nlp
 import canary.utils
-from canary import logger
-from canary.corpora.araucaria import Nodeset, Edge, Locution, Node
 from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
-    tokenize_essay_sentences, find_component_features
+    tokenize_essay_sentences, find_component_features, relations_in_same_sentence
 from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
+from canary.utils import logger
 
 
 def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
@@ -82,7 +86,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split_size=0.5, **kwargs):
+def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
     """
     Loads essay corpus version
 
@@ -97,16 +101,13 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         None,
         'argument_detection',
         'component_prediction',
+        "link_prediction",
         'relation_prediction',
         'sequence_labelling'
     ]
 
-    canary.utils.nltk_download(['punkt'])
+    canary.preprocessing.nlp.nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
-
-    if train_split_size is not None:
-        if not (0 < train_split_size < 1):
-            raise ValueError("Split value should be between 0 and 1.")
 
     if version not in _allowed_version_values:
         raise ValueError(f"{version} is not a valid value. Valid values are {_allowed_version_values}")
@@ -154,11 +155,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             X += sentences
             Y += labels
 
-        return train_test_split(X, Y,
-                                train_size=train_split_size,
-                                shuffle=True,
-                                random_state=0,
-                                )
+        return X, Y
 
     elif purpose == "component_prediction":
         X, Y = [], []
@@ -191,14 +188,140 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                     else:
                         Y.append(entity.type)
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
+        return X, Y
 
-        return train_data, test_data, train_targets, test_targets
+    elif purpose == "link_prediction":
+
+        x, y = [], []
+
+        for essay in essays:
+            _x = []
+            _y = []
+            _linked = []
+            logger.debug(f"Parsing {essay.id}")
+            # This could get quite large... depending on n components
+
+            # find paragraph(s) in essay
+            paragraphs = [k for k in essay.text.split("\n") if k != ""]
+            essay.sentences = tokenize_essay_sentences(essay)
+
+            # loop paragraphs
+            for para in paragraphs:
+                components = [c for c in essay.entities if c.mention in para]
+                relations = [r for r in essay.relations if r.arg2.mention in para and r.arg1.mention in para]
+
+                if len(components) > 0:
+                    component_pairs = [tuple(reversed(p)) for p in list(itertools.combinations(components, 2))]
+                    for p in component_pairs:
+                        arg1, arg2 = p
+                        for r in relations:
+                            if (arg1.id == r.arg1.id and arg2.id == r.arg2.id) or (
+                                    arg2.id == r.arg1.id and arg1.id == r.arg2.id):
+                                arg1_feats = find_component_features(essay, arg1, include_link_feats=True)
+                                arg2_feats = find_component_features(essay, arg2, include_link_feats=True)
+
+                                feats = {
+                                    "source_before_target": arg1_feats['component_position'] > arg2_feats[
+                                        'component_position'],
+                                    "essay_ref": essay.id,
+                                    "para_ref": paragraphs.index(para),
+                                    "n_paragraphs": len(paragraphs),
+                                    "arg1_in_intro": arg1_feats['is_in_intro'],
+                                    "arg1_position": arg1_feats['component_position'],
+                                    "arg1_in_conclusion": arg1_feats['is_in_conclusion'],
+                                    "arg1_n_preceding_components": arg1_feats['n_preceding_components'],
+                                    "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
+                                    "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
+                                    "arg1_component": arg1.mention,
+                                    "arg1_covering_sentence": find_cover_sentence(essay, arg1),
+                                    "arg1_type": arg1.type,
+                                    "arg1_n_following_components": arg1_feats['n_following_components'],
+                                    "arg2_component": arg2.mention,
+                                    "arg2_covering_sentence": find_cover_sentence(essay, arg2),
+                                    "arg2_type": arg2.type,
+                                    "arg2_position": arg2_feats['component_position'],
+                                    "arg2_in_intro": arg2_feats['is_in_intro'],
+                                    "arg2_in_conclusion": arg2_feats['is_in_conclusion'],
+                                    "arg2_n_following_components": arg2_feats['n_following_components'],
+                                    "arg2_n_preceding_components": arg2_feats['n_preceding_components'],
+                                    "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
+                                    "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
+                                    "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
+                                    'arg1_indicator_type_follows_component': arg1_feats[
+                                        'indicator_type_follows_component'],
+                                    'arg2_indicator_type_follows_component': arg2_feats[
+                                        'indicator_type_follows_component'],
+                                    'arg1_indicator_type_precedes_component': arg1_feats[
+                                        'indicator_type_precedes_component'],
+                                    'arg2_indicator_type_precedes_component': arg2_feats[
+                                        'indicator_type_precedes_component'],
+                                    "n_para_components": len(components),
+                                }
+                                if feats not in _x:
+                                    _linked.append(p)
+                                    _x.append(feats)
+                                    _y.append("Linked")
+
+            for para in paragraphs:
+                components = [c for c in essay.entities if c.mention in para]
+                component_pairs = [p for p in list(itertools.permutations(components, 2)) if
+                                   p not in _linked]
+
+                for p in component_pairs:
+                    arg1, arg2 = p
+                    arg1_feats = find_component_features(essay, arg1, include_link_feats=True)
+                    arg2_feats = find_component_features(essay, arg2, include_link_feats=True)
+
+                    feats = {
+                        "source_before_target": arg1.start > arg2.end,
+                        "essay_ref": essay.id,
+                        "para_ref": paragraphs.index(para),
+                        "n_paragraphs": len(paragraphs),
+                        "arg1_in_intro": arg1_feats['is_in_intro'],
+                        "arg1_position": arg1_feats['component_position'],
+                        "arg1_in_conclusion": arg1_feats['is_in_conclusion'],
+                        "arg1_n_preceding_components": arg1_feats['n_preceding_components'],
+                        "arg1_first_in_paragraph": arg1_feats['first_in_paragraph'],
+                        "arg1_last_in_paragraph": arg1_feats['last_in_paragraph'],
+                        "arg1_component": arg1.mention,
+                        "arg1_covering_sentence": find_cover_sentence(essay, arg1),
+                        "arg1_type": arg1.type,
+                        "arg1_n_following_components": arg1_feats['n_following_components'],
+                        "arg2_component": arg2.mention,
+                        "arg2_covering_sentence": find_cover_sentence(essay, arg2),
+                        "arg2_type": arg2.type,
+                        "arg2_position": arg2_feats['component_position'],
+                        "arg2_in_intro": arg2_feats['is_in_intro'],
+                        "arg2_in_conclusion": arg2_feats['is_in_conclusion'],
+                        "arg2_n_following_components": arg2_feats['n_following_components'],
+                        "arg2_n_preceding_components": arg2_feats['n_preceding_components'],
+                        "arg2_first_in_paragraph": arg2_feats['first_in_paragraph'],
+                        "arg2_last_in_paragraph": arg2_feats['last_in_paragraph'],
+                        "arg1_and_arg2_in_same_sentence": relations_in_same_sentence(arg1, arg2, essay),
+                        'arg1_indicator_type_follows_component': arg1_feats[
+                            'indicator_type_follows_component'],
+                        'arg2_indicator_type_follows_component': arg2_feats[
+                            'indicator_type_follows_component'],
+                        'arg1_indicator_type_precedes_component': arg1_feats[
+                            'indicator_type_precedes_component'],
+                        'arg2_indicator_type_precedes_component': arg2_feats[
+                            'indicator_type_precedes_component'],
+                        "n_para_components": len(components),
+                    }
+
+                    if feats not in _x:
+                        _x.append(feats)
+                        _y.append("Not Linked")
+
+            x += _x
+            y += _y
+
+        # 14227 + 4113
+        # 18340
+        from collections import Counter
+        counts = Counter(y)
+        logger.debug(counts)
+        return x, y
 
     elif purpose == "relation_prediction":
         X = []
@@ -209,14 +332,12 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
             for index, relation in enumerate(essay.relations):
                 features = {
                     "essay_id": essay.id,
-                    "arg1_text": relation.arg1.mention,
+                    "arg1_component": relation.arg1.mention,
+                    "arg2_component": relation.arg2.mention,
                     "arg1_type": relation.arg1.type,
-                    "arg1_start": relation.arg1.start,
-                    "arg1_end": relation.arg1.end,
-                    "arg2_text": relation.arg2.mention,
                     "arg2_type": relation.arg2.type,
-                    "arg2_start": relation.arg2.start,
-                    "arg2_end": relation.arg2.end,
+                    "arg2_position": find_component_features(essay, relation.arg2)['component_position'],
+                    "arg1_position": find_component_features(essay, relation.arg1)['component_position'],
                     "n_components_in_essay": len(essay.relations),
                 }
 
@@ -227,13 +348,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
                 X.append(features)
                 Y.append(relation.type)
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
-        return train_data, test_data, train_targets, test_targets
+        return X, Y
 
     elif purpose == "sequence_labelling":
         X = []
@@ -356,14 +471,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, train_split
         if errors > 0:
             raise ValueError(f'Data is incorrect shape. Number of errors {errors}')
 
-        train_data, test_data, train_targets, test_targets = \
-            train_test_split(X, Y,
-                             train_size=train_split_size,
-                             shuffle=True,
-                             random_state=0,
-                             )
-
-        return train_data, test_data, train_targets, test_targets
+        return X, Y
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:
@@ -453,7 +561,7 @@ def load_ukp_sentential_argument_detection_corpus(multiclass=True) -> Union[list
         return datasets
 
 
-def load_araucaria_corpus(purpose: str = None):
+def load_araucaria_corpus():
     """
     Loads the araucaria corpus
 
@@ -461,27 +569,19 @@ def load_araucaria_corpus(purpose: str = None):
     """
 
     corpus_download = download_corpus("araucaria")
-    corpus = {}
     if "location" in corpus_download:
 
         corpus_location = corpus_download["location"]
         files = glob.glob(str(Path(corpus_location) / "nodeset*.json"))
 
-        for file in files:
+        for i, file in enumerate(files):
             file = Path(file)
-            node = Nodeset()
+            files[i] = {'json': None, 'text': None}
+
             with open(file, "r", encoding="utf8") as json_file:
-                node.id = file.stem
-                j = json.load(json_file)
-                node.load(j)
-            json_file.close()
+                files[i]['json'] = json.load(json_file)
 
             with open(str(Path(corpus_location / f"{file.stem}.txt")), "r", encoding="utf8") as text_file:
-                node.text = text_file.read()
-            text_file.close()
-            corpus[node.id] = node
+                files[i]['text'] = text_file.read()
 
-        if purpose is None:
-            return corpus
-
-    return corpus
+        return files

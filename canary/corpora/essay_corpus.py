@@ -1,8 +1,14 @@
+"""
+Essay corpus specific code
+"""
 import nltk
 
-import canary.utils
+from canary.preprocessing.transformers import DiscourseMatcher
 
-_nlp = canary.utils.spacy_download('en_core_web_lg')
+forward_matcher = DiscourseMatcher('forward')
+thesis_matcher = DiscourseMatcher('thesis')
+rebuttal_matcher = DiscourseMatcher('rebuttal')
+backward_matcher = DiscourseMatcher('backward')
 
 
 def find_paragraph_features(feats, component, _essay):
@@ -64,13 +70,27 @@ def find_cover_sentence_features(feats, _essay, rel):
 def tokenize_essay_sentences(essay):
     tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
     tokenizer._params.abbrev_types.update(['i.e', "etc", "e.g"])
-    sentences = tokenizer.tokenize(essay.text)
+
+    if hasattr(essay, 'text'):
+        sentences = tokenizer.tokenize(essay.text)
+    else:
+        sentences = tokenizer.tokenize(essay)
 
     for index, sentence in enumerate(sentences):
         if "\n\n" in sentence:
             sen = sentence.partition("\n\n")
             sentences[index] = sen[0]
             sentences.insert(index + 1, sen[2])
+
+    for index, sentence in enumerate(sentences):
+        if '\n' in sentence:
+            sen = sentence.partition("\n")
+            first_sen = sen[0].strip()
+            first_sen.replace("\n", "")
+            next_sen = sen[-1].strip()
+            next_sen.replace("\n", "")
+            sentences[index] = first_sen
+            sentences.insert(index + 1, next_sen)
 
     for index, sentence in enumerate(sentences):
         if "etc. " in sentence:
@@ -96,7 +116,7 @@ def find_cover_sentence(_essay, rel):
     raise ValueError("Didn't find cover sentence when there should be one.")
 
 
-def find_component_features(_essay, component):
+def find_component_features(_essay, component, include_link_feats=False):
     feats = {
         "is_in_intro": False,
         "is_in_conclusion": False,
@@ -128,8 +148,55 @@ def find_component_features(_essay, component):
             feats['first_in_paragraph'] = True if feats["n_preceding_components"] == 0 else False
             feats['last_in_paragraph'] = True if feats["n_following_components"] == 0 else False
 
+            if include_link_feats is True:
+                feats['indicator_type_precedes_component'] = False
+                feats['indicator_type_follows_component'] = False
+
+                prev_components = components[:i]
+                for c in prev_components:
+                    c.cover_sen = find_cover_sentence(_essay, c)
+
+                following_components = components[i + 1:]
+                for c in following_components:
+                    c.cover_sen = find_cover_sentence(_essay, c)
+
+                for c in prev_components:
+                    if forward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif thesis_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif rebuttal_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+                    elif backward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_precedes_component'] = True
+                        break
+
+                for c in following_components:
+                    if forward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif thesis_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif rebuttal_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+                    elif backward_matcher.transform(c.cover_sen)[0][0] is True:
+                        feats['indicator_type_follows_component'] = True
+                        break
+
     return feats
 
 
-def _find_stances(essay):
-    pass
+def relations_in_same_sentence(arg1, arg2, essay):
+    if not hasattr(essay, 'sentences'):
+        essay.sentences = tokenize_essay_sentences(essay)
+
+    for sen in essay.sentences:
+        if arg1.mention in sen and arg2.mention in sen:
+            return True
+
+    return False
