@@ -17,14 +17,3 @@ Subpackages
    canary.data
    canary.preprocessing
    canary.utils
-
-Submodules
-----------
-
-canary.version module
----------------------
-
-.. automodule:: canary.version
-   :members:
-   :undoc-members:
-   :show-inheritance:

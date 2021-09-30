@@ -5,14 +5,3 @@ canary.utils package
    :members:
    :undoc-members:
    :show-inheritance:
-
-Submodules
-----------
-
-canary.utils.logger module
---------------------------
-
-.. automodule:: canary.utils.logger
-   :members:
-   :undoc-members:
-   :show-inheritance:
