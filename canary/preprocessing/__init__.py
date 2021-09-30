@@ -34,7 +34,20 @@ class Lemmatizer:
 
     @staticmethod
     def get_wordnet_pos(treebank_tag):
+        """Internal helper to get pos tag type
 
+        The pos tag type is needed for the lemmatize function which is more accurate if the pos tag is known.
+
+        Parameters
+        ----------
+        treebank_tag: str
+            some....
+
+        Returns
+        -------
+        str
+            The pos tag type
+        """
         if treebank_tag.startswith('J'):
             return wordnet.ADJ
         elif treebank_tag.startswith('V'):
