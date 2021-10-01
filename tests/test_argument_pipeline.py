@@ -48,22 +48,22 @@ class ArgumentPipeline(TestCase):
         self.assertTrue(len(models) > 0)
 
     def test_arg_detection_model_type(self):
-        from canary.argument_pipeline.detection import ArgumentDetector
+        from canary.argument_pipeline.detection.classification import ArgumentDetector
 
         self.assertTrue(type(self.argument_detector) is ArgumentDetector)
 
     def test_arg_segmenter_model_type(self):
-        from canary.argument_pipeline.detection import ArgumentSegmenter
+        from canary.argument_pipeline.detection.argument_segmenter import ArgumentSegmenter
 
         self.assertTrue(type(self.arg_segmenter) is ArgumentSegmenter)
 
     def test_arg_component_model_type(self):
-        from canary.argument_pipeline.component_prediction import ArgumentComponent
+        from canary.argument_pipeline.component_prediction.component_identification import ArgumentComponent
 
         self.assertTrue(type(self.argument_component) is ArgumentComponent)
 
     def test_arg_structure_model_type(self):
-        from canary.argument_pipeline.structure_prediction import StructurePredictor
+        from canary.argument_pipeline.structure_prediction.structure_prediction import StructurePredictor
 
         self.assertTrue(type(self.structure_predictor) is StructurePredictor)
 
