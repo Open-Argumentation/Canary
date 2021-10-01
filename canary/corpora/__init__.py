@@ -27,8 +27,7 @@ __all__ = [
 ]
 
 
-def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None,
-                    aif_corpus=None) -> dict:
+def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
     """Downloads a corpus to be used for argumentation mining.
 
     Parameters
@@ -39,9 +38,6 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
         Should the corpus be overwritten if already present?
     save_location: str, optional
         Where the corpus should be downloaded to. Defaults to the canary corpora directory.
-    aif_corpus: bool, optional
-        If specified, this will take precedent and will assume the corpora resides on AIFDB and will attempt to download
-        from there.
 
 
     Notes
@@ -59,10 +55,6 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     storage_location = CANARY_CORPORA_LOCATION if save_location is None else save_location
     file = f'{storage_location}/{corpus_id}'
     storage_location = Path(f"{storage_location}/{corpus_id}")
-
-    def download_via_aifdb(corpus_id: str):
-        """Helper function which downloads corpora from from aifdb"""
-        aif_endpoint = "http://corpora.aifdb.org"
 
     with open(f"{CANARY_ROOT_DIR}/data/corpora.json") as corpora:
         corpora = json.load(corpora)
