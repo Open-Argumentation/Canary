@@ -17,21 +17,19 @@ __all__ = [
 
 
 class ArgumentDetector(Model):
-    """
-    Argument Detector
+    """Argument Detector
 
     Performs binary classification on text to determine if it is argumentative or not.
     """
 
-    def __init__(self, model_id=None, model_storage_location=None):
+    def __init__(self, model_id=None):
         if model_id is None:
             model_id = "argument_detector"
 
-        super().__init__(model_id=model_id,
-                         )
+        super().__init__(model_id=model_id)
 
     @staticmethod
-    def essay_corpus_load():
+    def default_train():
         x, y = load_essay_corpus(purpose="argument_detection",
                                  train_split_size=0.7)
         return train_test_split(x, y,
@@ -40,10 +38,6 @@ class ArgumentDetector(Model):
                                 random_state=0,
                                 stratify=y
                                 )
-
-    @staticmethod
-    def default_train():
-        return ArgumentDetector.essay_corpus_load()
 
     @classmethod
     def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,

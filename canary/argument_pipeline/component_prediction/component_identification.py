@@ -26,8 +26,7 @@ __all__ = [
 
 
 class ArgumentComponent(Model):
-    """
-    Detects argumentative components from natural language
+    """Detects argumentative components from natural language e.g. premises and claims
     """
 
     def __init__(self, model_id: str = None):
@@ -41,7 +40,7 @@ class ArgumentComponent(Model):
 
     @staticmethod
     def default_train():
-        # get training and test data
+        """The default training method. ArgumentComponent defaults to using the essay corpus with undersampling."""
         from sklearn.model_selection import train_test_split
         from imblearn.under_sampling import RandomUnderSampler
         ros = RandomUnderSampler(random_state=0, sampling_strategy='not minority')
@@ -85,6 +84,8 @@ class ArgumentComponent(Model):
 
 
 class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
+    """Transformer Mixin that extracts features for the ArgumentComponent model"""
+
     features: list = [
         TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False, binary=True),
         TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=2000),
@@ -106,7 +107,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         self.__features = make_union(*ArgumentComponentFeatures.features)
 
     @staticmethod
-    def prepare_dictionary_features(data):
+    def _prepare_dictionary_features(data):
         pos_dist = PosDistribution()
         cover_sentences = pandas.DataFrame(data).cover_sentence.tolist()
         cover_sentences = list(_nlp.pipe(cover_sentences))
@@ -139,14 +140,43 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
 
         return get_features(data)
 
-    def fit(self, x, y=None):
+    def fit(self, x: list, y: list = None):
+        """Fits self to data provided.
+
+        Parameters
+        ----------
+        x: list
+            The data on which the transformer is fitted.
+        y: list
+            Ignored. Providing will have no effect. Provided for compatibility reasons.
+
+        Returns
+        -------
+        Self
+        """
         canary.utils.logger.debug("Fitting")
         self.__dict_feats.fit(x)
         self.__features.fit(pandas.DataFrame(x).cover_sentence.tolist())
         return self
 
-    def transform(self, x):
+    def transform(self, x: list):
+        """Transforms data provided.
+
+        Parameters
+        ----------
+        x: list
+            A list of datapoints which are to be transformed using the mixin
+
+        Returns
+        -------
+        scipy.sparse.hstack
+            The features of the inputted list
+
+        See Also
+        ---------
+        scipy.sparse.hstack
+        """
         features = self.__features.transform(pandas.DataFrame(x).cover_sentence.tolist())
-        dict_features = self.__dict_feats.transform(self.prepare_dictionary_features(x))
+        dict_features = self.__dict_feats.transform(self._prepare_dictionary_features(x))
 
         return hstack([features, dict_features])

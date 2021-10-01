@@ -21,7 +21,7 @@ __all__ = [
 
 class ArgumentSegmenter(Model):
 
-    def __init__(self, model_id=None, model_storage_location=None):
+    def __init__(self, model_id=None):
         if model_id is None:
             model_id = "arg_segmenter"
 
@@ -145,7 +145,7 @@ class ArgumentSegmenter(Model):
         # Segment from full text
         components = []
         current_component = []
-        sentences = canary.corpora.essay_corpus.tokenize_essay_sentences(document)
+        sentences = canary.corpora._essay_corpus.tokenize_essay_sentences(document)
         if len(sentences) < 2:
             canary.utils.logger.warn("There doesn't seem to be much to analyse in the document.")
 

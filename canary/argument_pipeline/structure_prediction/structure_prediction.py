@@ -1,3 +1,6 @@
+"""The structure prediction module provides functionality in respect toe the prediction
+and structure of a document.
+"""
 import pandas
 from scipy.sparse import hstack
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -21,7 +24,7 @@ __all__ = [
 
 class StructurePredictor(Model):
 
-    def __init__(self, model_id=None, model_storage_location=None):
+    def __init__(self, model_id=None):
         if model_id is None:
             model_id = "structure_predictor"
 
@@ -71,6 +74,8 @@ class StructurePredictor(Model):
 
 
 class StructureFeatures(TransformerMixin, BaseEstimator):
+    """A custom feature transformer used for extracting features relevant to structure prediction
+    """
     cover_features: list = [
         DiscourseMatcher("support"),
         DiscourseMatcher("conflict"),
@@ -91,9 +96,22 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         self.__ohe_arg2 = LabelBinarizer()
 
     def fit(self, x, y=None):
+        """Fits self to data provided.
+
+        Parameters
+        ----------
+        x: list
+            The data on which the transformer is fitted.
+        y: list, default=None
+            Ignored. Providing will have no effect. Provided for compatibility reasons.
+
+        Returns
+        -------
+        self
+        """
         logger.debug("fitting...")
 
-        self.__dictionary_features.fit(self.prepare_dictionary_features(x))
+        self.__dictionary_features.fit(self._prepare_dictionary_features(x))
         x = pandas.DataFrame(x)
 
         self.__arg1_cover_features.fit(x.arg1_covering_sentence.tolist())
@@ -103,7 +121,23 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         self.__ohe_arg2.fit(x.arg2_type.tolist())
         return self
 
-    def transform(self, x):
+    def transform(self, x) -> list:
+        """
+
+        Parameters
+        ----------
+        x: list
+            A list of datapoints which are to be transformed using the mixin
+
+        Returns
+        -------
+        scipy.sparse.hstack
+            The features of the inputted list
+
+        See Also
+        ---------
+        scipy.sparse.hstack
+        """
         logger.debug("transforming...")
         dictionary_features = self.__dictionary_features.transform(x)
 
@@ -125,11 +159,35 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         )
 
     @staticmethod
-    def binary_neg_present(sen):
+    def _binary_neg_present(sen: str):
+        """Detects if negative words are present
+
+        Parameters
+        ----------
+        sen: str
+            A sentence of natural language
+
+        Returns
+        -------
+        bool
+            A boolean indicating if negative words are present
+        """
         return WordSentimentCounter("neg").transform([sen])[0][0] > 0
 
     @staticmethod
-    def prepare_dictionary_features(data):
+    def _prepare_dictionary_features(data: dict):
+        """Takes a dictionary and extracts relevant features
+
+        Parameters
+        ----------
+        data: a dictionary of relevant features
+
+        Returns
+        -------
+        dict:
+            The new dictionary
+        """
+
         def get_features(f):
             new_feats = f.copy()
             for t, d in enumerate(new_feats):
@@ -147,8 +205,8 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
                     "n_following_components": d["n_following_components"],
                     "n_attack_components": d["n_attack_components"],
                     "n_support_components": d["n_support_components"],
-                    "neg_present_arg1": StructureFeatures.binary_neg_present(sent1.text),
-                    "neg_present_arg2": StructureFeatures.binary_neg_present(sent2.text),
+                    "neg_present_arg1": StructureFeatures._binary_neg_present(sent1.text),
+                    "neg_present_arg2": StructureFeatures._binary_neg_present(sent2.text),
                 }
             return new_feats
 

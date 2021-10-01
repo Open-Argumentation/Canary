@@ -1,7 +1,4 @@
-"""
-Corpora Package
-"""
-
+"""Corpora Package"""
 import csv
 import glob
 import itertools
@@ -17,25 +14,55 @@ from pybrat.parser import BratParser
 
 import canary.preprocessing.nlp
 import canary.utils
-from canary.corpora.essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
+from canary.corpora._essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
     tokenize_essay_sentences, find_component_features, relations_in_same_sentence
 from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
 from canary.utils import logger
 
+__all__ = [
+    "download_corpus",
+    "load_essay_corpus",
+    "load_imdb_debater_evidence_sentences",
+    "load_araucaria_corpus"
+]
 
-def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
-    """
-    Downloads a corpus to be used for argumentation mining.
 
-    :param str save_location: the absolute path to the directory where the corpus should be saved
-    :param str corpus_id: the idea of the corpus which corresponds to the id in data/corpus.json
-    :param bool overwrite_existing: should Canary overwrite an existing corpus if it has already been downloaded?
+def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None,
+                    aif_corpus=None) -> dict:
+    """Downloads a corpus to be used for argumentation mining.
+
+    Parameters
+    ----------
+    corpus_id: str
+        the absolute path to the directory where the corpus should be saved
+    overwrite_existing: bool, default=False
+        Should the corpus be overwritten if already present?
+    save_location: str, optional
+        Where the corpus should be downloaded to. Defaults to the canary corpora directory.
+    aif_corpus: bool, optional
+        If specified, this will take precedent and will assume the corpora resides on AIFDB and will attempt to download
+        from there.
+
+
+    Notes
+    ------
+    If aif_corpus is set to true, the corpora will be downloaded directly from aifdb.org.
+    These corpora are provided at the descretion of the site owners and can dissapear / be altered at anytime.
+
+    Returns
+    -------
+    dict
+        The details of the corpus provided as a dictionary
     """
 
     os.makedirs(CANARY_CORPORA_LOCATION, exist_ok=True)
     storage_location = CANARY_CORPORA_LOCATION if save_location is None else save_location
     file = f'{storage_location}/{corpus_id}'
     storage_location = Path(f"{storage_location}/{corpus_id}")
+
+    def download_via_aifdb(corpus_id: str):
+        """Helper function which downloads corpora from from aifdb"""
+        aif_endpoint = "http://corpora.aifdb.org"
 
     with open(f"{CANARY_ROOT_DIR}/data/corpora.json") as corpora:
         corpora = json.load(corpora)
@@ -85,15 +112,31 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
             }
 
 
-def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
-    """
-    Loads essay corpus version
+def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
+    """Load the essay corpus.
 
-    :param train_split_size:
-    :param purpose:
-    :param merge_premises: whether or not to combine claims and major claims
-    :param version: d
-    :return:
+    Parameters
+    ----------
+    purpose: str
+        The purpose for which the corpus is required. Allowed values =
+        [
+            None,
+            'argument_detection',
+            'component_prediction',
+            "link_prediction",
+            'relation_prediction',
+            'sequence_labelling'
+        ]
+    merge_claims: bool
+        Whether to merge claims and major claims. Only applies if component_prediction = "component_prediction"
+    version: int
+        The version of the essay corpus to laod
+    **kwargs:
+        Additional dictionary arguments
+
+    Returns
+    -------
+
     """
 
     _allowed_purpose_values = [
@@ -179,7 +222,7 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
                 component_feats.update({"len_cover_sen": len(nltk.word_tokenize(component_feats['cover_sentence']))})
                 component_feats.update(find_component_features(essay, entity))
                 X.append(component_feats)
-                if merge_premises is False:
+                if merge_claims is False:
                     Y.append(entity.type)
                 else:
                     if entity.type == "MajorClaim":
@@ -474,10 +517,12 @@ def load_essay_corpus(purpose=None, merge_premises=False, version=2, **kwargs):
 
 
 def load_imdb_debater_evidence_sentences() -> tuple:
-    """
-    Load the imdb debater corpus
+    """Load the imdb debater corpus
 
-    :return: the corpus as a tuple
+    Returns
+    -------
+    tuple
+        The corpus as a tuple
     """
 
     train_data, test_data, train_targets, test_targets = [], [], [], []
@@ -502,10 +547,12 @@ def load_imdb_debater_evidence_sentences() -> tuple:
 
 
 def load_araucaria_corpus():
-    """
-    Loads the araucaria corpus
+    """Loads the araucaria corpus
 
-    :return: the corpus
+    Returns
+    -------
+    dict:
+        The araucaria corpus
     """
 
     corpus_download = download_corpus("araucaria")

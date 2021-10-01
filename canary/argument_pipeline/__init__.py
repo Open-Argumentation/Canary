@@ -241,7 +241,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
     from ..argument_pipeline.component_prediction import ArgumentComponent
     from ..utils import logger
     from .. import __version__
-    from ..corpora import essay_corpus
+    from ..corpora import _essay_corpus
 
     logger.debug(document)
 
@@ -285,7 +285,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
                                         j[0] != j[1]]
         logger.debug(f"{len(all_possible_component_pairs)} possible combinations.")
 
-        sentences = essay_corpus.tokenize_essay_sentences(document)
+        sentences = _essay_corpus.tokenize_essay_sentences(document)
         for i, pair in enumerate(all_possible_component_pairs):
             arg1, arg2 = pair
             same_sentence = False

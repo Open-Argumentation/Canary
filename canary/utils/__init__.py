@@ -1,7 +1,6 @@
-"""
-Utilities
+"""Utilities
 
-that does things...
+Provides various utilities for use in the development and use of Canary
 """
 
 import logging as _logging
