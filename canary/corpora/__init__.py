@@ -56,7 +56,7 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     file = f'{storage_location}/{corpus_id}'
     storage_location = Path(f"{storage_location}/{corpus_id}")
 
-    with open(f"{CANARY_ROOT_DIR}/data/corpora.json") as corpora:
+    with open(f"{CANARY_ROOT_DIR}/_data/corpora.json") as corpora:
         corpora = json.load(corpora)
         corpora = [corpus for corpus in corpora if corpus_id == corpus['id']]
         if len(corpora) == 1:
