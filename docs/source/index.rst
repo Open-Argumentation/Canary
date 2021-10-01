@@ -12,6 +12,7 @@ It should be noted that this software is currently under active development and 
    about
    tutorial
    api
+   development
    related
 
 .. toctree::
