@@ -166,6 +166,19 @@ def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_
     dict
         the SADFace document.
 
+    Examples
+    --------
+    >>> from canary import analyse_file
+    >>> document = "/Users/my_user/doc.txt"
+    >>> analysis = analyse_file(document)
+    >>> analysis
+    {
+        "metadata": {...},
+        "resources": {...},
+        "nodes": {...},
+        "edges": {...}
+    }
+
     Notes
     -----
 
@@ -206,6 +219,23 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
     dict
         the SADFace document.
 
+    Examples
+    --------
+    >>> from canary import analyse
+    >>> document_text = "..."
+    >>> analysis = analyse(document_text, min_link_confidence=0.65)
+    >>> analysis
+    {
+        "metadata": {...},
+        "resources": {...},
+        "nodes": {...},
+        "edges": {...}
+    }
+
+    Notes
+    -----
+
+    Refer to https://github.com/ARG-ENU/SADFace
     """
     from ..argument_pipeline.detection import ArgumentSegmenter
     from ..argument_pipeline.component_prediction import ArgumentComponent
@@ -378,9 +408,8 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     Examples
     --------
     >>> import canary
-    >>> component_detector = canary.load("argument_component")c
+    >>> component_detector = canary.load("argument_component")
     >>> print(component_detector.__class__.__name__)
-    ArgumentComponent
     """
     import canary
     from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
