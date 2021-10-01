@@ -50,7 +50,7 @@ class Lemmatizer:
 
         See Also
         --------
-        nltk.tag.pos_tag, nltk.corpus.reader.wordnet
+        nltk.tag.pos_tag, nltk.stem.wordnet
         """
         if treebank_tag.startswith('J'):
             return wordnet.ADJ
