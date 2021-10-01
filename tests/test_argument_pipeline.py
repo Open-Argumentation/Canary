@@ -48,12 +48,12 @@ class ArgumentPipeline(TestCase):
         self.assertTrue(len(models) > 0)
 
     def test_arg_detection_model_type(self):
-        from canary.argument_pipeline.detection import ArgumentDetector
+        from canary.argument_pipeline.binary_detection import ArgumentDetector
 
         self.assertTrue(type(self.argument_detector) is ArgumentDetector)
 
     def test_arg_segmenter_model_type(self):
-        from canary.argument_pipeline.detection import ArgumentSegmenter
+        from canary.argument_pipeline.argument_segmentation import ArgumentSegmenter
 
         self.assertTrue(type(self.arg_segmenter) is ArgumentSegmenter)
 

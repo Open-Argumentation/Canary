@@ -47,6 +47,10 @@ class Lemmatizer:
         -------
         str
             The pos tag type
+
+        See Also
+        --------
+        nltk.tag.pos_tag, nltk.stem.wordnet
         """
         if treebank_tag.startswith('J'):
             return wordnet.ADJ
@@ -104,9 +108,6 @@ class PunctuationTokenizer:
         return [self.__tokenizer.tokenize(t) for t in nltk.word_tokenize(text) if not t.isalnum()]
 
 
-keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
-
-
 class PosDistribution:
     """
 
@@ -114,8 +115,9 @@ class PosDistribution:
 
     def __init__(self):
         self.keys = {}
+        self._keys = list(nltk.load('help/tagsets/upenn_tagset.pickle').keys())
 
-        for key in keys:
+        for key in self._keys:
             self.keys[key] = 0
 
     def __call__(self, text):

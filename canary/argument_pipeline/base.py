@@ -76,8 +76,21 @@ class Model(metaclass=ABCMeta):
             return True
         return False
 
-    def fit(self, x, y):
-        self._model.fit(x, y)
+    def fit(self, training_data: list, training_labels: list):
+        """Fits a model to the training data.
+
+        Parameters
+        ----------
+        training_data: list
+            The training data on which the model is fitted
+        training_labels: list:
+            The training labels on which the data is fitted to
+
+        Returns
+        -------
+        self
+        """
+        self._model.fit(training_data, training_labels)
         return self
 
     @property

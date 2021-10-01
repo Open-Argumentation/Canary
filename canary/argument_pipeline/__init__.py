@@ -237,11 +237,11 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
 
     Refer to https://github.com/ARG-ENU/SADFace
     """
-    from ..argument_pipeline.detection import ArgumentSegmenter
+    from ..argument_pipeline.argument_segmentation import ArgumentSegmenter
     from ..argument_pipeline.component_prediction import ArgumentComponent
     from ..utils import logger
     from .. import __version__
-    from ..corpora import essay_corpus
+    from ..corpora import _essay_corpus
 
     logger.debug(document)
 
@@ -275,7 +275,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
             elif component['type'] == "Premise":
                 n_premises += 1
 
-        from canary.argument_pipeline.structure_prediction import LinkPredictor
+        from canary.argument_pipeline.structure import LinkPredictor
         link_predictor: LinkPredictor = load('link_predictor')
 
         if link_predictor is None:
@@ -285,7 +285,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
                                         j[0] != j[1]]
         logger.debug(f"{len(all_possible_component_pairs)} possible combinations.")
 
-        sentences = essay_corpus.tokenize_essay_sentences(document)
+        sentences = _essay_corpus.tokenize_essay_sentences(document)
         for i, pair in enumerate(all_possible_component_pairs):
             arg1, arg2 = pair
             same_sentence = False
@@ -337,7 +337,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
 
         # Find attack / support relations
         if len(linked_relations) > 0:
-            from canary.argument_pipeline.structure_prediction import StructurePredictor
+            from canary.argument_pipeline.structure import StructurePredictor
             sp: StructurePredictor = load('structure_predictor')
             for r in linked_relations:
                 r['scheme'] = sp.predict(r)

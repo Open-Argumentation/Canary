@@ -25,11 +25,9 @@ __all__ = [
 
 
 class LinkPredictor(Model):
-    """
-    Prediction model which can predict if two argument components are "linked".
-    """
+    """Prediction model which can predict if two argument components are "linked"."""
 
-    def __init__(self, model_id=None, model_storage_location=None):
+    def __init__(self, model_id=None):
         if model_id is None:
             model_id = "link_predictor"
 
@@ -104,12 +102,21 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         self.__ohe_arg2 = LabelBinarizer()
 
     def fit(self, x, y=None):
-        """
-        fits self to data
+        """Fits self to data provided.
 
-        :param x:
-        :param y: ignored.
-        :return:
+        Parameters
+        ----------
+        x: list
+            A list of datapoints which are to be transformed using the mixin
+
+        Returns
+        -------
+        scipy.sparse.hstack
+            The features of the inputted list
+
+        See Also
+        ---------
+        scipy.sparse.hstack
         """
         logger.debug("fitting...")
         px = pandas.DataFrame(x)
@@ -117,8 +124,8 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         self.__arg1_cover_features.fit(px.arg1_covering_sentence.tolist())
         self.__arg2_cover_features.fit(px.arg2_covering_sentence.tolist())
 
-        self.__numeric_dict_features.fit(self.prepare_numeric_feats(x))
-        self.__nom_dict_features.fit(self.prepare_dictionary_features(x))
+        self.__numeric_dict_features.fit(self._prepare_numeric_feats(x))
+        self.__nom_dict_features.fit(self._prepare_dictionary_features(x))
 
         self.__ohe_arg1.fit(["Premise", "Claim", "MajorClaim"])
         self.__ohe_arg2.fit(["Premise", "Claim", "MajorClaim"])
@@ -126,9 +133,25 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
+        """
+
+        Parameters
+        ----------
+        x: list
+            A list of datapoints which are to be transformed using the mixin
+
+        Returns
+        -------
+        scipy.sparse.hstack
+            The features of the inputted list
+
+        See Also
+        ---------
+        scipy.sparse.hstack
+        """
         logger.debug("transforming...")
-        dict_feats = self.__nom_dict_features.transform(self.prepare_dictionary_features(x))
-        num_dict_feats = self.__numeric_dict_features.transform(self.prepare_numeric_feats(x))
+        dict_feats = self.__nom_dict_features.transform(self._prepare_dictionary_features(x))
+        num_dict_feats = self.__numeric_dict_features.transform(self._prepare_numeric_feats(x))
 
         x = pandas.DataFrame(x)
 
@@ -141,7 +164,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         return hstack([dict_feats, num_dict_feats, arg1_cover_feats, arg2_cover_feats, arg1_types, arg2_types])
 
     @staticmethod
-    def prepare_dictionary_features(data):
+    def _prepare_dictionary_features(data):
         shared_noun_counter = SharedNouns()
 
         def get_features(feats):
@@ -175,7 +198,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         return get_features(data)
 
     @staticmethod
-    def prepare_numeric_feats(data):
+    def _prepare_numeric_feats(data):
         shared_noun_counter = SharedNouns()
 
         def get_features(feats):

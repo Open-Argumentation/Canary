@@ -9,7 +9,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-from ..data.indicators import discourse_indicators
+from .._data.indicators import discourse_indicators
 from ..preprocessing import Lemmatizer
 from ..preprocessing import PunctuationTokenizer
 from ..preprocessing.nlp import spacy_download

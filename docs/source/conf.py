@@ -36,11 +36,11 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx_autobuild",
     "sphinx_copybutton",
     "myst_parser",
+    "numpydoc",
 ]
 
 html_use_index = False
@@ -63,3 +63,11 @@ autodoc_mock_imports = ["pkg_resources", "numpy", "nltk", "sklearn", "pybrat", "
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
 napoleon_type_aliases = True
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'nltk': ('https://www.nltk.org', None),
+    'scipy': ("https://docs.scipy.org/doc/scipy/reference", None)
+}
+
+autodoc_inherit_docstrings = True

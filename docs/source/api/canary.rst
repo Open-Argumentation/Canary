@@ -14,6 +14,5 @@ Subpackages
 
    canary.argument_pipeline
    canary.corpora
-   canary.data
    canary.preprocessing
    canary.utils

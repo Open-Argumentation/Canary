@@ -3,7 +3,7 @@
 .DS_Store
 /.idea
 /.vscode
-canary/data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/**
+canary/_data/datasets/ukp/ukp_sentential_argument_mining_corpus/data/complete/**
 docs/Pipfile
 docs/Pipfile.lock
 
