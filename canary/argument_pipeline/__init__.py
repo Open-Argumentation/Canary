@@ -275,7 +275,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
             elif component['type'] == "Premise":
                 n_premises += 1
 
-        from canary.argument_pipeline.structure import LinkPredictor
+        from canary.argument_pipeline.link_predictor import LinkPredictor
         link_predictor: LinkPredictor = load('link_predictor')
 
         if link_predictor is None:
@@ -337,7 +337,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
 
         # Find attack / support relations
         if len(linked_relations) > 0:
-            from canary.argument_pipeline.structure import StructurePredictor
+            from canary.argument_pipeline.structure_prediction import StructurePredictor
             sp: StructurePredictor = load('structure_predictor')
             for r in linked_relations:
                 r['scheme'] = sp.predict(r)
