@@ -1,14 +1,13 @@
 from typing import Union
-
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import FeatureUnion, Pipeline
 
-from canary.argument_pipeline.base import Model
-from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer
-from canary.preprocessing.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
+from ..argument_pipeline.base import Model
+from ..corpora import load_essay_corpus
+from ..nlp import Lemmatiser
+from ..nlp.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
     LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
 
 __all__ = [
@@ -20,6 +19,17 @@ class ArgumentDetector(Model):
     """Argument Detector
 
     Performs binary classification on text to determine if it is argumentative or not.
+
+    Examples
+    ---------
+    >>> import canary
+    >>> arg_detector = canary.load_model("argument_detector")
+    >>> component = "The more body fat that you have, the greater your risk for heart disease"
+    >>> print(arg_detector.predict(component))
+    True
+
+    >>> print(arg_detector.predict(component, probability=True))
+    {False: 0.0, True: 1.0}
     """
 
     def __init__(self, model_id=None):
@@ -30,8 +40,8 @@ class ArgumentDetector(Model):
 
     @staticmethod
     def default_train():
-        x, y = load_essay_corpus(purpose="argument_detection",
-                                 train_split_size=0.7)
+        """Default training method which supplies the default training set"""
+        x, y = load_essay_corpus(purpose="argument_detection")
         return train_test_split(x, y,
                                 train_size=0.7,
                                 shuffle=True,
@@ -49,7 +59,7 @@ class ArgumentDetector(Model):
                     ('bow',
                      CountVectorizer(
                          ngram_range=(1, 2),
-                         tokenizer=Lemmatizer(),
+                         tokenizer=Lemmatiser(),
                          lowercase=False
                      )
                      ),

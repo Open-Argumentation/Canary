@@ -20,13 +20,13 @@ class ArgumentPipeline(TestCase):
         """
         Setup for the tests.
         """
-        from canary.argument_pipeline import download
+        from canary.argument_pipeline import download_model
 
-        download("all")
-        self.argument_detector = canary.load("argument_detector")
-        self.structure_predictor = canary.load("structure_predictor")
-        self.argument_component = canary.load("argument_component")
-        self.arg_segmenter = canary.load("arg_segmenter")
+        download_model("all")
+        self.argument_detector = canary.load_model("argument_detector")
+        self.structure_predictor = canary.load_model("structure_predictor")
+        self.argument_component = canary.load_model("argument_component")
+        self.arg_segmenter = canary.load_model("arg_segmenter")
         super().setUp()
 
     def test_base_classifier_instantiation_fails(self):

@@ -7,11 +7,11 @@ from sklearn.pipeline import make_pipeline, make_union
 from sklearn.preprocessing import LabelBinarizer, MaxAbsScaler
 from sklearn.svm import SVC
 
-from canary.argument_pipeline.base import Model
-from canary.preprocessing import PosDistribution
-from canary.preprocessing.nlp import spacy_download, nltk_download
-from canary.preprocessing.transformers import DiscourseMatcher, SharedNouns
-from canary.utils import logger
+from ..argument_pipeline.base import Model
+from ..nlp import PosDistribution
+from ..nlp._utils import spacy_download, nltk_download
+from ..nlp.transformers import DiscourseMatcher, SharedNouns
+from ..utils import logger
 
 nltk_download('punkt')
 _nlp = spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
@@ -35,9 +35,12 @@ class LinkPredictor(Model):
 
     @staticmethod
     def default_train():
-        """
-        Default training method
-        :return: training data, test data, training targets, test targets
+        """Default training method
+
+        Returns
+        --------
+        Tuple
+            training data, test data, training targets, test targets
         """
         from canary.corpora import load_essay_corpus
         from imblearn.over_sampling import RandomOverSampler
@@ -76,9 +79,7 @@ class LinkPredictor(Model):
 
 
 class LinkFeatures(TransformerMixin, BaseEstimator):
-    """
-    Transformer which handles LinkPredictor features
-    """
+    """Transformer which handles LinkPredictor features"""
 
     feats: list = [
         DiscourseMatcher('forward'),
@@ -133,7 +134,7 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
-        """
+        """Transform data into features
 
         Parameters
         ----------
@@ -149,7 +150,6 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
         ---------
         scipy.sparse.hstack
         """
-        logger.debug("transforming...")
         dict_feats = self.__nom_dict_features.transform(self._prepare_dictionary_features(x))
         num_dict_feats = self.__numeric_dict_features.transform(self._prepare_numeric_feats(x))
 
@@ -171,24 +171,24 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
             new_feats = feats.copy()
 
             for t, f in enumerate(new_feats):
-                n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
+                n_shared_nouns = shared_noun_counter.transform(f.get("arg1_component"), f.get("arg2_component"))
 
                 features = {
                     "source_before_target": f.get("source_before_target"),
                     "arg1_first_in_paragraph": f.get("arg1_first_in_paragraph"),
-                    "arg1_last_in_paragraph": f["arg1_last_in_paragraph"],
-                    "arg2_first_in_paragraph": f["arg2_first_in_paragraph"],
-                    "arg2_last_in_paragraph": f["arg2_last_in_paragraph"],
-                    "arg1_is_premise": f["arg1_type"] == "Premise",
-                    "arg1_in_intro": f["arg1_in_intro"],
-                    "arg1_in_conclusion": f["arg1_in_conclusion"],
-                    "arg2_in_intro": f['arg2_in_intro'],
-                    "arg2_in_conclusion": f["arg2_in_conclusion"],
-                    "arg1_and_arg2_in_same_sentence": f["arg1_and_arg2_in_same_sentence"],
-                    "arg1_indicator_type_follows_component": f["arg1_indicator_type_follows_component"],
-                    "arg2_indicator_type_follows_component": f["arg2_indicator_type_follows_component"],
-                    "arg1_indicator_type_precedes_component": f["arg1_indicator_type_precedes_component"],
-                    "arg2_indicator_type_precedes_component": f["arg2_indicator_type_precedes_component"],
+                    "arg1_last_in_paragraph": f.get("arg1_last_in_paragraph"),
+                    "arg2_first_in_paragraph": f.get("arg2_first_in_paragraph"),
+                    "arg2_last_in_paragraph": f.get("arg2_last_in_paragraph"),
+                    "arg1_is_premise": f.get("arg1_type") == "Premise",
+                    "arg1_in_intro": f.get("arg1_in_intro"),
+                    "arg1_in_conclusion": f.get("arg1_in_conclusion"),
+                    "arg2_in_intro": f.get("arg2_in_intro"),
+                    "arg2_in_conclusion": f.get("arg2_in_conclusion"),
+                    "arg1_and_arg2_in_same_sentence": f.get("arg1_and_arg2_in_same_sentence"),
+                    "arg1_indicator_type_follows_component": f.get("arg1_indicator_type_follows_component"),
+                    "arg2_indicator_type_follows_component": f.get("arg2_indicator_type_follows_component"),
+                    "arg1_indicator_type_precedes_component": f.get("arg1_indicator_type_precedes_component"),
+                    "arg2_indicator_type_precedes_component": f.get("arg2_indicator_type_precedes_component"),
                     "share_nouns": n_shared_nouns > 0,
                 }
 
@@ -211,11 +211,11 @@ class LinkFeatures(TransformerMixin, BaseEstimator):
 
             new_feats = feats.copy()
             for t, f in enumerate(new_feats):
-                n_shared_nouns = shared_noun_counter.transform(f["arg1_component"], f["arg2_component"])
+                n_shared_nouns = shared_noun_counter.transform(f.get("arg1_component"), f.get("arg2_component"))
 
                 features = {
-                    "n_para_components": f['n_para_components'],
-                    "n_components_between_pair": abs(f["arg2_position"] - f["arg1_position"]),
+                    "n_para_components": f.get('n_para_components'),
+                    "n_components_between_pair": abs(f.get("arg2_position") - f.get("arg1_position")),
                     "arg1_component_token_len": len(nltk.word_tokenize(f['arg1_component'])),
                     "arg2_component_token_len": len(nltk.word_tokenize(f['arg2_component'])),
                     "arg1_cover_sen_token_len": len(nltk.word_tokenize(f['arg1_covering_sentence'])),

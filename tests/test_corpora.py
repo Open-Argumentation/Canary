@@ -21,4 +21,4 @@ class CorporaTest(TestCase):
         """
 
         corpus = load_essay_corpus()
-        assert corpus is not None
+        self.assertTrue(corpus is not None)

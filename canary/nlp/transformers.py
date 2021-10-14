@@ -1,3 +1,5 @@
+"""Transformers for various NLP tasks. Emulates a scikit-learn like API."""
+
 import string
 from abc import ABCMeta
 from collections import Counter
@@ -10,9 +12,9 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from .._data.indicators import discourse_indicators
-from ..preprocessing import Lemmatizer
-from ..preprocessing import PunctuationTokenizer
-from ..preprocessing.nlp import spacy_download
+from ..nlp import Lemmatiser
+from ..nlp import PunctuationTokeniser
+from ..nlp._utils import spacy_download
 from ..utils import logger
 
 __all__ = [
@@ -259,9 +261,7 @@ class DiscourseMatcher(TransformerMixin, BaseEstimator):
 
 
 class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
-    """
-    Matches if any first-person indicators are present in text
-    """
+    """Matches if any first-person indicators are present in text"""
 
     def __init__(self, indicator=None, lemmatise=False):
         self.indicator = indicator
@@ -299,7 +299,7 @@ class CountPunctuationVectorizer(CountVectorizer):
 
     def __init__(self):
         self.punctuation = [character for character in (string.punctuation + "£")]
-        super().__init__(tokenizer=PunctuationTokenizer())
+        super().__init__(tokenizer=PunctuationTokeniser())
 
     def prepare_doc(self, doc):
         _doc = doc
@@ -324,7 +324,7 @@ class TfidfPunctuationVectorizer(TfidfVectorizer):
 
     def __init__(self):
         self.punctuation = [character for character in string.punctuation]
-        super().__init__(tokenizer=PunctuationTokenizer())
+        super().__init__(tokenizer=PunctuationTokeniser())
 
     def prepare_doc(self, doc):
         _doc = doc
@@ -365,15 +365,15 @@ class BiasTransformer(TransformerMixin, BaseEstimator):
 
 
 class SharedNouns(TransformerMixin, BaseEstimator):
-    lemmatizer = Lemmatizer()
+    lemmatiser = Lemmatiser()
 
     def fit(self, x, y=None):
         return self
 
     def transform(self, arg1, arg2):
-        nouns_in_arg1 = [self.lemmatizer(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg1)) if
+        nouns_in_arg1 = [self.lemmatiser(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg1)) if
                          (pos[:2] == 'NN')]
-        nouns_in_arg2 = [self.lemmatizer(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg2)) if
+        nouns_in_arg2 = [self.lemmatiser(word)[0] for (word, pos) in nltk.pos_tag(nltk.word_tokenize(arg2)) if
                          (pos[:2] == 'NN')]
 
         return len(set(nouns_in_arg1).intersection(nouns_in_arg2))

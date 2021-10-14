@@ -1,58 +1,25 @@
-""" The argument_pipeline package contains the functionality required to analyse a unstructured document
+"""The argument_pipeline package contains the functionality required to analyse a unstructured document
 of natural language.
 """
 import glob
 import itertools
-import os
 import zipfile
-from pathlib import Path
-
 import joblib
+from pathlib import Path
+import os
 import requests
+from ._utils import models_available_on_disk, get_models_not_on_disk, get_downloadable_assets_from_github, \
+    log_training_data
 
 __all__ = [
-    "load",
+    "load_model",
+    "download_model",
     "analyse",
     "analyse_file",
-    "download"
 ]
 
 
-def get_downloadable_assets_from_github():
-    """Finds downloadable argument models which are available from Canary's GitHub repository
-
-    Returns
-    -------
-    str
-        The JSON string from the GitHub REST API
-    """
-    from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION
-    import canary
-    canary_repo = canary.utils.config.get('canary', 'model_download_location')
-    res = requests.get(f"https://api.github.com/repos/{canary_repo}/releases/tags/latest",
-                       headers={"Accept": "application/vnd.github.v3+json"})
-    if res.status_code == 200:
-        import json
-        return json.loads(res.text)
-    else:
-        canary.utils.logger.error("Could not get details from github")
-        return None
-
-
-def _get_models_not_on_disk():
-    current_models = _models_available_on_disk()
-    github_assets = [j['name'].split(".")[0] for j in get_downloadable_assets_from_github()['assets']]
-    return list(set(github_assets) - set(current_models))
-
-
-def _models_available_on_disk() -> list:
-    from canary.utils import CANARY_MODEL_STORAGE_LOCATION
-
-    from glob import glob
-    return [Path(s).stem for s in glob(str(CANARY_MODEL_STORAGE_LOCATION / "*.joblib"))]
-
-
-def download(model: str, download_to: str = None, overwrite=False):
+def download_model(model: str, download_to: str = None, overwrite=False):
     """Downloads the pretrained Canary models from a GitHub.
 
     Parameters
@@ -113,7 +80,7 @@ def download(model: str, download_to: str = None, overwrite=False):
                     return
 
     github_releases = get_downloadable_assets_from_github()
-    models_on_disk = _models_available_on_disk()
+    models_on_disk = models_available_on_disk()
     if github_releases is not None:
         # parse JSON response
         if 'assets' in github_releases:
@@ -144,8 +111,7 @@ def download(model: str, download_to: str = None, overwrite=False):
         canary.utils.logger.error(f"There was an issue getting the models")
 
 
-def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8,
-                 **kwargs):
+def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_attack_confidence=0.8):
     """Wrapper around the `analyse` function which takes in a file location as a string.
 
     Parameters
@@ -158,8 +124,6 @@ def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_
         The minimum confidence needed to be classified as a support relation
     min_attack_confidence: float, default=0.8
         The minimum confidence needed to be classified as an attack relation
-    **kwargs: dict
-        Keyword arguments
 
     Returns
     -------
@@ -198,7 +162,7 @@ def analyse_file(file, min_link_confidence=0.8, min_support_confidence=0.8, min_
 
 
 def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
-            min_attack_confidence=0.8, **kwargs):
+            min_attack_confidence=0.8):
     r"""Analyses a document .
 
     Parameters
@@ -211,8 +175,6 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
         The minimum confidence needed to be classified as a support relation
     min_attack_confidence: float, default=0.8
         The minimum confidence needed to be classified as an attack relation
-    **kwargs: dict
-        Keyword arguments
 
     Returns
     -------
@@ -250,7 +212,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
 
     # load segmenter
     logger.debug("Loading Argument Segmenter")
-    segmenter: ArgumentSegmenter = load('arg_segmenter')
+    segmenter: ArgumentSegmenter = load_model('arg_segmenter')
 
     if segmenter is None:
         logger.error("Failed to load segmenter")
@@ -261,7 +223,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
     if len(components) > 0:
         n_claims, n_major_claims, n_premises = 0, 0, 0
         logger.debug("Loading component predictor.")
-        component_predictor: ArgumentComponent = load('argument_component')
+        component_predictor: ArgumentComponent = load_model('argument_component')
 
         if component_predictor is None:
             raise TypeError("Could not load argument component predictor")
@@ -276,7 +238,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
                 n_premises += 1
 
         from canary.argument_pipeline.link_predictor import LinkPredictor
-        link_predictor: LinkPredictor = load('link_predictor')
+        link_predictor: LinkPredictor = load_model('link_predictor')
 
         if link_predictor is None:
             raise TypeError("Could not load link predictor")
@@ -338,7 +300,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
         # Find attack / support relations
         if len(linked_relations) > 0:
             from canary.argument_pipeline.structure_prediction import StructurePredictor
-            sp: StructurePredictor = load('structure_predictor')
+            sp: StructurePredictor = load_model('structure_predictor')
             for r in linked_relations:
                 r['scheme'] = sp.predict(r)
 
@@ -386,7 +348,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
         canary.utils.logger.warn("Didn't find any evidence of argumentation")
 
 
-def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
+def load_model(model_id: str, model_dir=None, download_if_missing=False):
     """Load a trained Canary model from disk.
 
     Parameters
@@ -397,8 +359,6 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
         Where the model should be loaded from
     download_if_missing: bool
         Should Canary attempt to download the model if it is not present on disk?
-    kwargs: dict
-        Keyword arguments
 
     Returns
     -------
@@ -408,17 +368,20 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
     Examples
     --------
     >>> import canary
-    >>> component_detector = canary.load("argument_component")
+    >>> component_detector = canary.load_model("argument_component")
     >>> print(component_detector.__class__.__name__)
     """
     import canary
     from canary.utils import CANARY_MODEL_DOWNLOAD_LOCATION, CANARY_MODEL_STORAGE_LOCATION
 
+    original_id = None
     if ".joblib" not in model_id:
+        original_id = model_id
         model_id = model_id + ".joblib"
 
-    if 'model_dir' in kwargs:
-        absolute_model_path = Path(kwargs["model_dir"]) / model_id
+
+    if model_dir:
+        absolute_model_path = Path(model_dir) / model_id
         if os.path.isfile(absolute_model_path) is False:
             canary.utils.logger.warn("There does not appear to be a model here. This may fail.")
     else:
@@ -426,10 +389,19 @@ def load(model_id: str, model_dir=None, download_if_missing=False, **kwargs):
 
     if os.path.isfile(absolute_model_path):
         canary.utils.logger.debug(f"Loading {model_id} from {absolute_model_path}")
-        return joblib.load(absolute_model_path)
+        model = None
+        try:
+            model = joblib.load(absolute_model_path)
+        except ModuleNotFoundError:
+            canary.utils.logger.error("Could not load model. It may be out of date. "
+                                      "Download the newer version or you can train the model yourself.")
+        return model
     else:
+        if download_if_missing is True:
+            download_model(original_id)
+            return load_model(model_id, model_dir, False)
         canary.utils.logger.error(
-            f"Did not manage to load the model specified. Available models on disk are: {_models_available_on_disk()}.")
-        models_not_on_disk = _get_models_not_on_disk()
+            f"Did not manage to load the model specified. Available models on disk are: {models_available_on_disk()}.")
+        models_not_on_disk = get_models_not_on_disk()
         if len(models_not_on_disk) > 0:
             canary.utils.logger.error(f"Models available via download are: {models_not_on_disk}.")

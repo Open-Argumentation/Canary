@@ -1,7 +1,7 @@
 """Essay corpus specific code"""
 import nltk
 
-from canary.preprocessing.transformers import DiscourseMatcher
+from ..nlp.transformers import DiscourseMatcher
 
 forward_matcher = DiscourseMatcher('forward')
 thesis_matcher = DiscourseMatcher('thesis')
@@ -9,15 +9,15 @@ rebuttal_matcher = DiscourseMatcher('rebuttal')
 backward_matcher = DiscourseMatcher('backward')
 
 
-def find_paragraph_features(feats, component, _essay):
+def find_paragraph_features(feats, component, essay):
     # find the para the component is in
-    paras = [k for k in _essay.text.split("\n") if k != ""]
+    paras = [k for k in essay.text.split("\n") if k != ""]
     for para in paras:
         # found it
         if component.arg1.mention in para or component.arg2.mention in para:
             # find other relations in paragraph
             relations = []
-            for r in _essay.relations:
+            for r in essay.relations:
                 if r.arg1.mention in para or r.arg2.mention in para:
                     relations.append(r)
 
@@ -33,11 +33,11 @@ def find_paragraph_features(feats, component, _essay):
             break
 
 
-def find_cover_sentence_features(feats, _essay, rel):
+def find_cover_sentence_features(feats, essay, rel):
     tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
     tokenizer._params.abbrev_types.update(['i.e', "etc", "e.g"])
 
-    sentences = tokenizer.tokenize(_essay.text)
+    sentences = tokenizer.tokenize(essay.text)
 
     feats["arg1_covering_sentence"] = None
     feats["arg2_covering_sentence"] = None
@@ -106,22 +106,22 @@ def tokenize_essay_sentences(essay):
     return sentences
 
 
-def find_cover_sentence(_essay, rel):
-    for sentence in _essay.sentences:
+def find_cover_sentence(essay, rel):
+    for sentence in essay.sentences:
         if rel.mention in sentence:
             return sentence
 
     raise ValueError("Didn't find cover sentence when there should be one.")
 
 
-def find_component_features(_essay, component, include_link_feats=False):
+def find_component_features(essay, component, include_link_feats=False):
     feats = {
         "is_in_intro": False,
         "is_in_conclusion": False,
         "len_component": len(nltk.word_tokenize(component.mention))
     }
 
-    paragraphs = [k for k in _essay.text.split("\n") if k != ""]
+    paragraphs = [k for k in essay.text.split("\n") if k != ""]
 
     if component.mention in paragraphs[1]:
         feats["is_intro"] = True
@@ -135,7 +135,7 @@ def find_component_features(_essay, component, include_link_feats=False):
             feats['len_paragraph'] = len(nltk.word_tokenize(para))
             # find other components in paragraph
             components = []
-            for c in sorted(_essay.entities, key=lambda x: x.start):
+            for c in sorted(essay.entities, key=lambda x: x.start):
                 if c.mention in para:
                     components.append(c)
 
@@ -152,11 +152,11 @@ def find_component_features(_essay, component, include_link_feats=False):
 
                 prev_components = components[:i]
                 for c in prev_components:
-                    c.cover_sen = find_cover_sentence(_essay, c)
+                    c.cover_sen = find_cover_sentence(essay, c)
 
                 following_components = components[i + 1:]
                 for c in following_components:
-                    c.cover_sen = find_cover_sentence(_essay, c)
+                    c.cover_sen = find_cover_sentence(essay, c)
 
                 for c in prev_components:
                     if forward_matcher.transform(c.cover_sen)[0][0] is True:

@@ -14,6 +14,7 @@ from .. import __file__ as _file
 __all__ = [
     "logger",
     "config",
+    "get_is_dev",
     "CANARY_ROOT_DIR",
     "CONFIG_LOCATION",
     "CANARY_LOCAL_STORAGE",
