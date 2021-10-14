@@ -4,8 +4,8 @@ from functools import lru_cache
 import nltk
 from nltk.corpus import wordnet
 
-import canary.preprocessing.nlp
-from canary.preprocessing.nlp import nltk_download
+import canary.nlp._utils
+from canary.nlp._utils import nltk_download
 
 _nlp = None
 _word_net = nltk.WordNetLemmatizer()
@@ -13,16 +13,13 @@ _stemmer = nltk.PorterStemmer()
 nltk_download(['punkt', 'wordnet', 'tagsets'])
 
 __all__ = [
-    "Lemmatizer",
-    "PosLemmatizer",
-    "Stemmer",
-    "PunctuationTokenizer",
+    "Lemmatiser",
+    "PunctuationTokeniser",
     "PosDistribution",
-    "Tokenizer"
 ]
 
 
-class Lemmatizer:
+class Lemmatiser:
     """Transforms text into its lemma form
 
     Notes
@@ -72,26 +69,7 @@ class Lemmatizer:
         return [self.__process(t) for t in nltk.word_tokenize(text)]
 
 
-class PosLemmatizer:
-    """"""
-
-    def t(self, x):
-        tag = nltk.pos_tag([x])[0][1]
-
-        return f"{_word_net.lemmatize(x, Lemmatizer.get_wordnet_pos(tag))}/{tag}"
-
-    def __call__(self, text):
-        return [self.t(d) for d in nltk.word_tokenize(text)]
-
-
-class Stemmer:
-    """Transforms text into its stemmed form"""
-
-    def __call__(self, text):
-        return [_stemmer.stem(token) for token in nltk.word_tokenize(text)]
-
-
-class PunctuationTokenizer:
+class PunctuationTokeniser:
     """Extracts only punctuation from a piece of text
 
     Notes
@@ -99,6 +77,10 @@ class PunctuationTokenizer:
         e.g.
         - Hi, what's up? Did you like the movie last night?
         -> [[','], ["'", 's'], ['?'], ['?']]
+
+    See Also
+    --------
+    nltk.tokenize.regexp.WordPunctTokenize
     """
 
     def __init__(self):
@@ -109,9 +91,7 @@ class PunctuationTokenizer:
 
 
 class PosDistribution:
-    """
-
-    """
+    """Obtains the pos tag distribution for inputted text"""
 
     def __init__(self):
         self.keys = {}
@@ -128,9 +108,3 @@ class PosDistribution:
             count_dict[tag] = count
 
         return count_dict
-
-
-class Tokenizer:
-
-    def __init__(self):
-        pass

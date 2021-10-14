@@ -1,5 +1,4 @@
 """Corpora Package"""
-import csv
 import glob
 import itertools
 import json
@@ -8,26 +7,67 @@ import os
 import tarfile
 import zipfile
 from pathlib import Path
+from typing import Optional, Union
 
 import nltk
 from pybrat.parser import BratParser
-
-import canary.preprocessing.nlp
-import canary.utils
-from canary.corpora._essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
-    tokenize_essay_sentences, find_component_features, relations_in_same_sentence
-from canary.utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION
-from canary.utils import logger
+from ..utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION, logger
+from ..nlp._utils import nltk_download
 
 __all__ = [
     "download_corpus",
+    "load_corpus",
     "load_essay_corpus",
-    "load_imdb_debater_evidence_sentences",
     "load_araucaria_corpus"
 ]
 
 
-def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None) -> dict:
+def load_corpus(corpus_id: str, download_if_missing=False) -> Optional[list]:
+    """Loads a corpus that has previously been downloaded
+
+    Parameters
+    ----------
+    corpus_id: str
+        The id of the corpus to load.
+    download_if_missing: bool, False
+        If the corpus is not present on disk, should Canary attempt to download it?
+
+    Returns
+    -------
+    Union[list, None]
+        if a corpus can be loaded, a list of relevant dataset files will be returned. Otherwise nothing will be
+        returned.
+
+    Raises
+    -------
+    UserWarning
+        A warning is raised if the requested corpus cannot be found.
+    """
+    allowed_values = [x.stem for x in Path(CANARY_CORPORA_LOCATION).iterdir() if x.is_dir()]
+
+    with open(f"{CANARY_ROOT_DIR}/_data/corpora.json") as corpora:
+        corpora = json.load(corpora)
+        corpora_ids = [corpus['id'] for corpus in corpora]
+        allowed_values += corpora_ids
+
+    if corpus_id not in allowed_values:
+        raise ValueError(f"Incorrect corpus id supplied. Allowed values are: {allowed_values}")
+
+    # Corpus id should now be valid and will be in corpora root if downloaded
+    corpus_location = Path(CANARY_CORPORA_LOCATION) / corpus_id
+    if os.path.isdir(corpus_location) is False and download_if_missing is True:
+        download_corpus(corpus_id)
+        return load_corpus(corpus_id)
+    if os.path.isdir(corpus_location) is False and download_if_missing is False:
+        raise UserWarning("It appears the requested corpus has not been downloaded and is not present on disk. "
+                          "Have you downloaded it? You can set download_if_missing to True and the "
+                          "corpus will be downloaded. Alternatively, use the function download_corpus.")
+    import glob
+    return glob.glob(f"{corpus_location}/*")
+
+
+def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_location: str = None,
+                    aifdb_corpus=False, request_timeout=60) -> dict:
     """Downloads a corpus to be used for argumentation mining.
 
     Parameters
@@ -38,12 +78,15 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
         Should the corpus be overwritten if already present?
     save_location: str, optional
         Where the corpus should be downloaded to. Defaults to the canary corpora directory.
-
+    aifdb_corpus: bool, False
+        A boolean value indicating if the corpus should be fetched from aifdb.
+    request_timeout: int, 60
+        How long Canary wait when trying to download a corpus from a remote resource such as aifdb.
 
     Notes
     ------
-    If aif_corpus is set to true, the corpora will be downloaded directly from aifdb.org.
-    These corpora are provided at the descretion of the site owners and can dissapear / be altered at anytime.
+    If aifdb_corpus is set to true, the corpora will be downloaded directly from aifdb.org.
+    These corpora are provided at the discretion of the site owners and can disappear / be altered at anytime.
 
     Returns
     -------
@@ -56,55 +99,69 @@ def download_corpus(corpus_id: str, overwrite_existing: bool = False, save_locat
     file = f'{storage_location}/{corpus_id}'
     storage_location = Path(f"{storage_location}/{corpus_id}")
 
-    with open(f"{CANARY_ROOT_DIR}/_data/corpora.json") as corpora:
-        corpora = json.load(corpora)
-        corpora = [corpus for corpus in corpora if corpus_id == corpus['id']]
-        if len(corpora) == 1:
-            corpora = corpora[0]
-        else:
-            raise ValueError('Invalid corpus id.')
+    corpora = {}
+    if aifdb_corpus is False:
+        with open(f"{CANARY_ROOT_DIR}/_data/corpora.json") as corpora:
+            corpora = json.load(corpora)
+            corpora_ids = [corpus['id'] for corpus in corpora]
+            corpora = [corpus for corpus in corpora if corpus_id == corpus['id']]
+            if len(corpora) == 1:
+                corpora = corpora[0]
+            else:
+                raise ValueError(
+                    f'Invalid corpus id. Allowed values are: {corpora_ids}. '
+                    'If the corpus is an aifdb corpus, set aif_corpus to True.')
+    else:
+        corpora['download_url'] = f"http://corpora.aifdb.org/zip/{corpus_id}/download"
+        corpora['id'] = corpus_id
 
-        corpora_already_downloaded = os.path.isdir(file)
+    corpora_already_downloaded = os.path.isdir(file)
 
-        if corpora and corpora_already_downloaded is False or corpora and overwrite_existing is True:
-            import requests
-            try:
-                response = requests.get(corpora["download_url"], stream=True)
-                if response.status_code == 200:
-                    type = response.headers.get('Content-Type')
-                    if type == 'application/zip':
-                        file = file + ".zip"
-                    elif type == "application/tar.gz":
-                        file = file + ".tar.gz"
-
-                    with open(file, "wb") as f:
+    if corpora and corpora_already_downloaded is False or corpora and overwrite_existing is True:
+        import requests
+        try:
+            if aifdb_corpus is True and request_timeout is None:
+                logger.warn(
+                    "Setting request_timeout to None is not recommended. "
+                    "The request may never finish if the server does not respond.")
+            response = requests.get(corpora["download_url"], stream=True, timeout=request_timeout)
+            if response.status_code == 200:
+                ftype = response.headers.get('Content-Type')
+                if ftype == 'application/zip':
+                    archive_file = file + ".zip"
+                    with open(archive_file, "wb") as f:
                         f.write(response.raw.read())
-                        f.close()
-                    if type == "application/tar.gz":
-                        tf = tarfile.open(f"{storage_location}.tar.gz", "r")
-                        tf.extractall(f"{CANARY_CORPORA_LOCATION}/{corpus_id}")
-                        tf.close()
-                    elif type == "application/zip":
-                        with zipfile.ZipFile(f"{storage_location}.zip", "r") as zf:
-                            zf.extractall(f"{CANARY_CORPORA_LOCATION}/{corpus_id}")
+                elif ftype == "application/tar.gz":
+                    archive_file = file + ".tar.gz"
+                    with open(archive_file, "wb") as f:
+                        f.write(response.raw.read())
 
-                    logger.info(f"Corpus downloaded to {storage_location}")
-                    return {
-                        "corpus": corpora,
-                        "location": storage_location
-                    }
-            except:
-                logging.error("There was an error fetching the corpus")
+                if ftype == "application/tar.gz":
+                    tf = tarfile.open(f"{storage_location}.tar.gz", "r")
+                    tf.extractall(f"{CANARY_CORPORA_LOCATION}/{corpus_id}")
+                    tf.close()
+                elif ftype == "application/zip":
+                    with zipfile.ZipFile(f"{storage_location}.zip", "r") as zf:
+                        zf.extractall(f"{CANARY_CORPORA_LOCATION}/{corpus_id}")
 
-        elif corpora_already_downloaded:
-            logger.info(f"Corpus already present at {storage_location}")
-            return {
-                "corpus": corpora,
-                "location": storage_location
-            }
+                logger.info(f"Corpus downloaded to {storage_location}")
+                return {
+                    "corpus": corpora,
+                    "location": storage_location
+                }
+        except requests.ReadTimeout as e:
+            logging.error(
+                "The connection timed-out when fetching the corpus. Perhaps try increasing the timeout value.")
+
+    elif corpora_already_downloaded:
+        logger.info(f"Corpus already present at {storage_location}")
+        return {
+            "corpus": corpora,
+            "location": storage_location
+        }
 
 
-def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
+def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tuple, list]:
     """Load the essay corpus.
 
     Parameters
@@ -122,14 +179,16 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
     merge_claims: bool
         Whether to merge claims and major claims. Only applies if component_prediction = "component_prediction"
     version: int
-        The version of the essay corpus to laod
-    **kwargs:
-        Additional dictionary arguments
+        The version of the essay corpus to load
 
     Returns
     -------
-
+    Union[list, tuple]
+        The dataset as either  tuple containing the training labels data or just the parsed essays.
     """
+
+    from ..corpora._essay_corpus import find_paragraph_features, find_cover_sentence_features, find_cover_sentence, \
+        tokenize_essay_sentences, find_component_features, relations_in_same_sentence
 
     _allowed_purpose_values = [
         None,
@@ -140,7 +199,7 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
         'sequence_labelling'
     ]
 
-    canary.preprocessing.nlp.nltk_download(['punkt'])
+    nltk_download(['punkt'])
     _allowed_version_values = [1, 2, "both"]
 
     if version not in _allowed_version_values:
@@ -149,19 +208,31 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
     if purpose not in _allowed_purpose_values:
         raise ValueError(f"{purpose} is not a valid value. Valid values are {_allowed_purpose_values}")
 
-    def get_corpus(v):
-        essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "brat-project-final" if v == 2 else Path(
-            CANARY_CORPORA_LOCATION) / "brat-project"
+    def get_corpus(v: int):
+        essay_corpus_location = Path(CANARY_CORPORA_LOCATION) / "argument_annotated_essays_2" if v == 2 else Path(
+            CANARY_CORPORA_LOCATION) / "argument_annotated_essays_1"
+
         if os.path.exists(essay_corpus_location) is False:
+            import shutil
+
             corpus = download_corpus(f"argument_annotated_essays_{v}")
             zip_name = "brat-project-final" if v == 2 else "brat-project"
             corpus_zip = corpus['location'] / f"ArgumentAnnotatedEssays-{v}.0/{zip_name}.zip"
             with zipfile.ZipFile(corpus_zip) as z:
                 z.extractall(CANARY_CORPORA_LOCATION)
 
+            # some minor clean up
+            os.remove(corpus_zip)
+            os.remove(f"{essay_corpus_location}.zip")
+            shutil.rmtree(essay_corpus_location)
+            os.rename(Path(CANARY_CORPORA_LOCATION) / zip_name, essay_corpus_location)
+            if os.path.isdir(f'{CANARY_CORPORA_LOCATION}/__MACOSX'):
+                shutil.rmtree(f'{CANARY_CORPORA_LOCATION}/__MACOSX')
+
         brat_parser = BratParser(error="ignore")
-        e = brat_parser.parse(essay_corpus_location)
-        return e
+        parsed_essays = brat_parser.parse(essay_corpus_location)
+
+        return parsed_essays
 
     if version in [1, 2]:
         essays = get_corpus(version)
@@ -508,38 +579,8 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2, **kwargs):
         return X, Y
 
 
-def load_imdb_debater_evidence_sentences() -> tuple:
-    """Load the imdb debater corpus
-
-    Returns
-    -------
-    tuple
-        The corpus as a tuple
-    """
-
-    train_data, test_data, train_targets, test_targets = [], [], [], []
-
-    with open(Path(
-            f'{CANARY_ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/train.csv'), encoding="utf8") as data:
-        csv_reader = csv.reader(data)
-        next(csv_reader)
-        for row in csv_reader:
-            train_data.append({"text": row[2], "topic": row[1]})
-            train_targets.append(int(row[4]))
-
-    with open(Path(
-            f'{CANARY_ROOT_DIR}/data/datasets/ibm/IBM_debater_evidence_sentences/test.csv'), encoding="utf8") as data:
-        csv_reader = csv.reader(data)
-        next(csv_reader)
-        for row in csv_reader:
-            test_data.append({"text": row[2], "topic": row[1]})
-            test_targets.append(int(row[4]))
-
-    return train_data, train_targets, test_data, test_targets
-
-
-def load_araucaria_corpus():
-    """Loads the araucaria corpus
+def load_araucaria_corpus() -> dict:
+    """Loads the araucaria corpus from aifdb
 
     Returns
     -------
@@ -547,7 +588,7 @@ def load_araucaria_corpus():
         The araucaria corpus
     """
 
-    corpus_download = download_corpus("araucaria")
+    corpus_download = download_corpus("araucaria", aifdb_corpus=True)
     if "location" in corpus_download:
 
         corpus_location = corpus_download["location"]

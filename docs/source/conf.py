@@ -39,12 +39,16 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_autobuild",
     "sphinx_copybutton",
-    "myst_parser",
     "numpydoc",
+    "m2r2"
 ]
 
-html_use_index = False
+html_css_files = [
+    'css/custom.css',
+]
+
 html_domain_indices = False
+exclude_patterns = ['api/canary.utils.rst', 'api/modules.rst', "api/canary.nlp.rst"]
 
 templates_path = ['_templates']
 html_static_path = ['_static']
@@ -52,10 +56,6 @@ html_theme = 'furo'
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
-
-html_css_files = [
-    'css/custom.css',
-]
 
 autodoc_mock_imports = ["pkg_resources", "numpy", "nltk", "sklearn", "pybrat", "vaderSentiment", "spacy", "benepar",
                         "pandas", "sklearn_crfsuite", "scipy", "joblib"]

@@ -1,18 +1,19 @@
 import string
+from datetime import datetime
 
 import nltk
 import sklearn_crfsuite
 from sklearn.model_selection import train_test_split
 from sklearn_crfsuite import metrics
 
-import canary
-import canary.utils
-from canary.argument_pipeline.base import Model
-from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer
-from canary.preprocessing.nlp import nltk_download
+from ..argument_pipeline.base import Model
+from ..corpora import load_essay_corpus
+from ..corpora._essay_corpus import tokenize_essay_sentences
+from ..nlp import Lemmatiser
+from ..nlp._utils import nltk_download
+from ..utils import logger, get_is_dev
 
-lemmatizer = Lemmatizer()
+lemmatiser = Lemmatiser()
 
 __all__ = [
     "ArgumentSegmenter"
@@ -20,6 +21,16 @@ __all__ = [
 
 
 class ArgumentSegmenter(Model):
+    """Argument Segmenter using Conditional Random Fields.
+
+    Examples
+    --------
+    >>> import canary
+    >>> segmenter = canary.load_model("arg_segmenter")
+    >>> sentence = "To sum up, I believe that a higher pay can be one of the incentive if were to encourage harder-working employees."
+    >>> print(segmenter.predict(sentence))
+    [('To', 'O'), ('sum', 'O'), ('up', 'O'), (',', 'O'), ('I', 'O'), ('believe', 'O'), ('that', 'O'), ('a', 'Arg-B'), ('higher', 'Arg-I'), ('pay', 'Arg-I'), ('can', 'Arg-I'), ('be', 'Arg-I'), ('one', 'Arg-I'), ('of', 'Arg-I'), ('the', 'Arg-I'), ('incentive', 'Arg-I'), ('if', 'Arg-I'), ('were', 'Arg-I'), ('to', 'Arg-I'), ('encourage', 'Arg-I'), ('harder-working', 'Arg-I'), ('employees', 'Arg-I'), ('.', 'O')]
+    """
 
     def __init__(self, model_id=None):
         if model_id is None:
@@ -33,7 +44,7 @@ class ArgumentSegmenter(Model):
     def default_train():
         # Need to get data into a usable shape
 
-        canary.utils.logger.debug("Getting training data")
+        logger.debug("Getting training data")
         x, y = load_essay_corpus(
             purpose="sequence_labelling"
         )
@@ -45,17 +56,17 @@ class ArgumentSegmenter(Model):
                              random_state=0,
                              )
 
-        canary.utils.logger.debug("Getting training features")
-        train_data = [get_sentence_features(s) for s in train_data]
+        logger.debug("Getting training features")
+        train_data = [_get_sentence_features(s) for s in train_data]
 
-        canary.utils.logger.debug("Getting training labels")
-        train_targets = [get_labels(s) for s in train_targets]
+        logger.debug("Getting training labels")
+        train_targets = [_get_labels(s) for s in train_targets]
 
-        canary.utils.logger.debug("Getting test features")
-        test_data = [get_sentence_features(s) for s in test_data]
+        logger.debug("Getting test features")
+        test_data = [_get_sentence_features(s) for s in test_data]
 
-        canary.utils.logger.debug("Getting test labels")
-        test_targets = [get_labels(s) for s in test_targets]
+        logger.debug("Getting test labels")
+        test_targets = [_get_labels(s) for s in test_targets]
 
         return train_data, test_data, train_targets, test_targets
 
@@ -69,7 +80,7 @@ class ArgumentSegmenter(Model):
             # get default data if the above is not present
             train_data, test_data, train_targets, test_targets = model.default_train()
 
-        canary.utils.logger.debug("Training algorithm")
+        logger.debug("Training algorithm")
 
         if pipeline_model is None:
             pipeline_model = sklearn_crfsuite.CRF(
@@ -89,7 +100,7 @@ class ArgumentSegmenter(Model):
             key=lambda name: (name[1:], name[0])
         )
 
-        canary.utils.logger.debug("\n\n" + metrics.flat_classification_report(
+        logger.debug("\n\n" + metrics.flat_classification_report(
             test_targets, y_pred, labels=sorted_labels, digits=4
         ))
 
@@ -97,30 +108,30 @@ class ArgumentSegmenter(Model):
             test_targets, y_pred, labels=sorted_labels, digits=4, output_dict=True
         )
 
+        if get_is_dev() is True:
+            from ._utils import log_training_data
+            log_training_data({"result": metrics.flat_classification_report(
+                test_targets, y_pred, labels=sorted_labels, digits=4, output_dict=True
+            ),
+                "datetime": str(datetime.now()), "model": model.__class__.__name__})
+
         if save_on_finish is True:
             model.save()
 
         return model
 
     def predict(self, data, probability=False, binary=False):
-        """
-
-        :param data:
-        :param probability:
-        :param binary: binary detection of arguments
-        :return:
-        """
 
         nltk_download(['punkt', 'averaged_perceptron_tagger'])
         if probability is True:
-            canary.utils.logger.warn(
+            logger.warn(
                 f"{self.__class__.__name__} does not support probability predictions. This parameter is ignored.")
 
         data_type = type(data)
 
         if data_type is str:
             tokens = nltk.word_tokenize(data)
-            data = [get_sentence_features(tokens)]
+            data = [_get_sentence_features(tokens)]
             predictions = super().predict(data, probability=False)[0]
             if binary is not None:
                 if binary is True:
@@ -132,12 +143,25 @@ class ArgumentSegmenter(Model):
 
         if data_type is list:
             if all(type(item) is dict for item in data) is False:
-                canary.utils.logger.error("The list passed in needs to only contain dictionary features")
+                logger.error("The list passed in needs to only contain dictionary features")
                 return
 
         return super().predict(data, probability=False)
 
     def get_components_from_document(self, document: str) -> list:
+        """Helper method which extracts components from a document which have been identified as argument
+        spans.
+
+        Parameters
+        ----------
+        document: str
+            The document which is to be analysed.
+
+        Returns
+        -------
+        list
+            A list of dictionary items which detail the components that have been identified.
+        """
         from nltk.tokenize.treebank import TreebankWordDetokenizer
 
         detokenizer = TreebankWordDetokenizer()
@@ -145,9 +169,9 @@ class ArgumentSegmenter(Model):
         # Segment from full text
         components = []
         current_component = []
-        sentences = canary.corpora._essay_corpus.tokenize_essay_sentences(document)
+        sentences = tokenize_essay_sentences(document)
         if len(sentences) < 2:
-            canary.utils.logger.warn("There doesn't seem to be much to analyse in the document.")
+            logger.warn("There doesn't seem to be much to analyse in the document.")
 
         predictions = [self.predict(sentence) for sentence in sentences]
 
@@ -168,7 +192,7 @@ class ArgumentSegmenter(Model):
         del prediction
         del predictions
 
-        canary.utils.logger.debug(f"{len(components)} components found from segmenter.")
+        logger.debug(f"{len(components)} components found from segmenter.")
 
         # Get covering sentences
         for i, component in enumerate(components):
@@ -199,14 +223,14 @@ class ArgumentSegmenter(Model):
                             })
                         except IndexError as e:
                             # @TODO Fix this bit
-                            canary.utils.logger.error(e)
+                            logger.error(e)
                             components[i].update({
                                 'n_following_comp_tokens': 0,
                                 'n_preceding_comp_tokens': 0,
                             })
 
         paragraphs = [p.strip() for p in document.split("\n") if p and not p.isspace()]
-        canary.utils.logger.debug(f"{len(paragraphs)} paragraphs in document.")
+        logger.debug(f"{len(paragraphs)} paragraphs in document.")
 
         if not all('tokens' in c for c in components):
             raise KeyError("There was an error finding argumentative components")
@@ -246,7 +270,7 @@ class ArgumentSegmenter(Model):
                 component['last_in_paragraph'] = True if component["n_following_components"] == 0 else False
 
         # find if indicator type is...
-        from canary.preprocessing.transformers import DiscourseMatcher
+        from canary.nlp.transformers import DiscourseMatcher
         forward_matcher = DiscourseMatcher('forward')
         thesis_matcher = DiscourseMatcher('thesis')
         rebuttal_matcher = DiscourseMatcher('rebuttal')
@@ -294,7 +318,7 @@ class ArgumentSegmenter(Model):
         return components
 
 
-def get_word_features(sent, i):
+def _get_word_features(sent, i):
     word = sent[i][0]
 
     features = {
@@ -305,7 +329,7 @@ def get_word_features(sent, i):
         'word.isdigit()': word.isdigit(),
         'postag': sent[i][1],
         'ent': sent[i][2],
-        'lemma': lemmatizer(word)[0],
+        'lemma': lemmatiser(word)[0],
         "period": word == '.',
         'is_punct': word in string.punctuation,
         'len': len(word)
@@ -320,7 +344,7 @@ def get_word_features(sent, i):
             '-1:word.istitle()': word1.istitle(),
             '-1:word.isupper()': word1.isupper(),
             '-1:postag': postag1,
-            '-1:lemma': lemmatizer(word1)[0],
+            '-1:lemma': lemmatiser(word1)[0],
             '-1:ent': ent1,
             '-1:punct': word1 in string.punctuation
         })
@@ -336,7 +360,7 @@ def get_word_features(sent, i):
             '-2:word.istitle()': word2.istitle(),
             '-2:word.isupper()': word2.isupper(),
             '-2:postag': postag2,
-            '-2:lemma': lemmatizer(word2)[0],
+            '-2:lemma': lemmatiser(word2)[0],
             '-2:ent': ent2,
         })
 
@@ -349,7 +373,7 @@ def get_word_features(sent, i):
             '-3:word.istitle()': word3.istitle(),
             '-3:word.isupper()': word3.isupper(),
             '-3:postag': postag3,
-            '-3:lemma': lemmatizer(word3)[0],
+            '-3:lemma': lemmatiser(word3)[0],
             '-3:ent': ent3,
         })
 
@@ -362,7 +386,7 @@ def get_word_features(sent, i):
             '-4:word.istitle()': word4.istitle(),
             '-4:word.isupper()': word4.isupper(),
             '-4:postag': postag4,
-            '-4:lemma': lemmatizer(word4)[0],
+            '-4:lemma': lemmatiser(word4)[0],
             '-4:ent': ent4,
         })
 
@@ -375,7 +399,7 @@ def get_word_features(sent, i):
             '-5:word.istitle()': word5.istitle(),
             '-5:word.isupper()': word5.isupper(),
             '-5:postag': postag5,
-            '-5:lemma': lemmatizer(word5)[0],
+            '-5:lemma': lemmatiser(word5)[0],
             '-5:ent': ent5,
         })
 
@@ -388,7 +412,7 @@ def get_word_features(sent, i):
             '+5:word.istitle()': word5.istitle(),
             '+5:word.isupper()': word5.isupper(),
             '+5:postag': postag5,
-            '+5:lemma': lemmatizer(word5)[0],
+            '+5:lemma': lemmatiser(word5)[0],
             '+5:ent': ent5,
         })
 
@@ -401,7 +425,7 @@ def get_word_features(sent, i):
             '+4:word.istitle()': word4.istitle(),
             '+4:word.isupper()': word4.isupper(),
             '+4:postag': postag4,
-            '+4:lemma': lemmatizer(word4)[0],
+            '+4:lemma': lemmatiser(word4)[0],
             '+4:ent': ent4,
         })
 
@@ -414,7 +438,7 @@ def get_word_features(sent, i):
             '+3:word.istitle()': word3.istitle(),
             '+3:word.isupper()': word3.isupper(),
             '+3:postag': postag3,
-            '+3:lemma': lemmatizer(word3)[0],
+            '+3:lemma': lemmatiser(word3)[0],
             '+3:ent': ent3,
         })
 
@@ -427,7 +451,7 @@ def get_word_features(sent, i):
             '+2:word.istitle()': word2.istitle(),
             '+2:word.isupper()': word2.isupper(),
             '+2:postag': postag2,
-            '+2:lemma': lemmatizer(word2)[0],
+            '+2:lemma': lemmatiser(word2)[0],
             '+2:ent': ent2,
         })
 
@@ -441,7 +465,7 @@ def get_word_features(sent, i):
             '+1:word.isupper()': word1.isupper(),
             '+1:postag': postag1,
             '+1:ent': ent1,
-            '+1:lemma': lemmatizer(word1)[0],
+            '+1:lemma': lemmatiser(word1)[0],
             '+1:punt': word1 in string.punctuation,
         })
     else:
@@ -450,16 +474,16 @@ def get_word_features(sent, i):
     return features
 
 
-def get_sentence_features(sent):
-    sent = chunk(sent)
-    return [get_word_features(sent, i) for i in range(len(sent))]
+def _get_sentence_features(sent):
+    sent = _chunk(sent)
+    return [_get_word_features(sent, i) for i in range(len(sent))]
 
 
-def get_labels(sent):
+def _get_labels(sent):
     return [label for label in sent]
 
 
-def chunk(sen):
-    canary.preprocessing.nlp.nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words', 'punkt'])
+def _chunk(sen):
+    nltk_download(['averaged_perceptron_tagger', 'maxent_ne_chunker', 'words', 'punkt'])
     from nltk.chunk import tree2conlltags
     return tree2conlltags(nltk.ne_chunk(nltk.pos_tag(sen)))

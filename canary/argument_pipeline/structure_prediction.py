@@ -9,10 +9,10 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import make_union, make_pipeline
 from sklearn.preprocessing import LabelBinarizer, Normalizer
 
-from canary.argument_pipeline.base import Model
-from canary.preprocessing.nlp import spacy_download
-from canary.preprocessing.transformers import WordSentimentCounter, DiscourseMatcher
-from canary.utils import logger
+from ..argument_pipeline.base import Model
+from ..nlp._utils import spacy_download
+from ..nlp.transformers import WordSentimentCounter, DiscourseMatcher
+from ..utils import logger
 
 nlp = spacy_download()
 
@@ -32,6 +32,7 @@ class StructurePredictor(Model):
 
     @staticmethod
     def default_train():
+        """Default training method which supplies the default training set"""
 
         from canary.corpora import load_essay_corpus
         from imblearn.over_sampling import RandomOverSampler
@@ -74,8 +75,7 @@ class StructurePredictor(Model):
 
 
 class StructureFeatures(TransformerMixin, BaseEstimator):
-    """A custom feature transformer used for extracting features relevant to structure prediction
-    """
+    """A custom feature transformer used for extracting features relevant to structure prediction"""
     cover_features: list = [
         DiscourseMatcher("support"),
         DiscourseMatcher("conflict"),
@@ -109,7 +109,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         -------
         self
         """
-        logger.debug("fitting...")
 
         self.__dictionary_features.fit(self._prepare_dictionary_features(x))
         x = pandas.DataFrame(x)
@@ -122,7 +121,7 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x) -> list:
-        """
+        """Transform data into features
 
         Parameters
         ----------
@@ -138,7 +137,6 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         ---------
         scipy.sparse.hstack
         """
-        logger.debug("transforming...")
         dictionary_features = self.__dictionary_features.transform(x)
 
         x = pandas.DataFrame(x)

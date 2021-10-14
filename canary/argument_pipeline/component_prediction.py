@@ -8,16 +8,16 @@ from sklearn.pipeline import make_union, make_pipeline
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.svm import SVC
 
-import canary
-import canary.utils
-from canary.argument_pipeline.base import Model
-from canary.corpora import load_essay_corpus
-from canary.preprocessing import Lemmatizer, PosDistribution
-from canary.preprocessing.transformers import DiscourseMatcher, EmbeddingTransformer
+from ..argument_pipeline.base import Model
+from ..corpora import load_essay_corpus
+from ..nlp import Lemmatiser, PosDistribution
+from ..nlp.transformers import DiscourseMatcher, EmbeddingTransformer
+from ..nlp._utils import spacy_download
+from ..utils import logger
 
-_nlp = canary.preprocessing.nlp.spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
-                                                        'attribute_ruler',
-                                                        'tok2vec', ])
+_nlp = spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
+                               'attribute_ruler',
+                               'tok2vec', ])
 
 __all__ = [
     "ArgumentComponent",
@@ -26,8 +26,7 @@ __all__ = [
 
 
 class ArgumentComponent(Model):
-    """Detects argumentative components from natural language e.g. premises and claims
-    """
+    """Detects argumentative components from natural language e.g. premises and claims"""
 
     def __init__(self, model_id: str = None):
 
@@ -56,7 +55,7 @@ class ArgumentComponent(Model):
                              stratify=y
                              )
 
-        canary.utils.logger.debug("Resample")
+        logger.debug("Resample")
 
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
@@ -87,8 +86,8 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
     """Transformer Mixin that extracts features for the ArgumentComponent model"""
 
     features: list = [
-        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatizer(), lowercase=False, binary=True),
-        TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatizer(), lowercase=False, max_features=2000),
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatiser(), lowercase=False, binary=True),
+        TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatiser(), lowercase=False, max_features=2000),
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),
         DiscourseMatcher('rebuttal'),
@@ -120,18 +119,18 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
 
                 items = {
                     'tree_height': cover_sen_parse_tree.height(),
-                    'len_paragraph': d['len_paragraph'],
-                    "len_component": d['len_component'],
-                    "len_cover_sen": d['len_cover_sen'],
-                    'is_in_intro': d['is_in_intro'],
-                    'is_in_conclusion': d['is_in_conclusion'],
-                    "n_following_components": d["n_following_components"],
-                    "n_preceding_components": d["n_preceding_components"],
-                    "component_position": d["component_position"],
-                    'n_preceding_comp_tokens': d['n_preceding_comp_tokens'],
-                    'n_following_comp_tokens': d['n_following_comp_tokens'],
-                    'first_in_paragraph': d['first_in_paragraph'],
-                    'last_in_paragraph': d['last_in_paragraph']
+                    'len_paragraph': d.get('len_paragraph'),
+                    "len_component": d.get('len_component'),
+                    "len_cover_sen": d.get('len_cover_sen'),
+                    'is_in_intro': d.get('is_in_intro'),
+                    'is_in_conclusion': d.get('is_in_conclusion'),
+                    "n_following_components": d.get("n_following_components"),
+                    "n_preceding_components": d.get("n_preceding_components"),
+                    "component_position": d.get("component_position"),
+                    'n_preceding_comp_tokens': d.get('n_preceding_comp_tokens'),
+                    'n_following_comp_tokens': d.get('n_following_comp_tokens'),
+                    'first_in_paragraph': d.get('first_in_paragraph'),
+                    'last_in_paragraph': d.get('last_in_paragraph')
                 }
                 items.update(pos_dist(d['cover_sentence']).items())
                 features.append(items)
@@ -154,7 +153,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
         -------
         Self
         """
-        canary.utils.logger.debug("Fitting")
+        logger.debug("Fitting")
         self.__dict_feats.fit(x)
         self.__features.fit(pandas.DataFrame(x).cover_sentence.tolist())
         return self

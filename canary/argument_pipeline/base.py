@@ -50,8 +50,7 @@ class Model(metaclass=ABCMeta):
 
     @property
     def model_id(self):
-        """
-        Returns the model id
+        """Returns the model id
 
         Returns
         -------
@@ -95,7 +94,7 @@ class Model(metaclass=ABCMeta):
 
     @property
     def metrics(self):
-        """
+        """Property which returns model metrics
 
         Returns
         -------
@@ -149,7 +148,7 @@ class Model(metaclass=ABCMeta):
         Parameters
         ----------
         pipeline_model
-            The model ...
+            The model which is trained to make predictions
         train_data: list
             Training data
         test_data: list
@@ -162,7 +161,7 @@ class Model(metaclass=ABCMeta):
             Should the model be saved when training has finished?
         *args: tuple
             Additional positional arguments
-        **kwargs: dictl
+        **kwargs: dict
             Additional keyed-arguments
 
         Returns
@@ -227,10 +226,14 @@ class Model(metaclass=ABCMeta):
         probability: bool
             boolean indicating if the method should return a probability prediction.
 
+        Notes
+        ------
+        Not all models support probability predictions. This can be checked with the supports_probability property.
+
         Returns
         -------
         Union[list, bool]
-            a boolean or list of indi the prediction
+            a boolean indicating the predictions or list of predictions
         """
 
         if self._model is None:
@@ -254,7 +257,7 @@ class Model(metaclass=ABCMeta):
 
             if type(inp) is list:
                 predictions_list = []
-                for i, item in enumerate(inp):
+                for _, item in enumerate(inp):
                     predictions_dict = {}
                     p = self._model.predict_proba([item])[0]
                     for j, class_ in enumerate(self._model.classes_):
@@ -265,8 +268,8 @@ class Model(metaclass=ABCMeta):
             else:
                 predictions_dict = {}
                 p = self._model.predict_proba(inp)[0]
-                for i, class_ in enumerate(self._model.classes_):
-                    predictions_dict[self._model.classes_[i]] = p[i]
+                for _i, class_ in enumerate(self._model.classes_):
+                    predictions_dict[self._model.classes_[_i]] = p[_i]
                 return predictions_dict
 
         if data_type is list:
