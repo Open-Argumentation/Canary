@@ -1,14 +1,16 @@
 from typing import Union
+
+import pandas
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.pipeline import make_pipeline, make_union
+from sklearn.preprocessing import MaxAbsScaler
+from sklearn.svm import SVC
 
 from ..argument_pipeline.base import Model
 from ..corpora import load_essay_corpus
-from ..nlp import Lemmatiser
-from ..nlp.transformers import DiscourseMatcher, CountPunctuationVectorizer, \
-    LengthOfSentenceTransformer, SentimentTransformer, AverageWordLengthTransformer, WordSentimentCounter
+from ..nlp.transformers import DiscourseMatcher, LengthOfSentenceTransformer, WordSentimentCounter, \
+    AverageWordLengthTransformer, LengthTransformer, UniqueWordsTransformer
 
 __all__ = [
     "ArgumentDetector"
@@ -41,9 +43,15 @@ class ArgumentDetector(Model):
     @staticmethod
     def default_train():
         """Default training method which supplies the default training set"""
+        from imblearn.over_sampling import RandomOverSampler
+
+        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
         x, y = load_essay_corpus(purpose="argument_detection")
-        return train_test_split(x, y,
-                                train_size=0.7,
+
+        x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
+
+        return train_test_split(x.get(0).to_list(), y.get(0).to_list(),
+                                train_size=0.5,
                                 shuffle=True,
                                 random_state=0,
                                 stratify=y
@@ -53,44 +61,52 @@ class ArgumentDetector(Model):
     def train(cls, pipeline_model=None, train_data=None, test_data=None, train_targets=None, test_targets=None,
               save_on_finish=False, *args, **kwargs):
 
+        if "features" not in kwargs:
+            feats = [
+                CountVectorizer(
+                    ngram_range=(1, 2),
+                    lowercase=False,
+                    max_features=2000,
+                ),
+                LengthOfSentenceTransformer(),
+                AverageWordLengthTransformer(),
+                UniqueWordsTransformer(),
+                LengthTransformer(word_length=10),
+                DiscourseMatcher('claim'),
+                DiscourseMatcher('major_claim'),
+                DiscourseMatcher('premise'),
+                DiscourseMatcher('forward'),
+                DiscourseMatcher('thesis'),
+                DiscourseMatcher('rebuttal'),
+                DiscourseMatcher('backward'),
+                WordSentimentCounter(target="pos"),
+                WordSentimentCounter(target="neg"),
+            ]
+        else:
+            feats = kwargs.get('feats')
+
         if pipeline_model is None:
-            pipeline_model = Pipeline([
-                ('features', FeatureUnion([
-                    ('bow',
-                     CountVectorizer(
-                         ngram_range=(1, 2),
-                         tokenizer=Lemmatiser(),
-                         lowercase=False
-                     )
-                     ),
-                    ("length", LengthOfSentenceTransformer()),
-                    ("support", DiscourseMatcher(component="support")),
-                    ("conflict", DiscourseMatcher(component="conflict")),
-                    ("punctuation", CountPunctuationVectorizer()),
-                    ("sentiment", SentimentTransformer()),
-                    ("sentiment_pos", WordSentimentCounter(target="pos")),
-                    ("sentiment_neg", WordSentimentCounter(target="neg")),
-                    ("average_word_length", AverageWordLengthTransformer()),
-                ])),
-                ('SGDClassifier',
-                 SGDClassifier(
-                     class_weight='balanced',
-                     random_state=0,
-                     loss='modified_huber',
-                 )
-                 )
-            ])
+            pipeline_model = make_pipeline(
+                make_union(
+                    *feats
+                ),
+                MaxAbsScaler(),
+                SVC(
+                    random_state=0,
+                    probability=True
+                )
+            )
 
-        return super().train(pipeline_model=pipeline_model,
-                             train_data=train_data,
-                             test_data=test_data,
-                             train_targets=train_targets,
-                             test_targets=test_targets,
-                             save_on_finish=True)
+            return super().train(pipeline_model=pipeline_model,
+                                 train_data=train_data,
+                                 test_data=test_data,
+                                 train_targets=train_targets,
+                                 test_targets=test_targets,
+                                 save_on_finish=True)
 
-    def predict(self, data, probability=False) -> Union[list, bool]:
-        if type(data) is list:
-            if not all(type(i) is str for i in data):
-                raise TypeError(f"{self.__class__.__name__} requires list elements to be strings.")
+        def predict(self, data, probability=False) -> Union[list, bool]:
+            if type(data) is list:
+                if not all(type(i) is str for i in data):
+                    raise TypeError(f"{self.__class__.__name__} requires list elements to be strings.")
 
-        return super().predict(data, probability)
+            return super().predict(data, probability)
