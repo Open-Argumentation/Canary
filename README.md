@@ -78,12 +78,15 @@ Canary is currently still in development and performance is being improved as wo
 
                   precision    recall  f1-score   support
     
-           False       0.80      0.58      0.67       490
-            True       0.88      0.96      0.92      1653
+           False       0.85      0.86      0.86      2756
+            True       0.86      0.85      0.85      2755
     
-        accuracy                           0.87      2143
-       macro avg       0.84      0.77      0.79      2143
-    weighted avg       0.86      0.87      0.86      2143
+        accuracy                           0.86      5511
+       macro avg       0.86      0.86      0.86      5511
+    weighted avg       0.86      0.86      0.86      5511
+
+
+
 
 
 ### Argument Segmenter
@@ -103,33 +106,33 @@ Canary is currently still in development and performance is being improved as wo
 
                   precision    recall  f1-score   support
     
-           Claim       0.65      0.65      0.65       226
-      MajorClaim       0.82      0.86      0.84       225
-         Premise       0.78      0.75      0.76       225
+           Claim       0.80      0.81      0.81      1150
+      MajorClaim       0.90      0.98      0.94      1150
+         Premise       0.90      0.82      0.86      1149
     
-        accuracy                           0.75       676
-       macro avg       0.75      0.75      0.75       676
-    weighted avg       0.75      0.75      0.75       676
+        accuracy                           0.87      3449
+       macro avg       0.87      0.87      0.87      3449
+    weighted avg       0.87      0.87      0.87      3449
 
 ### Link Predictor
 
                   precision    recall  f1-score   support
     
-          Linked       0.75      0.73      0.74      4581
-      Not Linked       0.87      0.88      0.87      9227
+          Linked       0.83      0.88      0.85      7417
+      Not Linked       0.87      0.82      0.84      7311
     
-        accuracy                           0.83     13808
-       macro avg       0.81      0.81      0.81     13808
-    weighted avg       0.83      0.83      0.83     13808
+        accuracy                           0.85     14728
+       macro avg       0.85      0.85      0.85     14728
+    weighted avg       0.85      0.85      0.85     14728
 
 
 ### Structure Predictor
 
                   precision    recall  f1-score   support
     
-         attacks       0.87      0.89      0.88       741
-        supports       0.94      0.93      0.94      1427
+         attacks       0.70      0.81      0.75      1106
+        supports       0.76      0.64      0.69      1062
     
-        accuracy                           0.92      2168
-       macro avg       0.91      0.91      0.91      2168
-    weighted avg       0.92      0.92      0.92      2168
+        accuracy                           0.72      2168
+       macro avg       0.73      0.72      0.72      2168
+    weighted avg       0.73      0.72      0.72      2168
