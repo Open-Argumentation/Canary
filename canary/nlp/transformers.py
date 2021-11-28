@@ -1,45 +1,34 @@
 """Transformers for various NLP tasks. Emulates a scikit-learn like API."""
 
-import string
 from abc import ABCMeta
-from collections import Counter
 from functools import lru_cache
 
 import nltk
 import numpy as np
 from sklearn.base import TransformerMixin, BaseEstimator
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from .._data.indicators import discourse_indicators
 from ..nlp import Lemmatiser
-from ..nlp import PunctuationTokeniser
 from ..nlp._utils import spacy_download
 from ..utils import logger
 
 __all__ = [
     "SentimentTransformer",
     "WordSentimentCounter",
-    "TfidfPosVectorizer",
-    "CountPosVectorizer",
     "LengthOfSentenceTransformer",
     "UniqueWordsTransformer",
     "LengthTransformer",
     "AverageWordLengthTransformer",
     "DiscourseMatcher",
     "FirstPersonIndicatorMatcher",
-    "CountPunctuationVectorizer",
-    "TfidfPunctuationVectorizer",
     "EmbeddingTransformer",
-    "BiasTransformer",
     "SharedNouns",
-    "ProductionRules"
 ]
 
 
 class PosVectorizer(metaclass=ABCMeta):
-    """
-    Base class for POS tagging vectorisation
+    """Base class for POS tagging vectorisation
     """
 
     nlp = spacy_download()
@@ -65,8 +54,7 @@ class PosVectorizer(metaclass=ABCMeta):
 
 
 class SentimentTransformer(TransformerMixin, BaseEstimator):
-    """
-    Gets sentiment from a segment of text.
+    """Gets sentiment from a segment of text.
     """
 
     _analyser = SentimentIntensityAnalyzer()
@@ -89,8 +77,7 @@ class SentimentTransformer(TransformerMixin, BaseEstimator):
 
 
 class WordSentimentCounter(TransformerMixin, BaseEstimator):
-    """
-    Counts the occurrences of sentiment in a text
+    """Counts the occurrences of sentiment in a text
     """
 
     _analyser = SentimentIntensityAnalyzer()
@@ -117,33 +104,8 @@ class WordSentimentCounter(TransformerMixin, BaseEstimator):
         return [[self.countSentiment(y)] for y in x]
 
 
-class TfidfPosVectorizer(PosVectorizer, TfidfVectorizer):
-    """
-
-    """
-
-    def build_analyzer(self):
-        def analyzer(doc):
-            return self.prepare_doc(doc)
-
-        return analyzer
-
-
-class CountPosVectorizer(PosVectorizer, CountVectorizer):
-    """
-
-    """
-
-    def build_analyzer(self):
-        def analyzer(doc):
-            return self.prepare_doc(doc)
-
-        return analyzer
-
-
 class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
-    """
-    Returns the length of a sentence
+    """Returns the length of a sentence
     """
 
     def fit(self, x, y):
@@ -157,8 +119,7 @@ class LengthOfSentenceTransformer(TransformerMixin, BaseEstimator):
 
 
 class UniqueWordsTransformer(TransformerMixin, BaseEstimator):
-    """
-     Returns the number of unique words in a sentence
+    """Returns the number of unique words in a sentence
     """
 
     def __init__(self) -> None:
@@ -172,8 +133,7 @@ class UniqueWordsTransformer(TransformerMixin, BaseEstimator):
 
 
 class LengthTransformer(TransformerMixin, BaseEstimator):
-    """
-    Determins if sentence is longer than a certain length
+    """Determins if sentence is longer than a certain length
     """
 
     def __init__(self, word_length: int = None):
@@ -192,8 +152,7 @@ class LengthTransformer(TransformerMixin, BaseEstimator):
 
 
 class AverageWordLengthTransformer(TransformerMixin, BaseEstimator):
-    """
-    Calculates the average word length for a document
+    """Calculates the average word length for a document
     """
 
     def fit(self, x, y):
@@ -210,8 +169,7 @@ class AverageWordLengthTransformer(TransformerMixin, BaseEstimator):
 
 
 class DiscourseMatcher(TransformerMixin, BaseEstimator):
-    """
-    Checks for indications of discourse in text
+    """Checks for indications of discourse in text
 
     indicators can be seen in data/indicators.py
     """
@@ -292,57 +250,8 @@ class FirstPersonIndicatorMatcher(TransformerMixin, BaseEstimator):
         return [[self.__contains_indicator__(x)] for x in doc]
 
 
-class CountPunctuationVectorizer(CountVectorizer):
-    """
-
-    """
-
-    def __init__(self):
-        self.punctuation = [character for character in (string.punctuation + "£")]
-        super().__init__(tokenizer=PunctuationTokeniser())
-
-    def prepare_doc(self, doc):
-        _doc = doc
-        _doc = _doc.replace("\\r\\n", " ")
-        for character in (_doc):
-            if character not in self.punctuation:
-                _doc = _doc.replace(character, "", 1)
-        return _doc
-
-    def build_analyzer(self):
-        def analyzer(doc):
-            p = self.build_preprocessor()
-            return p(self.prepare_doc(doc))
-
-        return analyzer
-
-
-class TfidfPunctuationVectorizer(TfidfVectorizer):
-    """
-
-    """
-
-    def __init__(self):
-        self.punctuation = [character for character in string.punctuation]
-        super().__init__(tokenizer=PunctuationTokeniser())
-
-    def prepare_doc(self, doc):
-        _doc = doc
-        _doc = _doc.replace("\\r\\n", " ")
-        for character in (_doc):
-            if character not in self.punctuation:
-                _doc = _doc.replace(character, "", 1)
-        return _doc
-
-    def build_analyzer(self):
-        def analyzer(doc):
-            p = self.build_preprocessor()
-            return p(self.prepare_doc(doc))
-
-        return analyzer
-
-
 class EmbeddingTransformer(TransformerMixin, BaseEstimator):
+    """Return the summed word vector of a component"""
     _nlp = spacy_download(
         disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
                  'attribute_ruler',
@@ -356,15 +265,8 @@ class EmbeddingTransformer(TransformerMixin, BaseEstimator):
         return [[y.vector_norm] for y in x]
 
 
-class BiasTransformer(TransformerMixin, BaseEstimator):
-    def fit(self, x, y):
-        return self
-
-    def transform(self, x):
-        return [[True] for _ in x]
-
-
 class SharedNouns(TransformerMixin, BaseEstimator):
+    """Extracts the number of shared nouns from two argument components"""
     lemmatiser = Lemmatiser()
 
     def fit(self, x, y=None):
@@ -377,57 +279,3 @@ class SharedNouns(TransformerMixin, BaseEstimator):
                          (pos[:2] == 'NN')]
 
         return len(set(nouns_in_arg1).intersection(nouns_in_arg2))
-
-
-class ProductionRules(TransformerMixin, BaseEstimator):
-
-    def __init__(self, max_rules=500):
-        self._production_rules = []
-        self._n_rules = max_rules
-        self.__nlp = spacy_download(
-            disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
-                     'attribute_ruler',
-                     'tok2vec'])
-
-    @property
-    def production_rules(self):
-        return self._production_rules
-
-    def fit(self, x, y=None):
-        logger.debug(f"Fitting {self.__class__.__name__}")
-        self._production_rules = []
-
-        x = list(self.__nlp.pipe(x))
-
-        for item in x:
-
-            productions = self.get_productions(item)
-            for p in productions:
-                self._production_rules.append(p)
-
-        self._production_rules = Counter(self.production_rules).most_common(self._n_rules)
-        self._production_rules = [str(p[0]) for p in self.production_rules]
-
-        return self
-
-    @staticmethod
-    @lru_cache(maxsize=None)
-    def get_productions(item):
-        parse_string = list(item.sents)[0]._.parse_string
-        tree = nltk.Tree.fromstring(parse_string)
-        return tree.productions()
-
-    @lru_cache(maxsize=None)
-    def process_item(self, x):
-        productions = self.get_productions(x)
-        productions = [str(p) for p in productions]
-
-        out = [0 for _ in self.production_rules]
-        for i, rule in enumerate(self.production_rules):
-            if rule in productions:
-                out[i] = 1
-        return out
-
-    def transform(self, x):
-        x = self.__nlp.pipe(x)
-        return [self.process_item(_x) for _x in x]

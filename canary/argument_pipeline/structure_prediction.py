@@ -37,19 +37,19 @@ class StructurePredictor(Model):
         from canary.corpora import load_essay_corpus
         from imblearn.over_sampling import RandomOverSampler
         from sklearn.model_selection import train_test_split
+        logger.debug("Resample")
 
-        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
+        ros = RandomOverSampler(random_state=0, sampling_strategy='not majority')
         x, y = load_essay_corpus(purpose="relation_prediction")
         x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
-                             train_size=0.6,
+                             train_size=0.7,
                              shuffle=True,
                              random_state=0,
                              )
 
-        logger.debug("Resample")
 
         return list(train_data.to_dict("index").values()), list(test_data.to_dict("index").values()), train_targets[
             0].tolist(), test_targets[0].tolist()
@@ -189,20 +189,18 @@ class StructureFeatures(TransformerMixin, BaseEstimator):
         def get_features(f):
             new_feats = f.copy()
             for t, d in enumerate(new_feats):
-                sent1 = nlp(d["arg1_covering_sentence"])
-                sent2 = nlp(d["arg2_covering_sentence"])
+                sent1 = nlp(d.get("arg1_covering_sentence"))
+                sent2 = nlp(d.get("arg2_covering_sentence"))
                 new_feats[t] = {
-                    "arg1_position": d["arg1_position"],
-                    "arg2_position": d["arg2_position"],
-                    'arg1_preceding_tokens': d['arg1_preceding_tokens'],
-                    "arg1_following_tokens": d["arg1_following_tokens"],
-                    'arg2_preceding_tokens': d['arg2_preceding_tokens'],
-                    "arg2_following_tokens": d["arg2_following_tokens"],
+                    "arg1_position": d.get("arg1_position"),
+                    "arg2_position": d.get("arg2_position"),
+                    'arg1_preceding_tokens': d.get('arg1_preceding_tokens'),
+                    "arg1_following_tokens": d.get("arg1_following_tokens"),
+                    'arg2_preceding_tokens': d.get('arg2_preceding_tokens'),
+                    "arg2_following_tokens": d.get("arg2_following_tokens"),
                     "sentence_similarity_norm": sent1.similarity(sent2),
-                    "n_preceding_components": d["n_preceding_components"],
-                    "n_following_components": d["n_following_components"],
-                    "n_attack_components": d["n_attack_components"],
-                    "n_support_components": d["n_support_components"],
+                    "n_preceding_components": d.get("n_preceding_components"),
+                    "n_following_components": d.get("n_following_components"),
                     "neg_present_arg1": StructureFeatures._binary_neg_present(sent1.text),
                     "neg_present_arg2": StructureFeatures._binary_neg_present(sent2.text),
                 }

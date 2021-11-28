@@ -46,13 +46,13 @@ class LinkPredictor(Model):
         from imblearn.over_sampling import RandomOverSampler
         from sklearn.model_selection import train_test_split
 
-        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
+        ros = RandomOverSampler(random_state=0, sampling_strategy='not majority')
         x, y = load_essay_corpus(purpose='link_prediction')
         x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
 
         train_data, test_data, train_targets, test_targets = \
             train_test_split(x, y,
-                             train_size=0.5,
+                             train_size=0.6,
                              shuffle=True,
                              random_state=0,
                              )

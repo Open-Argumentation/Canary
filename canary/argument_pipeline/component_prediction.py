@@ -1,4 +1,5 @@
 import pandas
+from imblearn.over_sampling import RandomOverSampler
 from nltk.tree import Tree
 from scipy.sparse import hstack
 from sklearn.base import TransformerMixin, BaseEstimator
@@ -11,8 +12,8 @@ from sklearn.svm import SVC
 from ..argument_pipeline.base import Model
 from ..corpora import load_essay_corpus
 from ..nlp import Lemmatiser, PosDistribution
-from ..nlp.transformers import DiscourseMatcher, EmbeddingTransformer
 from ..nlp._utils import spacy_download
+from ..nlp.transformers import DiscourseMatcher, EmbeddingTransformer
 from ..utils import logger
 
 _nlp = spacy_download(disable=['ner', 'textcat', 'tagger', 'lemmatizer', 'tokenizer',
@@ -41,8 +42,7 @@ class ArgumentComponent(Model):
     def default_train():
         """The default training method. ArgumentComponent defaults to using the essay corpus with undersampling."""
         from sklearn.model_selection import train_test_split
-        from imblearn.under_sampling import RandomUnderSampler
-        ros = RandomUnderSampler(random_state=0, sampling_strategy='not minority')
+        ros = RandomOverSampler(random_state=0, sampling_strategy='not majority')
 
         x, y = load_essay_corpus(purpose="component_prediction")
         x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
@@ -86,7 +86,7 @@ class ArgumentComponentFeatures(TransformerMixin, BaseEstimator):
     """Transformer Mixin that extracts features for the ArgumentComponent model"""
 
     features: list = [
-        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatiser(), lowercase=False, binary=True),
+        TfidfVectorizer(ngram_range=(1, 1), tokenizer=Lemmatiser(), lowercase=False),
         TfidfVectorizer(ngram_range=(2, 2), tokenizer=Lemmatiser(), lowercase=False, max_features=2000),
         DiscourseMatcher('forward'),
         DiscourseMatcher('thesis'),

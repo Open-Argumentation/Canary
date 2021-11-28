@@ -11,8 +11,9 @@ from typing import Optional, Union
 
 import nltk
 from pybrat.parser import BratParser
-from ..utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION, logger
+
 from ..nlp._utils import nltk_download
+from ..utils import CANARY_ROOT_DIR, CANARY_CORPORA_LOCATION, logger
 
 __all__ = [
     "download_corpus",
@@ -245,9 +246,9 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
         return essays
 
     elif purpose == "argument_detection":
-        X, Y = [], []
+        data, labels = [], []
         for essay in essays:
-            sentences, labels = [], []
+            sentences, _labels = [], []
             essay.sentences = tokenize_essay_sentences(essay)
             for sentence in essay.sentences:
                 sentences.append(sentence)
@@ -256,14 +257,14 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
                     if component.mention in sentence:
                         is_argumentative = True
                         break
-                labels.append(is_argumentative)
-            X += sentences
-            Y += labels
+                _labels.append(is_argumentative)
+            data += sentences
+            labels += _labels
 
-        return X, Y
+        return data, labels
 
     elif purpose == "component_prediction":
-        X, Y = [], []
+        data, labels = [], []
         for essay in essays:
             essay.sentences = tokenize_essay_sentences(essay)
             for entity in essay.entities:
@@ -284,20 +285,20 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
 
                 component_feats.update({"len_cover_sen": len(nltk.word_tokenize(component_feats['cover_sentence']))})
                 component_feats.update(find_component_features(essay, entity))
-                X.append(component_feats)
+                data.append(component_feats)
                 if merge_claims is False:
-                    Y.append(entity.type)
+                    labels.append(entity.type)
                 else:
                     if entity.type == "MajorClaim":
-                        Y.append("Claim")
+                        data.append("Claim")
                     else:
-                        Y.append(entity.type)
+                        labels.append(entity.type)
 
-        return X, Y
+        return data, labels
 
     elif purpose == "link_prediction":
 
-        x, y = [], []
+        data, labels = [], []
 
         for essay in essays:
             _x = []
@@ -418,19 +419,13 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
                         _x.append(feats)
                         _y.append("Not Linked")
 
-            x += _x
-            y += _y
-
-        # 14227 + 4113
-        # 18340
-        from collections import Counter
-        counts = Counter(y)
-        logger.debug(counts)
-        return x, y
+            data += _x
+            labels += _y
+        return data, labels
 
     elif purpose == "relation_prediction":
-        X = []
-        Y = []
+        data = []
+        labels = []
 
         for essay in essays:
 
@@ -450,14 +445,14 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
 
                 find_paragraph_features(features, relation, essay)
 
-                X.append(features)
-                Y.append(relation.type)
+                data.append(features)
+                labels.append(relation.type)
 
-        return X, Y
+        return data, labels
 
     elif purpose == "sequence_labelling":
-        X = []
-        Y = []
+        data = []
+        labels = []
 
         sentence_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
         sentence_tokenizer._params.abbrev_types.update(['i.e', "e.g", "etc"])
@@ -563,20 +558,20 @@ def load_essay_corpus(purpose=None, merge_claims=False, version=2) -> Union[tupl
                 logger.warn("...")
 
             else:
-                X = x1 + X
-                Y = y1 + Y
+                data = x1 + data
+                labels = y1 + labels
 
         # If data and label shapes are not the same, the algorithm will not work.
         # Check this ahead of time
         errors = 0
-        for j in zip(X, Y):
+        for j in zip(data, labels):
             if len(j[0]) != len(j[1]):
                 errors += 1
 
         if errors > 0:
             raise ValueError(f'Data is incorrect shape. Number of errors {errors}')
 
-        return X, Y
+        return data, labels
 
 
 def load_araucaria_corpus() -> dict:

@@ -3,11 +3,13 @@ of natural language.
 """
 import glob
 import itertools
-import zipfile
-import joblib
-from pathlib import Path
 import os
+import zipfile
+from pathlib import Path
+
+import joblib
 import requests
+
 from ._utils import models_available_on_disk, get_models_not_on_disk, get_downloadable_assets_from_github, \
     log_training_data
 
@@ -313,7 +315,7 @@ def analyse(document: str, min_link_confidence=0.8, min_support_confidence=0.8,
         # Create a sadface document for what we have found
         from sadface import sadface
         sadface.initialise()
-        sadface.set_title("doc")
+        sadface.set_title("Canary Analysis")
 
         # Create atoms
         for c in components:

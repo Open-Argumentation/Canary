@@ -45,7 +45,7 @@ class ArgumentDetector(Model):
         """Default training method which supplies the default training set"""
         from imblearn.over_sampling import RandomOverSampler
 
-        ros = RandomOverSampler(random_state=0, sampling_strategy=0.5)
+        ros = RandomOverSampler(random_state=0, sampling_strategy='not majority')
         x, y = load_essay_corpus(purpose="argument_detection")
 
         x, y = ros.fit_resample(pandas.DataFrame(x), pandas.DataFrame(y))
