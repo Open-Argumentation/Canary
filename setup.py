@@ -1,12 +1,11 @@
-from setuptools import setup
+import pathlib
 
-setup(name='canary',
-      version='1.1',
-      description='Testing Canary',
-      url='https://github.com/C-CG/Canary',
-      author='Calvin-Castle Gill',
-      author_email='calvincgill@gmail.com',
-      license='MIT',
-      packages=['canary'],
-      include_package_data=True,
-      zip_safe=False)
+from setuptools import setup, find_packages
+
+README = (pathlib.Path(__file__).parent / "README.md").read_text()
+
+setup(
+    packages=find_packages(exclude=['tests', 'etc']),
+    long_description=README,
+    long_description_content_type="text/markdown"
+)
