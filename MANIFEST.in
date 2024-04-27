@@ -1,2 +1,2 @@
-include data/*
-include output/*
+include canary/etc/*
+recursive-include canary/_data *

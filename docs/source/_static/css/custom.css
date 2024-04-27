@@ -1,0 +1,14 @@
+.indextable .genindextable {
+    max-width: 100%;
+    width: 100%;
+}
+
+section.genindex-section > table > tbody > tr {
+    display: flex;
+    flex-direction: column;
+}
+
+div.main > div.content h2 {
+    word-break: break-word;
+}
+
